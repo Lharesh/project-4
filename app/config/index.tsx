@@ -10,8 +10,8 @@ import {
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { logout } from '@/redux/slices/authSlice';
 import { saveConfig } from '@/redux/slices/configSlice';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import { Picker, PickerItem } from '@/components/ui/Picker';
 import { SectionDivider } from '@/components/ui/SectionDivider';
 import { Toast } from '@/components/ui/Toast';
@@ -530,14 +530,14 @@ const styles = StyleSheet.create({
 
 // ... keep all your current ConfigScreen code unchanged
 
-export const options = {
+export const options = ({ navigation }: { navigation: any }) => ({
   title: 'Settings',
   headerLeft: () => (
     <TouchableOpacity
       style={{ paddingLeft: 16 }}
-      onPress={() => router.back()}
+      onPress={() => navigation.goBack()}
     >
       <ArrowLeft size={24} color={COLORS.neutral[700]} />
     </TouchableOpacity>
   ),
-};
+});

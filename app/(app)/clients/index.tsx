@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchClients } from '@/redux/slices/clientsSlice';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import { COLORS } from '@/constants/theme';
 import { ChevronRight, Phone, Mail, Search, Plus } from 'lucide-react-native';
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { TextInput } from './TextInput';
-import { Button } from './Button';
-import { Picker } from './Picker';
+import TextInput from './TextInput';
+import Button from './Button';
+import {Picker} from './Picker';
 
 interface TemplateFormCardProps {
   name: string;

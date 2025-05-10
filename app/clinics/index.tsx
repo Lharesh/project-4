@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,8 @@ import {
 import { router, useNavigation } from 'expo-router';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { updateClinic } from '@/redux/slices/clinicSlice';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import { SectionDivider } from '@/components/ui/SectionDivider';
 import { Toast } from '@/components/ui/Toast';
 import { COLORS } from '@/constants/theme';
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.vata[50],
+    backgroundColor: COLORS.vata[100],
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,

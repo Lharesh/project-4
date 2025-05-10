@@ -39,7 +39,7 @@ export default function ClinicDashboardScreen() {
   if (!currentClinic) return null;
 
   const handleSetupNavigation = (route: string) => {
-    router.push(`/(admin)/clinics/setup/${route}`);
+    router.push(`/(admin)/clinics/setup/${route}` as any);
   };
 
   return (
