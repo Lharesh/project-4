@@ -89,7 +89,7 @@ export default function ClinicDashboardScreen() {
             title="Treatment Slots"
             value="Setup Services"
             icon={<Settings size={24} color={COLORS.vata[500]} />}
-            onPress={() => handleSetupNavigation('reports')}
+            onPress={() => handleSetupNavigation('treatment-slots')}
             color="kapha"
           />
           <DashboardCard

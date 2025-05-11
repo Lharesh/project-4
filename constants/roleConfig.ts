@@ -1,4 +1,4 @@
-import { Calendar, Users, BarChart3, Settings } from 'lucide-react-native';
+import { Calendar, Users, BarChart3, Settings, ShoppingBasketIcon } from 'lucide-react-native';
 
 export type TabConfig = {
   name: string;             // used in router/navigation
@@ -19,6 +19,7 @@ export const ROLE_TABS: Record<string, TabConfig[]> = {
     // { name: 'dashboard', label: 'Dashboard', route: '/admin/dashboard', icon: BarChart3, type: 'admin' },
     { name: 'config', label: 'Setups', route: '/config', icon: Settings, type: 'admin' },
     { name: 'clinics', label: 'Dashboard', route: '/clinics', icon: BarChart3, type: 'admin' },
+    { name: 'inventory', label: 'Inventory', route: '/inv/pages', icon: ShoppingBasketIcon, type: 'admin' },
   ],
 
   doctor: [

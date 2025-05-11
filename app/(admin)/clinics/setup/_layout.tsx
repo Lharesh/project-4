@@ -4,11 +4,11 @@ import { getHeaderWithBack } from '@/utils/navigationOptions';
 export default function SetupLayout() {
   return (
     <Stack
-      screenOptions={{
-        headerShown: true, // prevent extra "setup" header
-        headerBackTitleVisible: false,
-      }}
-    >
+    screenOptions={{
+      headerShown: true, // prevent extra "setup" header
+      headerBackVisible: false, // Hides the back button
+    }}
+  >
       <Stack.Screen
         name="clinic-timings"
         options={getHeaderWithBack('Clinic Timings')}

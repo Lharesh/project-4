@@ -43,6 +43,7 @@ export interface WhatsAppTemplate {
 
 interface SetupState {
   timings: ClinicTimings;
+  draftTimings?: ClinicTimings;
   treatmentSlots: TreatmentSlot[];
   staff: StaffMember[];
   whatsappTemplates: WhatsAppTemplate[];
@@ -62,6 +63,7 @@ const initialState: SetupState = {
       sunday: { isOpen: false, start: '09:00', end: '18:00', status: 'working' },
     },
   },
+  draftTimings: undefined,
   treatmentSlots: [],
   staff: [],
   whatsappTemplates: [],
@@ -206,6 +208,9 @@ const setupSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    setDraftTimings: (state, action: PayloadAction<ClinicTimings>) => {
+      state.draftTimings = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -310,5 +315,5 @@ const setupSlice = createSlice({
   },
 });
 
-export const { clearError } = setupSlice.actions;
+export const { clearError, setDraftTimings } = setupSlice.actions;
 export default setupSlice.reducer;

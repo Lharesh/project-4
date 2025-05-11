@@ -8,6 +8,7 @@ import appointmentsReducer from './slices/appointmentsSlice';
 import clientsReducer from './slices/clientsSlice';
 import setupReducer from './slices/setupSlice';
 import reportsReducer from './slices/reportsSlice';
+import invReducer from './slices/inv.slice';
 
 // Persist configuration for reports
 const reportsPersistConfig = {
@@ -27,6 +28,7 @@ export const store = configureStore({
     clients: clientsReducer,
     setup: setupReducer,
     reports: persistedReportsReducer,
+    inventory: invReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
