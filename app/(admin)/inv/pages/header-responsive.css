@@ -1,0 +1,41 @@
+/* Responsive styles for the inventory header (search bar and icons group) */
+
+@media (max-width: 700px) {
+  .responsive-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  .responsive-header-search {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+  .responsive-header-icons {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-top: 8px !important;
+    justify-content: flex-start !important;
+  }
+}
+
+@media (min-width: 701px) {
+  .responsive-header-row {
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+  .responsive-header-search {
+    flex: 1 1 250px !important;
+    min-width: 200px !important;
+    margin-bottom: 0 !important;
+  }
+  .responsive-header-icons {
+    flex-direction: row !important;
+    align-items: center !important;
+    margin-left: 12px !important;
+    width: auto !important;
+    min-width: 120px !important;
+    margin-top: 0 !important;
+    justify-content: flex-end !important;
+  }
+}

@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import authReducer from './slices/authSlice';
 import clinicReducer from './slices/clinicSlice';
 import configReducer from './slices/configSlice';
@@ -13,7 +13,7 @@ import invReducer from './slices/inv.slice';
 // Persist configuration for reports
 const reportsPersistConfig = {
   key: 'reports',
-  storage,
+  storage: AsyncStorage,
   whitelist: ['filters'], // Only persist filters
 };
 

@@ -1,6 +1,8 @@
 let _mockInventoryList = [
   {
+    active: true,
     id: "SKU1",
+    sku: "SKU1",
     name: "Ashwagandha Churna",
     brand: "Kottakkal",
     type: "Churna",
@@ -12,7 +14,9 @@ let _mockInventoryList = [
     expiry: "2025-11-01"
   },
   {
+    active: true,
     id: "SKU2",
+    sku: "SKU2",
     name: "Brahmi Oil",
     brand: "Arya Vaidya Sala",
     type: "Oil",
@@ -24,7 +28,9 @@ let _mockInventoryList = [
     expiry: "2025-09-15"
   },
   {
+    active: true,
     id: "SKU3",
+    sku: "SKU3",
     name: "Triphala Tablet",
     brand: "Dabur",
     type: "Tablet",
@@ -36,7 +42,9 @@ let _mockInventoryList = [
     expiry: "2024-12-30"
   },
   {
+    active: true,
     id: "SKU4",
+    sku: "SKU4",
     name: "Kumari Asava",
     brand: "Baidyanath",
     type: "Asava",

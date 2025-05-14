@@ -15,14 +15,18 @@ interface InvState {
   uploadErrors: UploadError[];
   lastUploadSummary?: LastUploadSummary;
   successMessage: string | null;
+  searchQuery: string;
+  columnFilters: Record<string, string>; // key: column field, value: filter string
 }
 
 const initialState: InvState = {
-  inventoryList: getMockInventoryList(),
+  inventoryList: getMockInventoryList().map(item => ({ ...item, active: true })),
   loading: false,
   uploadErrors: [],
   lastUploadSummary: undefined,
   successMessage: null,
+  searchQuery: '',
+  columnFilters: {},
 };
 
 // --- Thunks ---
@@ -43,11 +47,11 @@ export const addInventoryItem = createAsyncThunk(
   async (data: InventoryItem, thunkAPI) => {
     try {
       const result = await inventoryService.addItem(data);
-      console.log('[Thunk:addInventoryItem] Added:', result);
+      console.log('[Redux:addInventoryItem] Success:', result);
       return result;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.log('[Thunk:addInventoryItem] Error:', message);
+      console.error('[Redux:addInventoryItem] Error:', message);
       return thunkAPI.rejectWithValue(message);
     }
   }
@@ -58,11 +62,11 @@ export const updateInventoryItem = createAsyncThunk(
   async ({ id, data }: { id: string; data: Partial<InventoryItem> }, thunkAPI) => {
     try {
       const result = await inventoryService.editItem(id, data);
-      console.log('[Thunk:updateInventoryItem] Updated:', result);
+      console.log('[Redux:updateInventoryItem] Success:', result);
       return result;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.log('[Thunk:updateInventoryItem] Error:', message);
+      console.error('[Redux:updateInventoryItem] Error:', message);
       return thunkAPI.rejectWithValue(message);
     }
   }
@@ -73,11 +77,11 @@ export const deleteInventoryItem = createAsyncThunk(
   async (id: string, thunkAPI) => {
     try {
       const result = await inventoryService.removeItem(id);
-      console.log('[Thunk:deleteInventoryItem] Deleted id:', result);
+      
       return result;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.log('[Thunk:deleteInventoryItem] Error:', message);
+      
       return thunkAPI.rejectWithValue(message);
     }
   }
@@ -169,8 +173,20 @@ const invSlice = createSlice({
   name: 'inventory',
   initialState,
   reducers: {
+    setColumnFilter(state, action: PayloadAction<{ field: string; value: string }>) {
+      state.columnFilters[action.payload.field] = action.payload.value;
+    },
+    clearColumnFilter(state, action: PayloadAction<string>) {
+      delete state.columnFilters[action.payload];
+    },
+    clearAllColumnFilters(state) {
+      state.columnFilters = {};
+    },
     setInventoryList(state, action: PayloadAction<InventoryItem[]>) {
       state.inventoryList = action.payload;
+    },
+    setSearchQuery(state, action: PayloadAction<string>) {
+      state.searchQuery = action.payload;
     },
     setLoading(state, action: PayloadAction<boolean>) {
       state.loading = action.payload;
@@ -210,19 +226,19 @@ const invSlice = createSlice({
       })
       .addCase(addInventoryItem.fulfilled, (state, action: PayloadAction<InventoryItem>) => {
         state.loading = false;
-        state.inventoryList.push(action.payload);
-        console.log('[Reducer:addInventoryItem.fulfilled] Inventory after add:', state.inventoryList);
+        state.inventoryList.unshift(action.payload);
+        
       })
       .addCase(updateInventoryItem.fulfilled, (state, action: PayloadAction<InventoryItem>) => {
         const idx = state.inventoryList.findIndex(item => item.id === action.payload.id);
         if (idx !== -1) {
-          state.inventoryList[idx] = action.payload;
-          console.log('[Reducer:updateInventoryItem.fulfilled] Inventory after update:', state.inventoryList);
+          state.inventoryList[idx] = { ...state.inventoryList[idx], ...action.payload };
+          
         }
       })
       .addCase(deleteInventoryItem.fulfilled, (state, action: PayloadAction<string>) => {
         state.inventoryList = state.inventoryList.filter(item => item.id !== action.payload);
-        console.log('[Reducer:deleteInventoryItem.fulfilled] Inventory after delete:', state.inventoryList);
+        
       });
   }
 });
@@ -233,7 +249,11 @@ export const {
   setUploadErrors,
   setLastUploadSummary,
   setSuccessMessage,
-  clearInventoryState
+  clearInventoryState,
+  setSearchQuery,
+  setColumnFilter,
+  clearColumnFilter,
+  clearAllColumnFilters
 } = invSlice.actions;
 
 export default invSlice.reducer;

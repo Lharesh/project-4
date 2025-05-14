@@ -17,7 +17,7 @@ import { Check, X, Edit2, Calendar } from 'lucide-react-native';
 export interface FieldDescriptor {
   field: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'date';
+  type: 'text' | 'number' | 'select' | 'date' | 'checkbox';
   required?: boolean;
   optionsKey?: 'typeOptions' | 'unitOptions';
 }
@@ -163,7 +163,7 @@ const EditableRow: React.FC<EditableRowProps> = ({
   );
 }
 
-        if (!isEditing) {
+        if (!isEditing && col.type !== 'checkbox') {
           return (
             <View style={[...cellBaseStyle, { width: getCellWidth(), borderRightWidth: 1, borderColor: '#eee', backgroundColor: '#fff' }]} key={col.field}>
               <Text style={[styles.cell, { textAlign: dataCellTextAlign || 'left' }]}>{String(value ?? '')}</Text>
@@ -173,6 +173,36 @@ const EditableRow: React.FC<EditableRowProps> = ({
         }
 
         switch (col.type) {
+          case 'checkbox':
+            return (
+              Platform.OS === 'web' ? (
+                <div key={col.field} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: getCellWidth(), borderRight: '1px solid #eee', background: '#fff', height: '100%' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!value}
+                    onChange={e => onChange(col.field, e.target.checked)}
+                    disabled={!isEditing && !isNew}
+                    style={{ width: 20, height: 20, accentColor: '#4caf50', cursor: (isEditing || isNew) ? 'pointer' : 'not-allowed' }}
+                  />
+                  {error && <span style={{ color: 'red', fontSize: 11, marginLeft: 4 }}>{error}</span>}
+                </div>
+              ) : (
+                <View style={[cellBaseStyle, { width: getCellWidth(), borderRightWidth: 1, borderColor: '#eee', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }]} key={col.field}>
+                  <TouchableOpacity
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: !!value }}
+                    onPress={() => (isEditing || isNew) && onChange(col.field, !value)}
+                    style={{ width: 22, height: 22, borderWidth: 1, borderColor: (isEditing || isNew) ? '#888' : '#bbb', borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: value ? '#4caf50' : '#fff', opacity: (isEditing || isNew) ? 1 : 0.7 }}
+                    disabled={!(isEditing || isNew)}
+                  >
+                    {value ? (
+                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>✓</Text>
+                    ) : null}
+                  </TouchableOpacity>
+                  {error && <Text style={styles.error}>{error}</Text>}
+                </View>
+              )
+            );
           case 'text':
             return (
               <View style={[cellBaseStyle, { width: getCellWidth(), borderRightWidth: 1, borderColor: '#eee', backgroundColor: '#fff' }]} key={col.field}>

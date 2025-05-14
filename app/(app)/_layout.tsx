@@ -17,7 +17,10 @@ import { ROLE_TABS } from '@/constants/roleConfig';
 
 export default function AppLayout() {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  // const { isAuthenticated, user } = useAppSelector((state) => state.auth); // [LOGIN BYPASS] Commented for no-login mode
+  // [LOGIN BYPASS] Fake user for bypassing login
+  const user = { role: 'admin' }; // Set role as needed for testing
+
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const segments = useSegments();
 
@@ -35,23 +38,19 @@ export default function AppLayout() {
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
-      if (!isAuthenticated) {
-        router.replace('/auth/login');
-      } else {
-        dispatch(fetchClinic());
-        dispatch(fetchConfig());
-
-        if (segments.join('/') === '(app)') {
-          router.replace('/appointments');
-        }
+      // [LOGIN BYPASS] Auth redirect disabled for demo/testing
+      dispatch(fetchClinic());
+      dispatch(fetchConfig());
+      if (segments.join('/') === '(app)') {
+        router.replace('/appointments');
       }
     });
     return () => task.cancel();
-  }, [isAuthenticated, user?.role]);
+  }, [user?.role]);
 
   const toggleAdminMenu = () => setShowAdminMenu(!showAdminMenu);
 
-  if (!user?.role) return null;
+  // if (!user?.role) return null; // [LOGIN BYPASS] Hide auth check for no-login mode
 
   return (
     <>

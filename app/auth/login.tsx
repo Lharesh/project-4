@@ -31,11 +31,11 @@ export default function LoginScreen() {
     setIsFormValid(email.trim() !== '' && password.trim() !== '');
   }, [email, password]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/');
-    }
-  }, [isAuthenticated]);
+  // useEffect(() => {
+//     if (isAuthenticated) {
+//       router.replace('/');
+//     }
+//   }, [isAuthenticated]);
 
   useEffect(() => {
     if (error) {

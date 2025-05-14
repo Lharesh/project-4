@@ -99,12 +99,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6, // Halved from 12
   },
   container: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 16,
+    padding: 8, // Halved from 16
     shadowColor: COLORS.neutral[900],
     shadowOffset: {
       width: 0,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   body: {
-    padding: 16,
+    padding: 8, // Halved from 16
   },
 });
 

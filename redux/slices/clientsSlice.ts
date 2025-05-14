@@ -2,16 +2,24 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 
 export interface Client {
-  id: string;
+  id: string; // CNT-001 style
   name: string;
-  phone: string;
+  mobile: string;
+  altMobile: string;
+  mobileCode: string;
+  altMobileCode: string;
+  gender: 'Male' | 'Female' | 'Other';
   email: string;
-  patientId: string;
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other';
-  address: string;
-  createdAt: string;
-}
+  dob: string;
+  height?: number;
+  weight?: number;
+  presentComplaints: string;
+  knownIssues: string[];
+  pastIllnesses: string;
+  allergies: string;
+  familyHistory: string;
+  currentMedication: string;
+} 
 
 interface ClientsState {
   clients: Client[];
@@ -20,47 +28,68 @@ interface ClientsState {
 }
 
 const initialState: ClientsState = {
-  clients: [],
+  clients: [
+    {
+      id: 'CNT-001',
+      name: 'John Smith',
+      mobile: '+919876543210',
+      altMobile: '+919812345678',
+      mobileCode: '+91',
+      altMobileCode: '+91',
+      gender: 'Male',
+      email: 'john.smith@example.com',
+      dob: '1985-06-15',
+      height: 175,
+      weight: 70,
+      presentComplaints: 'Back pain',
+      knownIssues: ['Diabetes'],
+      pastIllnesses: 'Chickenpox',
+      allergies: 'Penicillin',
+      familyHistory: 'Heart Disease',
+      currentMedication: 'Metformin',
+    },
+    {
+      id: 'CNT-002',
+      name: 'Sarah Johnson',
+      mobile: '+919812345678',
+      altMobile: '+918888888888',
+      mobileCode: '+91',
+      altMobileCode: '+91',
+      gender: 'Female',
+      email: 'sarah.j@example.com',
+      dob: '1990-03-22',
+      height: 160,
+      weight: 55,
+      presentComplaints: 'Headache',
+      knownIssues: [],
+      pastIllnesses: '',
+      allergies: '',
+      familyHistory: '',
+      currentMedication: '',
+    },
+    {
+      id: 'CNT-003',
+      name: 'Michael Brown',
+      mobile: '+919800112233',
+      altMobile: '',
+      mobileCode: '+91',
+      altMobileCode: '+91',
+      gender: 'Male',
+      email: 'michael.b@example.com',
+      dob: '1978-11-30',
+      height: 180,
+      weight: 85,
+      presentComplaints: '',
+      knownIssues: ['Hypertension'],
+      pastIllnesses: '',
+      allergies: '',
+      familyHistory: '',
+      currentMedication: 'Amlodipine',
+    },
+  ],
   isLoading: false,
   error: null,
 };
-
-// Mock data
-const MOCK_CLIENTS: Client[] = [
-  {
-    id: 'client1',
-    name: 'John Smith',
-    phone: '+1 (555) 123-4567',
-    email: 'john.smith@example.com',
-    patientId: 'PAT001',
-    dateOfBirth: '1985-06-15',
-    gender: 'male',
-    address: '123 Main St, Anytown, ST 12345',
-    createdAt: '2023-01-15T00:00:00Z',
-  },
-  {
-    id: 'client2',
-    name: 'Sarah Johnson',
-    phone: '+1 (555) 234-5678',
-    email: 'sarah.j@example.com',
-    patientId: 'PAT002',
-    dateOfBirth: '1990-03-22',
-    gender: 'female',
-    address: '456 Oak Ave, Somewhere, ST 67890',
-    createdAt: '2023-02-01T00:00:00Z',
-  },
-  {
-    id: 'client3',
-    name: 'Michael Brown',
-    phone: '+1 (555) 345-6789',
-    email: 'michael.b@example.com',
-    patientId: 'PAT003',
-    dateOfBirth: '1978-11-30',
-    gender: 'male',
-    address: '789 Pine Rd, Elsewhere, ST 13579',
-    createdAt: '2023-02-15T00:00:00Z',
-  },
-];
 
 export const fetchClients = createAsyncThunk(
   'clients/fetchClients',
@@ -70,7 +99,7 @@ export const fetchClients = createAsyncThunk(
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Return mock clients
-      return MOCK_CLIENTS;
+      return initialState.clients;
     } catch (error) {
       return rejectWithValue('Error fetching clients');
     }
@@ -83,6 +112,13 @@ const clientsSlice = createSlice({
   reducers: {
     clearClientsError: (state) => {
       state.error = null;
+    },
+    addClient: (state, action: PayloadAction<Client>) => {
+      state.clients.push(action.payload);
+    },
+    updateClient: (state, action: PayloadAction<Client>) => {
+      const idx = state.clients.findIndex((c) => c.id === action.payload.id);
+      if (idx !== -1) state.clients[idx] = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -102,6 +138,6 @@ const clientsSlice = createSlice({
   },
 });
 
-export const { clearClientsError } = clientsSlice.actions;
+export const { clearClientsError, addClient, updateClient } = clientsSlice.actions;
 
 export default clientsSlice.reducer;

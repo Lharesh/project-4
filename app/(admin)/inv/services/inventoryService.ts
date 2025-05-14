@@ -14,7 +14,9 @@ export const inventoryService = {
   async addItem(item: InventoryItem): Promise<InventoryItem> {
     const id = item.id?.trim() || Math.random().toString(36).substring(2, 10);
     const newItem = { ...item, id };
+    console.log('[inventoryService.addItem] Adding item:', item);
     mockInventoryList.push(newItem);
+    console.log('[inventoryService.addItem] New item after push:', newItem);
     return newItem;
   },
 

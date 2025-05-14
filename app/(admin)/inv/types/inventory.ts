@@ -1,4 +1,13 @@
+/**
+ * InventoryItem: Represents an item in inventory.
+ *
+ * IMPORTANT: Both 'id' and 'sku' must be present and synchronized for
+ * validation and backend compatibility. Some validation and backend logic
+ * expects both fields, so always ensure both are set for every item.
+ */
 export interface InventoryItem {
+  sku: string; // SKU code
+  active: boolean; // Is Active (default: true)
   id: string;
   name: string;
   brand: string;
