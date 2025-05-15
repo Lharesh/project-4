@@ -70,7 +70,7 @@ function ClientsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   type ClientForm = Partial<Client> & { mobileCode: string; altMobileCode: string; age?: string; prefix?: string };
-const [form, setForm] = useState<ClientForm>(EMPTY_CLIENT);
+  const [form, setForm] = useState<ClientForm>(EMPTY_CLIENT);
 
   // Checkbox handler for known issues
   const handleKnownIssuesChange = (issue: string) => {
@@ -191,202 +191,265 @@ const [form, setForm] = useState<ClientForm>(EMPTY_CLIENT);
 
   // Debug: log clients and filteredClients on change
   React.useEffect(() => {
-    console.log('[UI-effect] Redux clients state:', clients);
-    console.log('[UI-effect] Filtered clients:', filteredClients);
+    // Optionally log or inspect state here
   }, [clients, filteredClients]);
 
   // Debug: log the full Redux state to check structure
   const fullReduxState = useAppSelector((state) => state);
   React.useEffect(() => {
-    console.log('[UI-effect] Full Redux state:', fullReduxState);
+    // Optionally log or inspect state here
   }, [fullReduxState]);
 
   return (
-    <>
-      <View style={clientStyles.container}>
-        {/* Search Bar */}
-        <View style={{ marginBottom: 8 }}>
-          <FormField
-            label="Search"
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search by name, phone, or ID"
-          />
+    <View style={clientStyles.container}>
+      {/* Search Bar */}
+      <View style={{ marginBottom: 8 }}>
+        <FormField
+          label="Search"
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by name, phone, or ID"
+        />
+      </View>
+      {!loading && filteredClients.length === 0 ? (
+        <View style={clientStyles.emptyContainer}>
+          <UserPlus2 size={48} color={COLORS.vata[500]} />
+          <Text style={clientStyles.emptyText}>You don't have any clients added yet.</Text>
         </View>
-        {!loading && filteredClients.length === 0 ? (
-          <View style={clientStyles.emptyContainer}>
-            <UserPlus2 size={48} color={COLORS.vata[500]} />
-            <Text style={clientStyles.emptyText}>You don't have any clients added yet.</Text>
-          </View>
-        ) : null}
+      ) : (
+        <ScrollView>
+          {filteredClients.map((client: Client) => (
+            <Card key={client.id} style={{ marginBottom: 12 }}>
+              <TouchableOpacity
+                onPress={() => { /* Future: open client detail */ }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '600', fontSize: 16 }}>{client.name}</Text>
+                  <Text style={{ color: COLORS.neutral[500], fontSize: 14 }}>
+                    Mobile: {client.mobile}
+                  </Text>
+                </View>
+                <ChevronRight size={20} color={COLORS.neutral[500]} />
+              </TouchableOpacity>
+            </Card>
+          ))}
+        </ScrollView>
+      )}
 
-        {/* Client List */}
-        {filteredClients.length > 0 && (
-          <ScrollView>
-            {filteredClients.map((client) => (
-              <Card key={client.id} style={{ marginBottom: 12 }}>
-                <TouchableOpacity
-                  onPress={() => { }}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '600', fontSize: 16 }}>{client.name}</Text>
-                    <Text style={{ color: COLORS.neutral[500], fontSize: 14 }}>
-                      Mobile: {client.mobile}
-                    </Text>
-                  </View>
-                  <ChevronRight size={20} color={COLORS.neutral[500]} />
-                </TouchableOpacity>
-              </Card>
-            ))}
-          </ScrollView>
-        )}
+      {/* Add Client Button */}
+      <TouchableOpacity
+        style={clientStyles.addButton}
+        onPress={() => {
+          setModalVisible(true);
+        }}
+        activeOpacity={0.85}
+      >
+        <Plus size={24} color={'#fff'} />
+      </TouchableOpacity>
 
-        {/* Add Client Button */}
-        <TouchableOpacity
-          style={clientStyles.addButton}
-          onPress={() => {
-            setModalVisible(true);
-          }}
-          activeOpacity={0.85}
-        >
-          <Plus size={24} color={'#fff'} />
-        </TouchableOpacity>
-
-        {/* Add/Update Client Modal */}
-        <Modal
-          visible={modalVisible}
-          animationType={Platform.OS === 'ios' ? 'slide' : 'fade'}
-          transparent={true}
-          onRequestClose={() => {
-            setModalVisible(false);
-            setForm(EMPTY_CLIENT);
-            setFormErrors({});
-          }}
-        >
-          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-            <View style={clientStyles.modalContainer}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>New Patient</Text>
-                <TouchableOpacity onPress={handleSubmit} style={{ marginRight: 16 }}>
-                  <SaveIcon size={26} color={COLORS.vata[500]} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setModalVisible(false); setForm(EMPTY_CLIENT); setFormErrors({}); }}>
-                  <CancelIcon size={26} color={COLORS.error} />
-                </TouchableOpacity>
+      {/* Add/Update Client Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType={Platform.OS === 'ios' ? 'slide' : 'fade'}
+        transparent={true}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setForm(EMPTY_CLIENT);
+          setFormErrors({});
+        }}
+      >
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={clientStyles.modalContainer}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>New Patient</Text>
+              <TouchableOpacity onPress={handleSubmit} style={{ marginRight: 16 }}>
+                <SaveIcon size={26} color={COLORS.vata[500]} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setModalVisible(false); setForm(EMPTY_CLIENT); setFormErrors({}); }}>
+                <CancelIcon size={26} color={COLORS.error} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {/* Row 1: Prefix + Name */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 18 }}>
+                {/* Prefix dropdown */}
+                <View style={{ width: 88, height: 44, justifyContent: 'center', alignItems: 'center', marginStart: 16 }}>
+                  <PrefixPicker
+                    value={form.prefix ? form.prefix : undefined}
+                    onChange={(v: string) => handleFormChange('prefix', v)}
+                  />
+                </View>
+                {/* Name input */}
+                <View style={{ flex: 1, justifyContent: 'center', marginBottom: 2 }}>
+                  <FormField
+                    label=""
+                    value={form.name || ''}
+                    onChange={(v: string) => handleFormChange('name', v)}
+                    placeholder="Name"
+                    error={formErrors.name}
+                    containerStyle={{ height: 44, justifyContent: 'center' }}
+                    inputStyle={{ height: 44, paddingVertical: 10, textAlignVertical: 'center', marginStart: 8 }}
+                  />
+                </View>
               </View>
-              <ScrollView>
-                {/* Row 1: Prefix + Name */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-                  <PrefixPicker value={form.prefix || 'Mr.'} onChange={(v: string) => handleFormChange('prefix', v)} />
-                  <View style={{ flex: 1 }}>
-                    <FormField label="" value={form.name || ''} onChange={(v: string) => handleFormChange('name', v)} placeholder="Name" error={formErrors.name} />
-                  </View>
+
+              {/* Row 2: Gender */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600' }}>Gender:</Text>
+                {['Male', 'Female', 'Other'].map((g) => (
+                  <TouchableOpacity key={g} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }} onPress={() => handleFormChange('gender', g)}>
+                    <View style={{
+                      height: 20,
+                      width: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: COLORS.vata[500],
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: form.gender === g ? COLORS.vata[100] : '#fff',
+                      marginRight: 2,
+                    }}>
+                      {form.gender === g && (
+                        <View style={{ height: 12, width: 12, borderRadius: 2, backgroundColor: COLORS.vata[500] }} />
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 15 }}>{g}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Row 3: Mobile Number */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <CountryCodePicker value={form.mobileCode || '+91'} onChange={(code: string) => handleFormChange('mobileCode', code)} />
+                <View style={{ flex: 1 }}>
+                  <FormField
+                    label=""
+                    value={form.mobile || ''}
+                    onChange={(v: string) => handleFormChange('mobile', v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    error={formErrors.mobile}
+                    placeholder="Mobile"
+                  />
                 </View>
-                {/* Row 2: Mobile, Alternate Mobile */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-                  <CountryCodePicker value={form.mobileCode || '+91'} onChange={(code: string) => handleFormChange('mobileCode', code)} />
-                  <View style={{ flex: 1 }}>
-                    <FormField label="" value={form.mobile || ''} onChange={(v: string) => handleFormChange('mobile', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.mobile} placeholder="Mobile" />
-                  </View>
-                  <CountryCodePicker value={form.altMobileCode || '+91'} onChange={(code: string) => handleFormChange('altMobileCode', code)} />
-                  <View style={{ flex: 1 }}>
-                    <FormField label="" value={form.altMobile || ''} onChange={(v: string) => handleFormChange('altMobile', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder="Alternate Mobile" />
-                  </View>
+              </View>
+
+              {/* Row 4: Alternate Mobile Number */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+                <CountryCodePicker value={form.altMobileCode || '+91'} onChange={(code: string) => handleFormChange('altMobileCode', code)} />
+                <View style={{ flex: 1 }}>
+                  <FormField
+                    label=""
+                    value={form.altMobile || ''}
+                    onChange={(v: string) => handleFormChange('altMobile', v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    error={formErrors.altMobile}
+                    placeholder="Alternate Mobile"
+                  />
                 </View>
-                {/* Row 3: Gender */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 }}>
-                  {['Male', 'Female', 'Other'].map((g) => (
-                    <TouchableOpacity key={g} style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => handleFormChange('gender', g)}>
-                      <View style={{
-                        height: 20,
-                        width: 20,
-                        borderRadius: 10,
-                        borderWidth: 2,
-                        borderColor: COLORS.vata[500],
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 4,
-                        backgroundColor: form.gender === g ? COLORS.vata[100] : '#fff',
-                      }}>
-                        {form.gender === g && <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: COLORS.vata[500] }} />}
-                      </View>
-                      <Text style={{ fontSize: 15 }}>{g}</Text>
-                    </TouchableOpacity>
-                  ))}
+              </View>
+
+              {/* Row 5: Email */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <FormField
+                    label="Email"
+                    value={form.email || ''}
+                    onChange={(v: string) => handleFormChange('email', v)}
+                    keyboardType="email-address"
+                    placeholder="e.g. john@example.com"
+                    error={formErrors.email}
+                    inputStyle={{ height: 44, paddingVertical: 0 }}
+                  />
                 </View>
-                {/* Row 4: Email, DOB, Age */}
-                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <FormField label="Email" value={form.email || ''} onChange={(v: string) => handleFormChange('email', v)} keyboardType="email-address" placeholder="e.g. john@example.com" error={formErrors.email} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <GenericDatePicker label="DOB" value={form.dob || ''} onChange={(v: string) => {
+              </View>
+
+              {/* Row 6: DOB and Age */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                {/* DOB Picker with icon inside cell */}
+                <View style={{ flex: 3, position: 'relative', justifyContent: 'center' }}>
+                  <GenericDatePicker
+                    label="DOB"
+                    value={form.dob || ''}
+                    onChange={(v: string) => {
                       handleFormChange('dob', v);
                       if (v) {
                         const age = calculateAge(v);
                         handleFormChange('age', age);
                       }
-                    }} style={clientStyles.formField} inputStyle={clientStyles.input} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <FormField label="Age" value={form.age || ''} onChange={(v: string) => {
-                      handleFormChange('age', v.replace(/[^0-9]/g, ''));
-                      if (v) handleFormChange('dob', '');
-                    }} keyboardType="numeric" placeholder="Age" style={{ backgroundColor: '#f4f4f4', flex: 1 }} />
-                  </View>
+                    }}
+                    style={{ ...clientStyles.formField, height: 44, paddingRight: 32, justifyContent: 'center' }}
+                    inputStyle={{ ...clientStyles.input, height: 44, paddingVertical: 0, paddingRight: 32, justifyContent: 'center' }}
+                  />
                 </View>
-                {/* Row 5: Height, Weight */}
-                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <FormField label="" value={form.height ? String(form.height) : ''} onChange={(v: string) => handleFormChange('height', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.height} placeholder="Height (cm)" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <FormField label="" value={form.weight ? String(form.weight) : ''} onChange={(v: string) => handleFormChange('weight', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.weight} placeholder="Weight (kg)" />
-                  </View>
+                {/* Age input with 'Years' */}
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                  <FormField
+                    label=""
+                    value={form.age || ''}
+                    placeholder="Age"
+                    onChange={(v: string) => handleFormChange('age', v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    inputStyle={{ height: 40, paddingVertical: 0, width: 80 }}
+                  />
+                  <Text style={{ marginLeft: 6, fontSize: 15, color: '#333' }}>Years</Text>
                 </View>
-                {/* Row 6: Present complaints */}
-                <FormField label="" value={form.presentComplaints || ''} onChange={(v: string) => handleFormChange('presentComplaints', v)} multiline placeholder="Present complaints" />
-                {/* Row 7: Known issues checkboxes */}
-                <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 8 }}>Known issues</Text>
-                  <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-                    {['BP', 'DM', 'Hypo Thyroidism'].map((issue) => (
-                      <TouchableOpacity key={issue} style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => handleKnownIssuesChange(issue)}>
-                        <View style={{
-                          height: 20,
-                          width: 20,
-                          borderRadius: 4,
-                          borderWidth: 2,
-                          borderColor: COLORS.vata[500],
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 6,
-                          backgroundColor: form.knownIssues?.includes(issue) ? COLORS.vata[100] : '#fff',
-                        }}>
-                          {form.knownIssues?.includes(issue) && <View style={{ height: 12, width: 12, borderRadius: 2, backgroundColor: COLORS.vata[500] }} />}
-                        </View>
-                        <Text style={{ fontSize: 15 }}>{issue}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+              </View>
+
+              {/* Row 7: Height, Weight */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <FormField label="" value={form.height ? String(form.height) : ''} onChange={(v: string) => handleFormChange('height', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.height} placeholder="Height (cm)" />
                 </View>
-                <View>
-                  {/* Row 8: Past illnesses */}
-                  <FormField label="" value={form.pastIllnesses || ''} onChange={(v: string) => handleFormChange('pastIllnesses', v)} multiline placeholder="Past illnesses" />
-                  {/* Row 9: Allergies */}
-                  <FormField label="" value={form.allergies || ''} onChange={(v: string) => handleFormChange('allergies', v)} multiline placeholder="Allergies" />
-                  {/* Row 10: Family History */}
-                  <FormField label="" value={form.familyHistory || ''} onChange={(v: string) => handleFormChange('familyHistory', v)} multiline placeholder="Family History" />
-                  {/* Row 11: Current Medication */}
-                  <FormField label="" value={form.currentMedication || ''} onChange={(v: string) => handleFormChange('currentMedication', v)} multiline placeholder="Current Medication" />
+                <View style={{ flex: 1 }}>
+                  <FormField label="" value={form.weight ? String(form.weight) : ''} onChange={(v: string) => handleFormChange('weight', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.weight} placeholder="Weight (kg)" />
                 </View>
-              </ScrollView>
-            </View>
+              </View>
+
+              {/* Row 8: Present complaints */}
+              <FormField label="" value={form.presentComplaints || ''} onChange={(v: string) => handleFormChange('presentComplaints', v)} multiline placeholder="Present complaints" />
+
+              {/* Row 9: Known issues checkboxes */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 8 }}>Known issues</Text>
+                <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+                  {['BP', 'DM', 'Hypo Thyroidism'].map((issue) => (
+                    <TouchableOpacity key={issue} style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => handleKnownIssuesChange(issue)}>
+                      <View style={{
+                        height: 20,
+                        width: 20,
+                        borderRadius: 4,
+                        borderWidth: 2,
+                        borderColor: COLORS.vata[500],
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 6,
+                        backgroundColor: form.knownIssues?.includes(issue) ? COLORS.vata[100] : '#fff',
+                      }}>
+                        {form.knownIssues?.includes(issue) && <View style={{ height: 12, width: 12, borderRadius: 2, backgroundColor: COLORS.vata[500] }} />}
+                      </View>
+                      <Text style={{ fontSize: 15 }}>{issue}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Row 10: Past illnesses */}
+              <FormField label="" value={form.pastIllnesses || ''} onChange={(v: string) => handleFormChange('pastIllnesses', v)} multiline placeholder="Past illnesses" />
+
+              {/* Row 11: Allergies */}
+              <FormField label="" value={form.allergies || ''} onChange={(v: string) => handleFormChange('allergies', v)} multiline placeholder="Allergies" />
+
+              {/* Row 12: Family History */}
+              <FormField label="" value={form.familyHistory || ''} onChange={(v: string) => handleFormChange('familyHistory', v)} multiline placeholder="Family History" />
+
+              {/* Row 13: Current Medication */}
+              <FormField label="" value={form.currentMedication || ''} onChange={(v: string) => handleFormChange('currentMedication', v)} multiline placeholder="Current Medication" />
+            </ScrollView>
           </View>
-        </Modal>
-      </View>
-    </>
+        </View>
+      </Modal>
+    </View>
   );
 }
 

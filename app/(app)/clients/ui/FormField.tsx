@@ -10,6 +10,7 @@ interface FormFieldProps {
   error?: string;
   style?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
+  containerStyle?: StyleProp<ViewStyle>;
   multiline?: boolean;
   keyboardType?: 'default' | 'numeric' | 'email-address';
   required?: boolean;
@@ -28,8 +29,9 @@ export const FormField: React.FC<FormFieldProps> = ({
   keyboardType = 'default',
   required,
   editable,
+  containerStyle,
 }) => (
-  <View style={[clientStyles.formField, style]}>
+  <View style={[clientStyles.formField, style, containerStyle]}>
     <Text style={clientStyles.label}>
       {label} {required && <Text style={{ color: 'red' }}>*</Text>}
     </Text>

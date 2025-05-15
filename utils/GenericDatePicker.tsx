@@ -34,7 +34,7 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
 
   return (
     <View style={style}>
-      <Text style={{ marginBottom: 4, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ fontWeight: '600' }}>{label}</Text>
       {Platform.OS === 'web' ? (
         <input
           type="date"
@@ -53,8 +53,11 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
         />
       ) : (
         <>
-          <TouchableOpacity onPress={() => setShow(true)}>
-            <Text style={[{ paddingVertical: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, backgroundColor: '#fafbfc', fontSize: 15 }, inputStyle]}>
+          <TouchableOpacity onPress={() => setShow(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[
+              { paddingVertical: 0, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, backgroundColor: '#fafbfc', fontSize: 15, flex: 1 },
+              inputStyle,
+            ]}>
               {formattedValue || 'Select date'}
             </Text>
           </TouchableOpacity>
