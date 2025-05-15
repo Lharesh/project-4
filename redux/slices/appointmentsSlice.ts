@@ -1,23 +1,106 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 
+// Appointment interface for both Doctor and Therapy tabs, future-proofed
 export interface Appointment {
   id: string;
   clientId: string;
   clientName: string;
-  treatmentId: string;
-  treatmentName: string;
+  clientMobile?: string;
+  clientEmail?: string;
+  doctorId?: string;
+  doctorName?: string;
+  therapistIds?: string[];
+  therapistNames?: string[];
+  treatmentId?: string;
+  treatmentName?: string;
+  consultationId?: string;
+  consultationName?: string;
+  duration?: number;
+  roomNumber?: string;
   date: string;
   time: string;
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
+  tab: 'Doctor' | 'Therapy';
 }
 
+// Redux state for appointments
 interface AppointmentsState {
   appointments: Appointment[];
   isLoading: boolean;
   error: string | null;
 }
+
+// Mock data with full interface for both Doctor and Therapy
+const MOCK_APPOINTMENTS: Appointment[] = [
+  {
+    id: '1',
+    clientId: 'client1',
+    clientName: 'John Smith',
+    clientMobile: '9876543210',
+    clientEmail: 'john.smith@email.com',
+    doctorId: 'doctor1',
+    doctorName: 'Dr. Sharma',
+    therapistIds: [],
+    therapistNames: [],
+    treatmentId: 'treatment1',
+    treatmentName: 'Abhyanga Massage',
+    consultationId: 'consult1',
+    consultationName: 'Initial',
+    duration: 60,
+    roomNumber: '101',
+    date: '2025-05-15',
+    time: '09:00',
+    status: 'scheduled',
+    notes: 'Prefers morning',
+    tab: 'Doctor',
+  },
+  {
+    id: '2',
+    clientId: 'client2',
+    clientName: 'Sarah Johnson',
+    clientMobile: '9123456780',
+    clientEmail: 'sarah.johnson@email.com',
+    doctorId: '',
+    doctorName: '',
+    therapistIds: ['therapist1'],
+    therapistNames: ['Dr. Gupta'],
+    treatmentId: 'treatment2',
+    treatmentName: 'Shirodhara',
+    consultationId: 'consult2',
+    consultationName: 'Follow Up',
+    duration: 45,
+    roomNumber: '202',
+    date: '2025-05-15',
+    time: '10:30',
+    status: 'completed',
+    notes: 'Bring previous reports',
+    tab: 'Therapy',
+  },
+  {
+    id: '3',
+    clientId: 'client3',
+    clientName: 'Michael Brown',
+    clientMobile: '9988776655',
+    clientEmail: 'michael.brown@email.com',
+    doctorId: 'doctor2',
+    doctorName: 'Dr. Mehta',
+    therapistIds: [],
+    therapistNames: [],
+    treatmentId: 'treatment3',
+    treatmentName: 'Panchakarma',
+    consultationId: 'consult3',
+    consultationName: 'Online',
+    duration: 30,
+    roomNumber: '103',
+    date: '2025-05-15',
+    time: '14:00',
+    status: 'cancelled',
+    notes: '',
+    tab: 'Doctor',
+  },
+];
 
 const initialState: AppointmentsState = {
   appointments: [],
@@ -25,49 +108,15 @@ const initialState: AppointmentsState = {
   error: null,
 };
 
-// Mock data
-const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: '1',
-    clientId: 'client1',
-    clientName: 'John Smith',
-    treatmentId: 'treatment1',
-    treatmentName: 'Abhyanga Massage',
-    date: '2024-02-20',
-    time: '09:00',
-    status: 'scheduled',
-  },
-  {
-    id: '2',
-    clientId: 'client2',
-    clientName: 'Sarah Johnson',
-    treatmentId: 'treatment2',
-    treatmentName: 'Shirodhara',
-    date: '2024-02-20',
-    time: '10:30',
-    status: 'scheduled',
-  },
-  {
-    id: '3',
-    clientId: 'client3',
-    clientName: 'Michael Brown',
-    treatmentId: 'treatment3',
-    treatmentName: 'Panchakarma Consultation',
-    date: '2024-02-20',
-    time: '14:00',
-    status: 'scheduled',
-  },
-];
-
+// Async thunk to fetch appointments (mock implementation)
 export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAppointments',
-  async ({ clinicId, date }: { clinicId: string; date: string }, { rejectWithValue }) => {
+  async ({ tab, date }: { tab: 'Doctor' | 'Therapy'; date: string }, { rejectWithValue }) => {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Return mock appointments for the specified date
-      return MOCK_APPOINTMENTS.filter(apt => apt.date === date);
+      // Return mock appointments for the specified tab and date
+      return MOCK_APPOINTMENTS.filter(apt => apt.date === date && apt.tab === tab);
     } catch (error) {
       return rejectWithValue('Error fetching appointments');
     }
@@ -78,6 +127,15 @@ const appointmentsSlice = createSlice({
   name: 'appointments',
   initialState,
   reducers: {
+    addAppointment: (state, action: PayloadAction<Appointment>) => {
+      state.appointments.unshift(action.payload);
+    },
+    setAppointments: (state, action: PayloadAction<Appointment[]>) => {
+      state.appointments = action.payload;
+    },
+    clearAppointments: (state) => {
+      state.appointments = [];
+    },
     clearAppointmentsError: (state) => {
       state.error = null;
     },
@@ -90,7 +148,12 @@ const appointmentsSlice = createSlice({
       })
       .addCase(fetchAppointments.fulfilled, (state, action: PayloadAction<Appointment[]>) => {
         state.isLoading = false;
-        state.appointments = action.payload;
+        // Merge fetched appointments with existing, avoiding duplicates by id
+        const incomingIds = new Set(action.payload.map(a => a.id));
+        state.appointments = [
+          ...action.payload,
+          ...state.appointments.filter(a => !incomingIds.has(a.id)),
+        ];
       })
       .addCase(fetchAppointments.rejected, (state, action) => {
         state.isLoading = false;
@@ -99,6 +162,7 @@ const appointmentsSlice = createSlice({
   },
 });
 
-export const { clearAppointmentsError } = appointmentsSlice.actions;
+
+export const { addAppointment, setAppointments, clearAppointments, clearAppointmentsError } = appointmentsSlice.actions;
 
 export default appointmentsSlice.reducer;
