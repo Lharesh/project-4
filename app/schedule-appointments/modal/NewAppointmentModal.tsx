@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { FormField } from '../../clients/ui/FormField';
-import { GenericDatePicker } from '../../../../utils/GenericDatePicker';
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import DoctorAppointments from './DoctorAppointments';
+import TherapyAppointments from './TherapyAppointments';
 
 // Mock Data
 const DOCTORS = [
@@ -135,117 +134,11 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visibl
                 <Text style={[styles.tabLabel, tab === 'Therapy' && styles.tabLabelActive]}>Therapy</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView>
-              {/* Doctor/Therapy Picker */}
-              <Text style={styles.label}>Select Doctor</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker selectedValue={doctor} onValueChange={setDoctor} style={styles.picker}>
-                  {DOCTORS.map(d => <Picker.Item key={d.id} label={d.name} value={d.id} />)}
-                </Picker>
-              </View>
-              {/* Client Search */}
-              <Text style={styles.label}>Client</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Search client..."
-                  value={clientSearch}
-                  onChangeText={text => {
-                    setClientSearch(text);
-                    setClientTouched(true);
-                  }}
-                  onBlur={() => setClientTouched(true)}
-                />
-                {clientTouched && !selectedClient ? (
-                  <Text style={{ color: 'red', fontSize: 13, marginTop: 2 }}>Please select a client.</Text>
-                ) : null}
-              </View>
-              {/* Client List */}
-              {clientSearch.length > 0 && (
-                <View style={{ maxHeight: 100, marginBottom: 8 }}>
-                  <ScrollView>
-                    {filteredClients.map(c => (
-                      <TouchableOpacity key={c.id} style={styles.clientItem} onPress={() => { setSelectedClient(c.id); setClientSearch(c.name); setClientMobile(c.mobile); }}>
-                        <Text style={{ color: selectedClient === c.id ? '#1a73e8' : '#222' }}>{c.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-              {/* Primary Phone Number (Required) */}
-              <Text style={styles.label}>Primary Phone Number *</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter phone number"
-                  keyboardType="phone-pad"
-                  value={clientMobile}
-                  onChangeText={text => { setClientMobile(text); setClientMobileTouched(true); }}
-                  onBlur={() => setClientMobileTouched(true)}
-                  maxLength={15}
-                />
-                {clientMobileTouched && !/^\d{10,}$/.test(clientMobile) ? (
-                  <Text style={{ color: 'red', fontSize: 13, marginTop: 2 }}>Valid phone number is required.</Text>
-                ) : null}
-              </View>
-              {/* Date & Time Row */}
-              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, alignItems: 'flex-end' }}>
-                <View style={{ flex: 1 }}>
-                  <GenericDatePicker
-                    label="Pick Date"
-                    value={date}
-                    onChange={d => {
-                      setDate(d);
-                      setDateTouched(true);
-                    }}
-                    inputStyle={{ height: 44 }}
-                  />
-                  {dateTouched && !date ? (
-                    <Text style={{ color: 'red', fontSize: 13, marginTop: 2 }}>Please select a date.</Text>
-                  ) : null}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Time</Text>
-                  <View style={styles.pickerWrapper}>
-                    <Picker selectedValue={time} onValueChange={val => {
-                      setTime(val);
-                      setTimeTouched(true);
-                    }} style={styles.picker}>
-                      {MOCK_TIMES.map(t => <Picker.Item key={t} label={t} value={t} />)}
-                    </Picker>
-                    {timeTouched && !time ? (
-                      <Text style={{ color: 'red', fontSize: 13, marginTop: 2 }}>Please select a time.</Text>
-                    ) : null}
-                  </View>
-                </View>
-              </View>
-              {/* Consultation Types */}
-              <Text style={styles.label}>Consultation</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                {CONSULT_TYPES.map(type => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[styles.checkbox, consultation.includes(type) && styles.checkboxActive]}
-                    onPress={() => toggleConsultation(type)}>
-                    <Text style={{ color: consultation.includes(type) ? '#fff' : '#222' }}>{type}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {/* Notes */}
-              <Text style={styles.label}>Notes</Text>
-              <TextInput
-                style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
-                placeholder="Add any additional notes..."
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-              />
-              {/* Create Button */}
-
-              <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-                <Text style={styles.createBtnText}>Create Appointment</Text>
-              </TouchableOpacity>
-            </ScrollView>
+            {tab === 'Doctor' ? (
+  <DoctorAppointments onClose={onClose} onCreate={onCreate} />
+) : (
+  <TherapyAppointments onClose={onClose} onCreate={onCreate} />
+)}
           </View>
         </View>
       </View>

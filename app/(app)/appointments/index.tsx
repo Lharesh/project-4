@@ -11,7 +11,7 @@ import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, Plus, Phone, Mail } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import Card from '@/components/ui/Card';
-import { NewAppointmentModal } from './modal/NewAppointmentModal';
+import { NewAppointmentModal } from '../../schedule-appointments/modal/NewAppointmentModal';
 import { COLORS } from '@/constants/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
@@ -173,7 +173,10 @@ export default function AppointmentsScreen() {
         visible={showModal}
         onClose={() => setShowModal(false)}
         onCreate={appointment => {
-          dispatch(addAppointment({ ...appointment, tab: 'Doctor', status: 'pending' }) as any);
+          if (appointment.tab === 'Doctor') {
+            dispatch(addAppointment({ ...appointment, tab: 'Doctor', status: 'pending' }) as any);
+          }
+          // For Therapy, dispatch is already handled in TherapyAppointments
           setShowModal(false);
         }}
       />

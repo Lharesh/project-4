@@ -128,6 +128,7 @@ const appointmentsSlice = createSlice({
   initialState,
   reducers: {
     addAppointment: (state, action: PayloadAction<Appointment>) => {
+      console.log('[appointmentsSlice] addAppointment called with', action.payload.id);
       state.appointments.unshift(action.payload);
     },
     setAppointments: (state, action: PayloadAction<Appointment[]>) => {
