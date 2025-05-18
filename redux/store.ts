@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, UnknownAction } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import authReducer from './slices/authSlice';
@@ -9,6 +9,7 @@ import clientsReducer from './slices/clientsSlice';
 import setupReducer from './slices/setupSlice';
 import reportsReducer from './slices/reportsSlice';
 import invReducer from './slices/inv.slice';
+import scheduleTherapyReducer from './slices/scheduleTherapySlice';
 
 // Persist configuration for reports
 const reportsPersistConfig = {
@@ -29,6 +30,7 @@ export const store = configureStore({
     setup: setupReducer,
     reports: persistedReportsReducer,
     inventory: invReducer,
+    scheduleTherapy: scheduleTherapyReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -40,3 +42,4 @@ export const persistor = persistStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+

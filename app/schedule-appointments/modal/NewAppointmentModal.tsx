@@ -29,7 +29,7 @@ interface NewAppointmentModalProps {
   onCreate: (appointment: any) => void;
 }
 
-export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onClose, onCreate }) => {
+const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onClose, onCreate }) => {
   const [tab, setTab] = useState<'Doctor' | 'Therapy'>('Doctor');
   const [doctor, setDoctor] = useState(DOCTORS[0].id);
   const [clientSearch, setClientSearch] = useState('');
@@ -145,6 +145,8 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visibl
     </Modal>
   );
 };
+
+export default NewAppointmentModal;
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' },

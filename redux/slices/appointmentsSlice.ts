@@ -2,6 +2,10 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 
 // Appointment interface for both Doctor and Therapy tabs, future-proofed
+/**
+ * Unified Appointment interface for both Doctor and Therapy appointments.
+ * Optional fields are used to accommodate both types.
+ */
 export interface Appointment {
   id: string;
   clientId: string;
@@ -20,10 +24,15 @@ export interface Appointment {
   roomNumber?: string;
   date: string;
   time: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'pending';
   notes?: string;
   tab: 'Doctor' | 'Therapy';
+  /** Total number of days for therapy sessions (Therapy only) */
+  totalDays?: number;
+  /** Current day index for therapy session (Therapy only) */
+  dayIndex?: number;
 }
+
 
 // Redux state for appointments
 interface AppointmentsState {
