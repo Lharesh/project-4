@@ -1,10 +1,27 @@
 // scheduleMatrixMock.ts
 
+// Mock: List of therapies
+export const THERAPIES = [
+  { id: 't1', name: 'Abhyanga', slotDuration: 60 },
+  { id: 't2', name: 'Elakizhi', slotDuration: 60 },
+  { id: 't3', name: 'Podikizhi', slotDuration: 60 },
+  { id: 't4', name: 'Navarakizhi', slotDuration: 60 },
+  { id: 't5', name: 'Shirodhara', slotDuration: 60 },
+  { id: 't6', name: 'Udvartana', slotDuration: 60 },
+  { id: 't7', name: 'Nasya', slotDuration: 60 },
+  { id: 't8', name: 'Kati Basti', slotDuration: 60 },
+  { id: 't9', name: 'Panchakarma', slotDuration: 60 },
+  { id: 't10', name: 'Pizhichil', slotDuration: 60 },
+  { id: 't11', name: 'Nasya', slotDuration: 60 },
+  { id: 't12', name: 'Karna purana', slotDuration: 60 },
+  { id: 't13', name: 'Akshi Tarpanam', slotDuration: 60 },
+];
+
 // Mock: List of rooms
 export const ROOMS = [
-    { roomNumber: 'room1', name: 'Room 1 (Therapy)' },
-    { roomNumber: 'room2', name: 'Room 2 (Therapy)' },
-    { roomNumber: 'room3', name: 'Room 3 (Therapy)' },
+    { roomNumber: 'r1', name: 'Room 1 (Therapy)' },
+    { roomNumber: 'r2', name: 'Room 2 (Therapy)' },
+    { roomNumber: 'r3', name: 'Room 3 (Therapy)' },
   ];
   
   // Mock: List of patients
@@ -14,11 +31,54 @@ export const PATIENTS = [
 ];
 
 // Mock: List of therapists
-export const THERAPISTS = [
-  { id: 't1', name: 'Ms. Priya', gender: 'female' },
-  { id: 't2', name: 'Mr. Raj', gender: 'male' },
-  { id: 't3', name: 'Mr. Nithin', gender: 'male' },
-  { id: 't4', name: 'Ms. Anjali', gender: 'female' },
+export interface Therapist {
+  id: string;
+  name: string;
+  gender: string;
+  availability: { [key: string]: string[] };
+}
+
+export const THERAPISTS: Therapist[] = [
+  {
+    id: 't1',
+    name: 'Ms. Priya',
+    gender: 'female',
+    availability: {
+      '2025-05-20': ['07:00', '08:00', '09:00', '15:00'],
+      '2025-05-21': ['07:00', '08:00', '09:00', '10:00'],
+      '2025-05-22': ['07:00', '09:00', '10:00', '15:00'],
+    }
+  },
+  {
+    id: 't2',
+    name: 'Mr. Raj',
+    gender: 'male',
+    availability: {
+      '2025-05-20': ['07:00', '09:00', '10:00', '15:00'],
+      '2025-05-21': ['08:00', '09:00', '11:00', '16:00'],
+      '2025-05-22': ['07:00', '08:00', '09:00', '10:00', '12:00'],
+    }
+  },
+  {
+    id: 't3',
+    name: 'Mr. Nithin',
+    gender: 'male',
+    availability: {
+      '2025-05-20': ['10:00', '11:00'],
+      '2025-05-21': ['09:00', '10:00', '11:00'],
+      '2025-05-22': ['15:00', '16:00'],
+    }
+  },
+  {
+    id: 't4',
+    name: 'Ms. Anjali',
+    gender: 'female',
+    availability: {
+      '2025-05-20': ['08:00', '09:00'],
+      '2025-05-21': ['07:00', '08:00', '10:00'],
+      '2025-05-22': ['09:00', '10:00', '11:00'],
+    }
+  }
 ];
   
   // Mock: Clinic timings (7:00-13:00, 15:00-18:00, Monday off)
@@ -39,43 +99,19 @@ export const THERAPISTS = [
     ],
   };
   
-  // Mock: Therapist availability (per day, per slot)
-  export const THERAPIST_AVAILABILITY = {
-  t1: { // Ms. Priya
-    '2025-05-20': ['07:00', '08:00', '09:00', '15:00'],
-    '2025-05-21': ['07:00', '08:00', '09:00', '10:00'],
-    '2025-05-22': ['07:00', '09:00', '10:00', '15:00'],
-  },
-  t2: { // Mr. Raj
-    '2025-05-20': ['07:00', '09:00', '10:00', '15:00'],
-    '2025-05-21': ['08:00', '09:00', '11:00', '16:00'],
-    '2025-05-22': ['07:00', '08:00', '09:00', '10:00', '12:00'],
-  },
-  t3: { // Mr. Nithin
-    '2025-05-20': ['10:00', '11:00'],
-    '2025-05-21': ['09:00', '10:00', '11:00'],
-    '2025-05-22': ['15:00', '16:00'],
-  },
-  t4: { // Ms. Anjali
-    '2025-05-20': ['08:00', '09:00'],
-    '2025-05-21': ['07:00', '08:00', '10:00'],
-    '2025-05-22': ['09:00', '10:00', '11:00'],
-  },
-};
-  
   // Mock: Room availability (per day, per slot)
   export const ROOM_AVAILABILITY = {
-    room1: {
+    r1: {
       '2025-05-20': ['07:00', '08:00', '09:00', '10:00', '15:00'],
       '2025-05-21': ['07:00', '08:00', '09:00', '10:00', '11:00'],
       '2025-05-22': ['07:00', '08:00', '09:00', '10:00', '15:00'],
     },
-    room2: {
+    r2: {
       '2025-05-20': ['07:00', '08:00', '10:00', '16:00'],
       '2025-05-21': ['07:00', '09:00', '11:00', '15:00'],
       '2025-05-22': ['08:00', '09:00', '10:00', '12:00'],
     },
-    room3: {
+    r3: {
       '2025-05-20': ['09:00', '10:00', '11:00', '12:00'],
       '2025-05-21': ['08:00', '09:00', '10:00', '15:00'],
       '2025-05-22': ['07:00', '08:00', '09:00', '17:00'],

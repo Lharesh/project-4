@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { RoomMatrix, MatrixCell } from '../modal/buildScheduleMatrix';
 
 interface Therapist { id: string; name: string; gender: string; availability: Record<string, string[]>; }
@@ -16,31 +16,8 @@ interface ScheduleMatrixProps {
   selectedSlot?: SelectedSlot;
   recommendedSlots?: SelectedSlot[];
   onSlotSelect?: (roomNumber: string, slot: string, date: string) => void;
-  selectedPatient?: string;
-  selectedPatientName?: string;
-  selectedPatientMobile?: string;
 }
-
-// Dummy PatientCard for demonstration (replace with actual import if available)
-const PatientCard = ({ name, mobile, patientId }: { name: string; mobile: string; patientId: string }) => (
-  <div style={{
-    border: '1px solid #D3D3D3', borderRadius: 10, padding: 16, marginBottom: 20, display: 'flex', alignItems: 'center', background: '#f9f9fc', gap: 16
-  }}>
-    <div style={{ width: 48, height: 48, borderRadius: 24, background: '#87CEEB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 20, color: '#fff' }}>
-      {name ? name[0] : '?'}
-    </div>
-    <div>
-      <div style={{ fontWeight: 600, fontSize: 17 }}>{name}</div>
-      <div style={{ color: '#555', fontSize: 14 }}>ID: {patientId}</div>
-      <div style={{ color: '#1976d2', fontSize: 14 }}>{mobile}</div>
-    </div>
-  </div>
-);
-
-import BookingWizardModal from './BookingWizardModal';
-import { useState } from 'react';
-
-const ScheduleMatrix: React.FC<ScheduleMatrixProps & { selectedPatient?: string; selectedPatientName?: string; selectedPatientMobile?: string }> = ({
+const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
   conflicts,
   selectedDate,
@@ -48,18 +25,7 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps & { selectedPatient?: string;
   selectedSlot,
   recommendedSlots,
   onSlotSelect,
-  selectedPatient,
-  selectedPatientName,
-  selectedPatientMobile,
 }) => {
-  // Booking wizard modal state
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardRoomNumber, setWizardRoomNumber] = useState<string | null>(null);
-  const [wizardSlot, setWizardSlot] = useState<string | null>(null);
-
-  // Placeholder: these should be passed in from parent or context
-  const getRecommendedSlots = (params: any) => [];
-  const checkCanBook = (date: string, slot: string, therapistIds: string[], duration: number) => true;
 
   function handleCellTap(roomNumber: string, slot: string) {
     if (typeof onSlotSelect === 'function') {
@@ -70,13 +36,15 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps & { selectedPatient?: string;
   function isCellConflict(roomNumber: string, slot: string): boolean {
     return conflicts.some(c => c.date === selectedDate && c.slot === slot && c.therapistIds.some(id => selectedTherapists.includes(id)));
   }
-
+  console.log("ScheduleMatrix matrix prop:", matrix);
+  console.log("ScheduleMatrix conflicts prop:", conflicts);
+  console.log("ScheduleMatrix selectedDate prop:", selectedDate);
+  console.log("ScheduleMatrix selectedTherapists prop:", selectedTherapists);
+  console.log("ScheduleMatrix selectedSlot prop:", selectedSlot);
+  console.log("ScheduleMatrix recommendedSlots prop:", recommendedSlots);
+  console.log("ScheduleMatrix onSlotSelect prop:", onSlotSelect);
   return (
     <div style={{ fontFamily: 'Sans-serif', padding: 20 }}>
-      {/* Patient Card at the top if a patient is selected */}
-      {selectedPatient && (
-        <PatientCard name={selectedPatientName || ''} mobile={selectedPatientMobile || ''} patientId={selectedPatient} />
-      )}
       <div style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 18 }}>Therapy Room Schedule</div>
       <div style={{ overflowX: 'auto', marginBottom: 10, border: '1px solid #D3D3D3', borderRadius: 10, padding: 8 }}>
         {/* Vertical orientation: Rooms as columns, Slots as rows */}
@@ -99,7 +67,7 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps & { selectedPatient?: string;
               {matrix[0]?.slots.map((slotObj: MatrixCell, slotIdx: number) => (
                 <tr key={slotObj.slot}>
                   <td style={{ border: '1px solid #D3D3D3', background: '#f9f9fc', fontWeight: 600, fontSize: 15, padding: 8, minHeight: 60 }}>{slotObj.slot}</td>
-                  {matrix.map((room, roomNumberx) => {
+                  {matrix.map((room) => {
                     const cell = room.slots[slotIdx];
                     const isConflict = isCellConflict(room.roomNumber, cell.slot);
                     const isSelected = selectedSlot && selectedSlot.roomNumber === room.roomNumber && selectedSlot.slot === cell.slot;
@@ -138,9 +106,9 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps & { selectedPatient?: string;
                         title={
                           isConflict
                             ? `Therapist conflict at ${cell.slot}. Therapists: ${conflicts
-                                .filter(c => c.date === selectedDate && c.slot === cell.slot)
-                                .flatMap(c => c.therapistIds.filter(id => selectedTherapists.includes(id)))
-                                .join(', ')}`
+                              .filter(c => c.date === selectedDate && c.slot === cell.slot)
+                              .flatMap(c => c.therapistIds.filter(id => selectedTherapists.includes(id)))
+                              .join(', ')}`
                             : ''
                         }
                       >
@@ -176,29 +144,29 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps & { selectedPatient?: string;
                           )}
                           {/* Therapy name */}
                           {cell.booking && cell.booking.therapyName && (
-  <div>
-    {cell.booking.tab === 'Therapy' && (
-  <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-    Day {cell.booking.dayIndex} of {cell.booking.totalDays}: {cell.booking.therapyName}
-  </span>
-)}
-    {cell.booking.tab !== 'Therapy' && (
-      <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-        {cell.booking.therapyName}
-      </span>
-    )}
-    {cell.booking.tab === 'Therapy' && cell.booking.duration && (
-  <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-    ({cell.booking.duration} days)
-  </span>
-)}
-{cell.booking.tab !== 'Therapy' && cell.booking.duration && (
-  <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-    ({cell.booking.duration} minutes)
-  </span>
-)}
-  </div>
-)}
+                            <div>
+                              {cell.booking.tab === 'Therapy' && (
+                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+                                  Day {cell.booking.dayIndex} of {cell.booking.totalDays}: {cell.booking.therapyName}
+                                </span>
+                              )}
+                              {cell.booking.tab !== 'Therapy' && (
+                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+                                  {cell.booking.therapyName}
+                                </span>
+                              )}
+                              {cell.booking.tab === 'Therapy' && cell.booking.duration && (
+                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+                                  ({cell.booking.duration} days)
+                                </span>
+                              )}
+                              {cell.booking.tab !== 'Therapy' && cell.booking.duration && (
+                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+                                  ({cell.booking.duration} minutes)
+                                </span>
+                              )}
+                            </div>
+                          )}
                           {/* Available therapists */}
                           {!cell.isBooked && cell.availableTherapists && cell.availableTherapists.length > 0 && (
                             <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, marginTop: 2 }}>

@@ -17,7 +17,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { fetchAppointments, addAppointment } from '@/redux/slices/appointmentsSlice';
 import type { Appointment } from '@/redux/slices/appointmentsSlice';
-import AppointmentCard from './AppointmentCard';
+import AppointmentCard from '../../schedule-appointments/components/AppointmentCard';
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
 

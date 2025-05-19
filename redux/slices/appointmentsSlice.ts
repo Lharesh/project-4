@@ -140,6 +140,9 @@ const appointmentsSlice = createSlice({
       console.log('[appointmentsSlice] addAppointment called with', action.payload.id);
       state.appointments.unshift(action.payload);
     },
+    addAppointments: (state, action: PayloadAction<Appointment[]>) => {
+      action.payload.forEach(appt => state.appointments.unshift(appt));
+    },
     setAppointments: (state, action: PayloadAction<Appointment[]>) => {
       state.appointments = action.payload;
     },
@@ -173,6 +176,6 @@ const appointmentsSlice = createSlice({
 });
 
 
-export const { addAppointment, setAppointments, clearAppointments, clearAppointmentsError } = appointmentsSlice.actions;
+export const { addAppointment, addAppointments, setAppointments, clearAppointments, clearAppointmentsError } = appointmentsSlice.actions;
 
 export default appointmentsSlice.reducer;

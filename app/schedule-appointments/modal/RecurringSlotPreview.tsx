@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { checkRecurringSlotAvailability } from '../../../utils/checkRecurringSlotAvailability';
 
 interface RecurringSlotPreviewProps {
@@ -9,12 +10,27 @@ interface RecurringSlotPreviewProps {
   slotTime: string;
   appointments: any[];
   skipNonWorkingDays?: boolean;
+  recurringSlotInfo: Record<string, { available: boolean; reason: string | null; alternatives: Array<{slot: string; roomNumber: string}> }>;
+  replacementSlots: Record<string, string>;
+  onSlotChange: (date: string, slot: string) => void;
 }
 
-const RecurringSlotPreview: React.FC<RecurringSlotPreviewProps> = ({ startDate, days, roomNumber, slotTime, appointments, skipNonWorkingDays }) => {
-  const results = useMemo(() => checkRecurringSlotAvailability({ startDate, days, roomNumber, slotTime, appointments, skipNonWorkingDays }), [startDate, days, roomNumber, slotTime, appointments, skipNonWorkingDays]);
-
-  const allAvailable = results.every(r => r.available);
+const RecurringSlotPreview: React.FC<RecurringSlotPreviewProps> = ({
+  startDate,
+  days,
+  roomNumber,
+  slotTime,
+  appointments,
+  skipNonWorkingDays,
+  recurringSlotInfo,
+  replacementSlots,
+  onSlotChange
+}) => {
+  // Assume dates are derived from recurringSlotInfo keys
+  const dates = Object.keys(recurringSlotInfo);
+  console.log('recurringSlotInfo:', recurringSlotInfo);
+dates.forEach(date => console.log('Alternatives in preview for', date, ':', recurringSlotInfo[date]?.alternatives));
+const allAvailable = dates.every(date => recurringSlotInfo[date]?.available);
 
   return (
     <View style={{ marginVertical: 10, backgroundColor: '#f7f7fa', borderRadius: 8, padding: 12 }}>
@@ -22,14 +38,53 @@ const RecurringSlotPreview: React.FC<RecurringSlotPreviewProps> = ({ startDate, 
         Recurring Slot Availability ({days} days @ {slotTime})
       </Text>
       <ScrollView style={{ maxHeight: 160 }}>
-        {results.map(r => (
-          <View key={r.date} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
-            <Text style={{ width: 110 }}>{r.date}</Text>
-            <Text style={{ color: r.available ? 'green' : 'red', fontWeight: 'bold', marginLeft: 10 }}>
-              {r.available ? 'Available' : r.reason || 'Unavailable'}
-            </Text>
-          </View>
-        ))}
+        {dates.map(date => {
+          const info = recurringSlotInfo[date];
+          return (
+            <View key={date} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+              <Text style={{ width: 110 }}>{date}</Text>
+              {info.available ? (
+                <Text style={{ color: 'green', fontWeight: 'bold', marginLeft: 10 }}>Available</Text>
+              ) : (
+                <>
+                  {/* Always show reason for unavailability */}
+                  <Text style={{ color: 'red', fontWeight: 'bold', marginLeft: 10, marginRight: 10, maxWidth: 180 }} numberOfLines={2}>
+  {info.reason
+    ? info.reason
+    : (info.alternatives.length === 0
+        ? 'No alternatives available for this slot'
+        : 'Not available')}
+</Text>
+                  {/* Show alternatives dropdown if available */}
+                  {info.alternatives.length > 0 && (
+                    <Picker
+                      selectedValue={
+                        info.alternatives.some(a => `${a.slot}-${a.roomNumber}` === replacementSlots[date])
+                          ? replacementSlots[date]
+                          : ''
+                      }
+                      style={{ height: 30, width: 180 }}
+                      onValueChange={(itemValue: string) => {
+                        onSlotChange(date, itemValue);
+                      }}
+                    >
+                      <Picker.Item label="Select slot/room" value="" />
+                      {info.alternatives.map(({ slot, roomNumber }: { slot: string; roomNumber: string }) => (
+                        <Picker.Item key={slot + '-' + roomNumber} label={`${slot} - ${roomNumber}`} value={`${slot}-${roomNumber}`} />
+                      ))}
+                    </Picker>
+                  )}
+                  {/* Show selected value if any */}
+                  {replacementSlots[date] && (
+                    <Text style={{ marginLeft: 8, color: '#333', fontSize: 13 }}>
+                      Selected: {replacementSlots[date].replace('-', ' - ')}
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
       <Text style={{ marginTop: 8, color: allAvailable ? 'green' : 'red', fontWeight: '600' }}>
         {allAvailable ? 'All slots available for recurring booking.' : 'Some slots are not available for recurring booking.'}

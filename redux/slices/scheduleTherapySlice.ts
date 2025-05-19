@@ -43,9 +43,9 @@ const initialState = {
     { id: 't4', name: 'Ms. Anjali', gender: 'female' },
   ] as Therapist[],
   rooms: [
-    { id: 'room1', name: 'Room 1 (Therapy)' },
-    { id: 'room2', name: 'Room 2 (Therapy)' },
-    { id: 'room3', name: 'Room 3 (Therapy)' },
+    { id: 'r1', name: 'Room 1 (Therapy)' },
+    { id: 'r2', name: 'Room 2 (Therapy)' },
+    { id: 'r3', name: 'Room 3 (Therapy)' },
   ] as Room[],
   therapistAvailability: {
     t1: {
