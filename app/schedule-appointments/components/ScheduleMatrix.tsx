@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Platform } from 'react-native';
 import { RoomMatrix, MatrixCell } from '../modal/buildScheduleMatrix';
 
 interface Therapist { id: string; name: string; gender: string; availability: Record<string, string[]>; }
@@ -37,178 +38,301 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
     return conflicts.some(c => c.date === selectedDate && c.slot === slot && c.therapistIds.some(id => selectedTherapists.includes(id)));
   }
   console.log("ScheduleMatrix matrix prop:", matrix);
-  console.log("ScheduleMatrix conflicts prop:", conflicts);
-  console.log("ScheduleMatrix selectedDate prop:", selectedDate);
-  console.log("ScheduleMatrix selectedTherapists prop:", selectedTherapists);
-  console.log("ScheduleMatrix selectedSlot prop:", selectedSlot);
-  console.log("ScheduleMatrix recommendedSlots prop:", recommendedSlots);
-  console.log("ScheduleMatrix onSlotSelect prop:", onSlotSelect);
   return (
-    <div style={{ fontFamily: 'Sans-serif', padding: 20 }}>
-      <div style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 18 }}>Therapy Room Schedule</div>
-      <div style={{ overflowX: 'auto', marginBottom: 10, border: '1px solid #D3D3D3', borderRadius: 10, padding: 8 }}>
-        {/* Vertical orientation: Rooms as columns, Slots as rows */}
-        <div style={{ overflowX: 'auto', width: '100%', minWidth: Math.max(700, 140 * Math.max(matrix.length, 7)) }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: Math.max(700, 140 * Math.max(matrix.length, 7)), width: '100%' }} className="schedule-matrix-table">
-            <thead>
-              <tr>
-                <th style={{ width: 120, textAlign: 'left', background: '#F0F8FF', border: '1px solid #D3D3D3', fontWeight: 'bold', fontSize: 14 }}>Time Slot</th>
-                {matrix.map(room => (
-                  <th key={room.roomNumber} style={{ width: 140, textAlign: 'center', background: '#F0F8FF', border: '1px solid #D3D3D3', fontWeight: 'bold', fontSize: 14 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontWeight: 600 }}>{room.roomName}</span>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Render each slot as a row, each room as a column */}
-              {matrix[0]?.slots.map((slotObj: MatrixCell, slotIdx: number) => (
-                <tr key={slotObj.slot}>
-                  <td style={{ border: '1px solid #D3D3D3', background: '#f9f9fc', fontWeight: 600, fontSize: 15, padding: 8, minHeight: 60 }}>{slotObj.slot}</td>
-                  {matrix.map((room) => {
-                    const cell = room.slots[slotIdx];
-                    const isConflict = isCellConflict(room.roomNumber, cell.slot);
-                    const isSelected = selectedSlot && selectedSlot.roomNumber === room.roomNumber && selectedSlot.slot === cell.slot;
-                    const isRecommended = recommendedSlots && recommendedSlots.some((s: any) => s.roomNumber === room.roomNumber && s.slot === cell.slot);
-                    const selectable = !cell.isBooked && !isConflict && cell.isRoomAvailable;
-                    let background = '#f0f0f0';
-                    if (isSelected) background = '#e3f2fd';
-                    else if (isConflict) background = '#ffe6e6';
-                    else if (cell.isBooked) background = '#8B0000';
-                    else if (cell.isRoomAvailable) background = '#90EE90';
-                    else if (cell.booking && cell.booking.reserved) background = '#87CEEB';
-                    if (isRecommended) background = '#fff9c4';
+    <View style={styles.container}>
+      <Text style={styles.header}>Therapy Room Schedule</Text>
+      <View style={styles.tableWrapper}>
+        <View style={{ flexDirection: 'row' }}>
+          {/* Fixed Time Slot Column */}
+          <View>
+            {/* Header */}
+            <View style={styles.tableHeaderCell}>
+              <Text style={styles.tableHeaderText}>Time Slot</Text>
+            </View>
+            {/* Time Slot Cells */}
+            <FlatList
+              data={matrix[0]?.slots || []}
+              keyExtractor={slotObj => slotObj.slot}
+              renderItem={({ item: slotObj }) => (
+                <View style={styles.tableCellSlot}>
+                  <Text style={styles.slotText}>{slotObj.slot}</Text>
+                </View>
+              )}
+              scrollEnabled={false}
+            />
+          </View>
 
-                    return (
-                      <td
-                        key={room.roomNumber + '-' + cell.slot}
-                        style={{
-                          border: '1px solid #D3D3D3',
-                          borderRadius: 6,
-                          textAlign: 'center',
-                          verticalAlign: 'middle',
-                          background,
-                          minWidth: 120,
-                          minHeight: 60,
-                          cursor: selectable && onSlotSelect ? 'pointer' : 'default',
-                          position: 'relative',
-                          padding: 8,
-                          transition: 'background 0.2s',
-                          boxSizing: 'border-box',
-                          wordBreak: 'break-word',
-                        }}
-                        onClick={() => {
-                          if (selectable && onSlotSelect) onSlotSelect(room.roomNumber, cell.slot, selectedDate);
-                          if (selectable) handleCellTap(room.roomNumber, cell.slot);
-                        }}
-                        title={
-                          isConflict
-                            ? `Therapist conflict at ${cell.slot}. Therapists: ${conflicts
-                              .filter(c => c.date === selectedDate && c.slot === cell.slot)
-                              .flatMap(c => c.therapistIds.filter(id => selectedTherapists.includes(id)))
-                              .join(', ')}`
-                            : ''
-                        }
-                      >
-                        {/* Avatars and status */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                          {/* Status/Label */}
-                          {isConflict && (
-                            <span style={{ color: 'red', fontSize: 12, fontWeight: 700 }}>Conflict</span>
-                          )}
-                          {!isConflict && cell.isBooked && (
-                            <span style={{ color: '#fff', background: '#8B0000', borderRadius: 4, padding: '0 6px', fontSize: 12 }}>Booked</span>
-                          )}
-                          {!isConflict && !cell.isBooked && cell.isRoomAvailable && (
-                            <span style={{ color: '#228B22', fontWeight: 600, fontSize: 12 }}>Available</span>
-                          )}
-                          {!isConflict && !cell.isBooked && !cell.isRoomAvailable && (
-                            <span style={{ color: '#aaa', fontSize: 12 }}>N/A</span>
-                          )}
-                          {/* Patient/Therapist avatars */}
-                          {cell.booking && (
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', marginTop: 3 }}>
-                              {cell.booking.patientName && (
-                                <span style={{ background: '#1976d2', color: '#fff', borderRadius: '50%', width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>
-                                  {cell.booking.patientName[0]}
-                                </span>
-                              )}
-                              {cell.booking.therapistName && (
-                                <span style={{ background: '#87CEEB', color: '#fff', borderRadius: '50%', width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>
-                                  {cell.booking.therapistName[0]}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {/* Therapy name */}
-                          {cell.booking && cell.booking.therapyName && (
-                            <div>
-                              {cell.booking.tab === 'Therapy' && (
-                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-                                  Day {cell.booking.dayIndex} of {cell.booking.totalDays}: {cell.booking.therapyName}
-                                </span>
-                              )}
-                              {cell.booking.tab !== 'Therapy' && (
-                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-                                  {cell.booking.therapyName}
-                                </span>
-                              )}
-                              {cell.booking.tab === 'Therapy' && cell.booking.duration && (
-                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-                                  ({cell.booking.duration} days)
-                                </span>
-                              )}
-                              {cell.booking.tab !== 'Therapy' && cell.booking.duration && (
-                                <span style={{ color: '#795548', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-                                  ({cell.booking.duration} minutes)
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {/* Available therapists */}
-                          {!cell.isBooked && cell.availableTherapists && cell.availableTherapists.length > 0 && (
-                            <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, marginTop: 2 }}>
-                              {cell.availableTherapists.map((t, idx, arr) => `${t.name}${idx < arr.length - 1 ? ', ' : ''}`)}
-                            </span>
-                          )}
-                          {/* Recommended badge */}
-                          {isRecommended && (
-                            <span style={{
-                              position: 'absolute',
-                              top: 4,
-                              right: 4,
-                              background: '#ffe082',
-                              color: '#795548',
-                              fontWeight: 'bold',
-                              fontSize: 10,
-                              borderRadius: 4,
-                              padding: '2px 6px',
-                            }}>Recommended</span>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          {/* Scrollable Room Columns (headers + cells) */}
+          <View style={{ flex: 1 }}>
+            <FlatList
+              data={matrix}
+              horizontal
+              keyExtractor={room => room.roomNumber}
+              showsHorizontalScrollIndicator={true}
+              renderItem={({ item: room, index: roomIdx }) => (
+                <View>
+                  {/* Header */}
+                  <View style={styles.tableHeaderCell}>
+                    <Text style={styles.tableHeaderText}>{room.roomName}</Text>
+                  </View>
+                  {/* Cells */}
+                  <FlatList
+                    data={room.slots}
+                    keyExtractor={slotObj => slotObj.slot}
+                    renderItem={({ item: slotObj, index: slotIdx }) => {
+                      const isAvailable = !slotObj.isBooked && !isCellConflict(room.roomNumber, slotObj.slot) && room.slots[slotIdx].isRoomAvailable;
+                      return (
+                        <TouchableOpacity
+                          key={room.roomNumber + '-' + slotObj.slot}
+                          style={[
+                            styles.tableCell,
+                            isAvailable ? styles.cellAvailable : (!room.slots[slotIdx].isRoomAvailable ? styles.cellNA : styles.cellUnavailable)
+                          ]}
+                          disabled={!isAvailable}
+                          onPress={() => handleCellTap(room.roomNumber, slotObj.slot)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.cellContentCenter}>
+                            {isCellConflict(room.roomNumber, slotObj.slot) && (
+                              <Text style={styles.conflictText}>Conflict</Text>
+                            )}
+                            {!isCellConflict(room.roomNumber, slotObj.slot) && slotObj.isBooked && (
+                              <View style={styles.badgeBooked}><Text style={styles.badgeBookedText}>Booked</Text></View>
+                            )}
+                            {!isCellConflict(room.roomNumber, slotObj.slot) && !slotObj.isBooked && room.slots[slotIdx].isRoomAvailable && (
+                              <Text style={styles.availableText}>Available</Text>
+                            )}
+                            {!isCellConflict(room.roomNumber, slotObj.slot) && !slotObj.isBooked && !room.slots[slotIdx].isRoomAvailable && (
+                              <Text style={styles.naText}>N/A</Text>
+                            )}
+                            {slotObj.booking && (
+                              <View style={styles.avatarsRow}>
+                                {slotObj.booking.patientName && (
+                                  <View style={styles.avatarPatient}><Text style={styles.avatarText}>{slotObj.booking.patientName[0]}</Text></View>
+                                )}
+                                {slotObj.booking.therapistName && (
+                                  <View style={styles.avatarTherapist}><Text style={styles.avatarText}>{slotObj.booking.therapistName[0]}</Text></View>
+                                )}
+                                {slotObj.booking.tab === 'Therapy' && slotObj.booking.duration && (
+                                  <Text style={styles.therapyDuration}>({slotObj.booking.duration} days)</Text>
+                                )}
+                                {slotObj.booking.tab !== 'Therapy' && slotObj.booking.duration && (
+                                  <Text style={styles.therapyDuration}>({slotObj.booking.duration} minutes)</Text>
+                                )}
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    }}
+                    scrollEnabled={false}
+                  />
+                </View>
+              )}
+              style={{ flexGrow: 0 }}
+            />
+          </View>
+        </View>
+      </View>
+    </View>
   );
 };
 
-interface ScheduleMatrixProps {
-  matrix: RoomMatrix[];
-  conflicts: { date: string; slot: string; therapistIds: string[]; }[];
-  selectedDate: string;
-  selectedTherapists: string[];
-  onSlotSelect?: (roomNumber: string, slot: string, date: string) => void;
-}
-
-// ...rest of your component code...
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  header: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 18,
+  },
+  tableWrapper: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#D3D3D3',
+    borderRadius: 10,
+    padding: 8,
+    backgroundColor: '#F0F8FF',
+  },
+  tableHeaderRowSticky: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f6f8fa',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomWidth: 1,
+    borderColor: '#e0e0e0',
+    zIndex: 2,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 3 },
+    }),
+  },
+  tableHeaderCell: {
+    width: 110,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f6f8fa',
+    borderWidth: 1,
+    borderColor: '#d3d3d3',
+    padding: 0,
+  },
+  tableHeaderText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tableCellSlot: {
+    width: 110,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#d3d3d3',
+    backgroundColor: '#f6f8fa',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  slotText: {
+    color: '#333',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  tableCell: {
+    width: 110,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#d3d3d3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 0,
+  },
+  cellContentCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  cellAvailable: {
+    backgroundColor: '#e6f7ea',
+  },
+  cellUnavailable: {
+    backgroundColor: '#fff',
+  },
+  cellNA: {
+    backgroundColor: '#ffd6d6',
+  },
+  cellText: {
+    color: '#333',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  availableTherapists: {
+    color: '#1976d2',
+    fontWeight: '600',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#ffe082',
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  recommendedBadgeText: {
+    color: '#795548',
+    fontWeight: 'bold',
+    fontSize: 10,
+  },
+  conflictText: {
+    color: 'red',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  badgeBooked: {
+    backgroundColor: '#8B0000',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginVertical: 2,
+  },
+  badgeBookedText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  availableText: {
+    color: '#228B22',
+    fontWeight: 'bold',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  naText: {
+    color: '#c00',
+    fontWeight: 'bold',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  avatarsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 3,
+  },
+  avatarPatient: {
+    backgroundColor: '#1976d2',
+    color: '#fff',
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  avatarTherapist: {
+    backgroundColor: '#87CEEB',
+    color: '#fff',
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  avatarText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  therapyName: {
+    color: '#795548',
+    fontWeight: '600',
+    fontSize: 13,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  therapyDuration: {
+    color: '#795548',
+    fontWeight: '600',
+    fontSize: 13,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+});
 
 export default ScheduleMatrix;

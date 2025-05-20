@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 
 interface Therapist {
   id: string;
@@ -72,110 +73,264 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
   };
 
   return (
-    <>
-      <div style={{ overflowX: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Therapist(s)</label>
-      <div style={{ position: 'relative', marginBottom: 12, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <input
-          style={{ width: '100%', maxWidth: '100%', border: '1.5px solid #1976d2', borderRadius: 8, padding: 10, fontSize: 16, outline: therapistInputFocused ? '2px solid #1976d2' : 'none', boxSizing: 'border-box' }}
-          placeholder="Search or select therapist..."
-          value={therapistInputFocused ? therapistSearch : safeSelectedTherapists.map(id => therapists.find(t => t.id === id)?.name || '').filter(Boolean).join(', ')}
-          onFocus={() => setTherapistInputFocused(true)}
-          onBlur={() => { setTimeout(() => setTherapistInputFocused(false), 120); setTouched(true); }}
-          onChange={e => {
-            setTherapistSearch(e.target.value);
-            if (e.target.value === '') setSelectedTherapists([]);
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && filteredTherapists.length > 0) {
-              const t = filteredTherapists[0];
+    <View style={styles.container}>
+  <Text style={styles.label}>Therapist(s)</Text>
+  <View style={styles.inputWrapper}>
+    <TextInput
+      style={[styles.input, therapistInputFocused && styles.inputFocused]}
+      placeholder="Search or select therapist..."
+      value={therapistInputFocused ? therapistSearch : safeSelectedTherapists.map(id => therapists.find(t => t.id === id)?.name || '').filter(Boolean).join(', ')}
+      onFocus={() => setTherapistInputFocused(true)}
+      onBlur={() => { setTimeout(() => setTherapistInputFocused(false), 120); setTouched(true); }}
+      onChangeText={text => {
+        setTherapistSearch(text);
+        if (text === '') setSelectedTherapists([]);
+      }}
+      onSubmitEditing={() => {
+        if (filteredTherapists.length > 0) {
+          const t = filteredTherapists[0];
+          toggleTherapist(t.id);
+          setTherapistSearch('');
+          setTherapistInputFocused(false);
+        }
+      }}
+    />
+    {safeSelectedTherapists.length > 0 && (
+      <TouchableOpacity
+        onPress={() => { setSelectedTherapists([]); setTherapistSearch(''); setTherapistInputFocused(true); }}
+        style={styles.clearButton}
+      >
+        <Text style={styles.clearButtonText}>×</Text>
+      </TouchableOpacity>
+    )}
+    {therapistInputFocused && therapistSearch.length > 0 && (
+      <View style={styles.dropdown}>
+        {filteredTherapists.length === 0 ? (
+          <Text style={styles.noResult}>No therapists found</Text>
+        ) : filteredTherapists.map(t => (
+          <TouchableOpacity
+            key={t.id}
+            style={[styles.dropdownItem, safeSelectedTherapists.includes(t.id) && styles.dropdownItemSelected]}
+            onPress={() => {
               toggleTherapist(t.id);
+              setTouched(true);
               setTherapistSearch('');
               setTherapistInputFocused(false);
-            }
-          }}
-        />
-        {safeSelectedTherapists.length > 0 && (
-          <span
-            role="button"
-            aria-label="Clear therapist selection"
-            tabIndex={0}
-            onClick={() => { setSelectedTherapists([]); setTherapistSearch(''); setTherapistInputFocused(true); }}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (setSelectedTherapists([]), setTherapistSearch(''), setTherapistInputFocused(true))}
-            style={{ position: 'absolute', right: 12, top: 12, cursor: 'pointer', color: '#888', fontSize: 18, background: 'none', border: 'none' }}
-          >
-            ×
-          </span>
-        )}
-        {therapistInputFocused && therapistSearch.length > 0 && (
-          <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 5000, background: '#fff', border: '1.5px solid #1976d2', borderRadius: 8, boxShadow: '0 2px 16px #0002', maxHeight: 200, overflowY: 'auto', marginTop: 2 }}>
-            {filteredTherapists.length === 0 ? (
-              <div style={{ padding: 14, color: '#888' }}>No therapists found</div>
-            ) : filteredTherapists.map(t => (
-              <div
-                key={t.id}
-                style={{ padding: 12, borderBottom: '1px solid #eee', cursor: 'pointer', background: safeSelectedTherapists.includes(t.id) ? '#e3f0fc' : '#fff', fontWeight: safeSelectedTherapists.includes(t.id) ? 700 : 400 }}
-                onMouseDown={() => {
-                  toggleTherapist(t.id);
-                  setTouched(true);
-                  setTherapistSearch('');
-                  setTherapistInputFocused(false);
-                }}
-              >
-                <span style={{ color: safeSelectedTherapists.includes(t.id) ? '#1976d2' : '#222' }}>{t.name}</span>
-                <span style={{ display: 'block', color: '#bbb', fontSize: 11, fontWeight: 400 }}>
-                  {Object.keys(t.availability).slice(0, 2).map(day => `${day} (${(t.availability as Record<string, string[]>)[day]?.join(', ') || ''})`).join('; ')}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Quick-pick chips below input */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-        <span
-          key="select-all"
-          style={{
-            background: '#e3f0fc',
-            color: '#1976d2',
-            borderRadius: 16,
-            padding: '4px 14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            border: '2px solid #1976d2',
-            fontSize: 15,
-          }}
-          onClick={handleSelectAll}
-        >
-          Select All
-        </span>
-        {quickPickTherapists.map(t => (
-          <span
-            key={t.id}
-            style={{
-              background: safeSelectedTherapists.includes(t.id) ? '#e3f0fc' : '#f0f0f0',
-              color: safeSelectedTherapists.includes(t.id) ? '#1976d2' : '#222',
-              borderRadius: 16,
-              padding: '4px 14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: safeSelectedTherapists.includes(t.id) ? '2px solid #1976d2' : '1px solid #ccc',
-              transition: 'background 0.2s, color 0.2s',
-              fontSize: 15,
             }}
-            onClick={() => { toggleTherapist(t.id); setTouched(true); }}
           >
-            {t.name}
-          </span>
+            <Text style={[styles.dropdownItemText, safeSelectedTherapists.includes(t.id) && styles.dropdownItemTextSelected]}>{t.name}</Text>
+            <Text style={styles.availabilityText}>
+              {Object.keys(t.availability).slice(0, 2).map(day => `${day} (${(t.availability as Record<string, string[]>)[day]?.join(', ') || ''})`).join('; ')}
+            </Text>
+          </TouchableOpacity>
         ))}
-      </div>
-      {selectedTherapists.length === 0 && touched && (
-        <div style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please select at least one therapist.</div>
-      )}
-    </div>
-  </>
+      </View>
+    )}
+  </View>
+  {/* Therapist avatars horizontal scroll */}
+  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarRow} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+    {filteredTherapists.map(t => {
+      const selected = safeSelectedTherapists.includes(t.id);
+      // Use initials for avatar
+      const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
+      return (
+        <TouchableOpacity
+          key={t.id}
+          onPress={() => { toggleTherapist(t.id); setTouched(true); }}
+          style={[styles.avatarTouchable, selected && styles.avatarSelected]}
+        >
+          <View style={[styles.avatarCircle, selected && styles.avatarCircleSelected]}>
+            <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>{initials}</Text>
+          </View>
+          <Text style={styles.avatarName} numberOfLines={1}>{t.name.split(' ')[0]}</Text>
+        </TouchableOpacity>
+      );
+    })}
+  </ScrollView>
+  {selectedTherapists.length === 0 && touched && (
+    <Text style={styles.errorText}>Please select at least one therapist.</Text>
+  )}
+</View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    maxWidth: '100%',
+    padding: 0,
+    overflow: 'hidden',
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    marginTop: 2,
+    minHeight: 68,
+  },
+  avatarTouchable: {
+    alignItems: 'center',
+    marginHorizontal: 2,
+    marginVertical: 2,
+    width: 54,
+  },
+  avatarSelected: {
+    // Optional: visual feedback for selected
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#e3f0fc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1976d2',
+  },
+  avatarCircleSelected: {
+    backgroundColor: '#1976d2',
+    borderColor: '#1976d2',
+  },
+  avatarText: {
+    color: '#1976d2',
+    fontWeight: '700',
+    fontSize: 18,
+  },
+  avatarTextSelected: {
+    color: '#fff',
+  },
+  avatarName: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#222',
+    fontWeight: '500',
+    maxWidth: 48,
+    textAlign: 'center',
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 6,
+    fontSize: 16,
+  },
+  inputWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  input: {
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#1976d2',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+  },
+  inputFocused: {
+    borderColor: '#1976d2',
+    borderWidth: 2,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 1,
+  },
+  clearButtonText: {
+    color: '#888',
+    fontSize: 18,
+  },
+  dropdown: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '100%',
+    zIndex: 5000,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#1976d2',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    maxHeight: 200,
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#e3f0fc',
+    fontWeight: '700',
+  },
+  dropdownItemText: {
+    color: '#222',
+    fontWeight: '400',
+  },
+  dropdownItemTextSelected: {
+    color: '#1976d2',
+    fontWeight: '700',
+  },
+  availabilityText: {
+    color: '#bbb',
+    fontSize: 11,
+    fontWeight: '400',
+  },
+  noResult: {
+    padding: 14,
+    color: '#888',
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  selectAllChip: {
+    backgroundColor: '#e3f0fc',
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 14,
+    borderWidth: 2,
+    borderColor: '#1976d2',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  selectAllChipText: {
+    color: '#1976d2',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  chip: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipSelected: {
+    backgroundColor: '#e3f0fc',
+    borderColor: '#1976d2',
+    borderWidth: 2,
+  },
+  chipText: {
+    color: '#222',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  chipTextSelected: {
+    color: '#1976d2',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+});
 
 export default TherapistPicker;

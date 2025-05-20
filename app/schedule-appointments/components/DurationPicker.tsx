@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface DurationPickerProps {
   duration: number;
@@ -30,61 +31,99 @@ const DurationPicker: React.FC<DurationPickerProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: 12, boxSizing: 'border-box', width: '100%', maxWidth: '100%' }}>
-      <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Duration (Days)</label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'auto' }}>
+    <View style={styles.container}>
+      <Text style={styles.label}>Duration (Days)</Text>
+      <View style={styles.optionsRow}>
         {durationOptions.map(opt => (
-          <button
+          <TouchableOpacity
             key={opt}
-            type="button"
-            style={{
-              padding: '10px 18px',
-              background: duration === opt ? '#1a73e8' : '#eee',
-              color: duration === opt ? '#fff' : '#222',
-              border: 'none',
-              borderRadius: 6,
-              fontWeight: 600,
-              fontSize: 15,
-              marginRight: 4,
-              marginBottom: 4,
-              cursor: 'pointer',
-              outline: duration === opt ? '2px solid #1976d2' : 'none',
-              transition: 'background 0.2s',
-            }}
-            onClick={() => {
+            style={[styles.optionButton, duration === opt && styles.optionButtonSelected]}
+            onPress={() => {
               setDuration(opt);
               setCustomInput('');
               setTouched(true);
             }}
           >
-            {opt}
-          </button>
+            <Text style={[styles.optionButtonText, duration === opt && styles.optionButtonTextSelected]}>{opt}</Text>
+          </TouchableOpacity>
         ))}
-        <input
-          type="number"
-          min={1}
-          style={{
-            border: '1.5px solid ' + (inputFocused ? '#1a73e8' : '#ccc'),
-            borderRadius: 6,
-            padding: 10,
-            width: 80,
-            background: '#fff',
-            fontSize: 15,
-            marginLeft: 4,
-            outline: inputFocused ? '2px solid #1976d2' : 'none',
-          }}
+        <TextInput
+          keyboardType="numeric"
+          style={[styles.customInput, inputFocused && styles.customInputFocused]}
           placeholder="Custom"
           value={customInput}
           onFocus={() => setInputFocused(true)}
           onBlur={() => setInputFocused(false)}
-          onChange={e => handleCustomChange(e.target.value)}
+          onChangeText={handleCustomChange}
         />
-      </div>
+      </View>
       {(!duration || duration <= 0) && touched && (
-        <div style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please enter a valid duration.</div>
+        <Text style={styles.errorText}>Please enter a valid duration.</Text>
       )}
-    </div>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 12,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 6,
+    fontSize: 16,
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  optionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    backgroundColor: '#eee',
+    borderRadius: 6,
+    fontWeight: '600',
+    fontSize: 15,
+    marginRight: 4,
+    marginBottom: 4,
+    borderWidth: 0,
+  },
+  optionButtonSelected: {
+    backgroundColor: '#1a73e8',
+  },
+  optionButtonText: {
+    color: '#222',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  optionButtonTextSelected: {
+    color: '#fff',
+  },
+  customInput: {
+    borderWidth: 1.5,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 10,
+    width: 80,
+    backgroundColor: '#fff',
+    fontSize: 15,
+    marginLeft: 4,
+  },
+  customInputFocused: {
+    borderColor: '#1a73e8',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+});
 
 export default DurationPicker;

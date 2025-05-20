@@ -297,7 +297,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         {/* --- Therapy Room Schedule (Collapsible) --- */}
-        <View style={{ marginBottom: 18 }}>
+        <View style={styles.section}>
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 8, backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#e0e0e0', width: 180 }}
             onPress={() => setShowSchedule(s => !s)}
@@ -353,133 +353,152 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
         </View>
         {/* --- End Therapy Room Schedule --- */}
 
-        <PatientPicker
-          patients={PATIENTS}
-          selectedPatient={selectedPatient || ''}
-          setSelectedPatient={setSelectedPatient}
-          patientSearch={patientSearch}
-          setPatientSearch={setPatientSearch}
-          patientInputFocused={patientInputFocused}
-          setPatientInputFocused={setPatientInputFocused}
-          setPatientGender={setPatientGender}
-          setTouched={setTouched}
-          touched={touched.patient || submitAttempted}
-        />
+        <View style={[styles.section, {marginBottom: 16}]}> 
+          <PatientPicker
+            patients={PATIENTS}
+            selectedPatient={selectedPatient || ''}
+            setSelectedPatient={setSelectedPatient}
+            patientSearch={patientSearch}
+            setPatientSearch={setPatientSearch}
+            patientInputFocused={patientInputFocused}
+            setPatientInputFocused={setPatientInputFocused}
+            setPatientGender={setPatientGender}
+            setTouched={setTouched}
+            touched={touched.patient || submitAttempted}
+          />
+        </View>
         {/* Therapy Picker */}
-        <TherapyPicker
-          therapies={THERAPIES}
-          selectedTherapy={selectedTherapy}
-          setSelectedTherapy={setSelectedTherapy}
-          therapySearch={therapySearch}
-          setTherapySearch={setTherapySearch}
-          therapyInputFocused={therapyInputFocused}
-          setTherapyInputFocused={setTherapyInputFocused}
-          touched={touched.therapy || submitAttempted}
-          setTouched={(t: any) => setTouched((prev: any) => ({ ...prev, therapy: true }))}
-        />
+        <View style={[styles.section, {marginBottom: 16}]}> 
+          <TherapyPicker
+            therapies={THERAPIES}
+            selectedTherapy={selectedTherapy}
+            setSelectedTherapy={setSelectedTherapy}
+            therapySearch={therapySearch}
+            setTherapySearch={setTherapySearch}
+            therapyInputFocused={therapyInputFocused}
+            setTherapyInputFocused={setTherapyInputFocused}
+            touched={touched.therapy || submitAttempted}
+            setTouched={(t: any) => setTouched((prev: any) => ({ ...prev, therapy: true }))}
+          />
+        </View>
 
-        <GenericDatePicker
-          label="Start Date"
-          value={startDate}
-          onChange={val => { setStartDate(val); setTouched(t => ({ ...t, date: true })); }}
-          inputStyle={{ fontVariant: ['tabular-nums'], fontFamily: 'monospace' }}
-          style={{ marginBottom: 8 }}
-        />
-        {/* Validation: Date */}
-        {!startDate && (touched.date || submitAttempted) && (
-          <Text style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please select a date.</Text>
-        )}
-        {/* Time Picker */}
-        <GenericTimePicker
-          label="Start Time"
-          value={timeSlot}
-          onChange={val => { setTimeSlot(val); setTouched(t => ({ ...t, time: true })); }}
-          style={{ marginBottom: 8 }}
-        />
+        <View style={[styles.section, {marginBottom: 16}]}> 
+          <GenericDatePicker
+            label="Start Date"
+            value={startDate}
+            onChange={val => { setStartDate(val); setTouched(t => ({ ...t, date: true })); }}
+            inputStyle={{ fontVariant: ['tabular-nums'], fontFamily: 'monospace' }}
+          />
+          {/* Validation: Date */}
+          {!startDate && (touched.date || submitAttempted) && (
+            <Text style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please select a date.</Text>
+          )}
+          {/* Time Picker */}
+          <GenericTimePicker
+            label="Start Time"
+            value={timeSlot}
+            onChange={val => { setTimeSlot(val); setTouched(t => ({ ...t, time: true })); }}
+          />
+        </View>
 
-        {/* Duration Picker */}
-        <Text style={styles.label}>Duration (days)</Text>
-        <View style={styles.durationRow}>
-          {DURATION_PRESETS.map(preset => (
+        <View style={[styles.section, {marginBottom: 16}]}> 
+          {/* Duration Picker */}
+          <Text style={styles.label}>Duration (days)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.durationScroll} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
+            {DURATION_PRESETS.map(preset => (
+              <TouchableOpacity
+                key={preset}
+                style={[styles.durationBox, duration === preset && !customMode && styles.durationBoxActive]}
+                onPress={() => { setDuration(preset); setCustomMode(false); setTouched(t => ({ ...t, duration: true })); }}
+              >
+                <Text style={{ color: duration === preset && !customMode ? '#fff' : '#222' }}>{preset} days</Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity
-              key={preset}
-              style={[styles.durationBox, duration === preset && !customMode && styles.durationBoxActive]}
-              onPress={() => { setDuration(preset); setCustomMode(false); setTouched(t => ({ ...t, duration: true })); }}
+              style={[styles.durationBox, customMode && styles.durationBoxActive]}
+              onPress={() => { setCustomMode(true); setDuration(null); setTouched(t => ({ ...t, duration: true })); }}
             >
-              <Text style={{ color: duration === preset && !customMode ? '#fff' : '#222' }}>{preset} days</Text>
+              <Text style={{ color: customMode ? '#fff' : '#222' }}>Custom</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={[styles.durationBox, customMode && styles.durationBoxActive]}
-            onPress={() => { setCustomMode(true); setDuration(null); setTouched(t => ({ ...t, duration: true })); }}
-          >
-            <Text style={{ color: customMode ? '#fff' : '#222' }}>Custom</Text>
-          </TouchableOpacity>
-          {customMode && (
-            <TextInput
-              style={[styles.input, { width: 70, marginLeft: 8 }]}
-              placeholder="Enter days"
-              keyboardType="numeric"
-              value={customDuration ?? ''}
-              onChangeText={text => {
-                // Only allow numeric input
-                if (/^\d*$/.test(text)) setCustomDuration(text);
-                setTouched(t => ({ ...t, duration: true }));
-              }}
-            />
+            {customMode && (
+              <TextInput
+                style={[styles.input, { width: 70, marginLeft: 8 }]}
+                placeholder="Enter days"
+                keyboardType="numeric"
+                value={customDuration ?? ''}
+                onChangeText={text => {
+                  // Only allow numeric input
+                  if (/^\d*$/.test(text)) setCustomDuration(text);
+                  setTouched(t => ({ ...t, duration: true }));
+                }}
+              />
+            )}
+          </ScrollView>
+
+          {/* Validation: Duration (only show duration errors here) */}
+          {((!duration && !customMode) || (customMode && (!customDuration || Number(customDuration) <= 0))) && (touched.duration || submitAttempted) && (
+            <Text style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please enter a valid duration in days.</Text>
           )}
         </View>
 
-        {/* Validation: Duration (only show duration errors here) */}
-        {((!duration && !customMode) || (customMode && (!customDuration || Number(customDuration) <= 0))) && (touched.duration || submitAttempted) && (
-          <Text style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please enter a valid duration in days.</Text>
-        )}
-
         {/* Therapist Picker */}
-        <TherapistPicker
-          therapists={THERAPISTS.map(t => ({
-            ...t,
-            availability: t.availability as Record<string, string[]>
-          }))}
-          selectedTherapists={selectedTherapists}
-          setSelectedTherapists={setSelectedTherapists}
-          therapistSearch={therapistSearch}
-          setTherapistSearch={setTherapistSearch}
-          showAllTherapists={showAllTherapists}
-          setShowAllTherapists={setShowAllTherapists}
-          therapistInputFocused={therapistInputFocused}
-          setTherapistInputFocused={setTherapistInputFocused}
-          patientGender={patientGender}
-          touched={touched.therapists || submitAttempted}
-          setTouched={(t: any) => setTouched((prev: any) => ({ ...prev, therapists: true }))}
-        />
-
-        {/* Room (Optional) */}
-        <Text style={styles.label}>Room (Optional)</Text>
-        <View style={styles.roomList}>
-          {ROOMS.map(r => (
-            <TouchableOpacity
-              key={r.roomNumber}
-              style={[styles.roomBox, selectedRoom === r.roomNumber && styles.roomBoxActive]}
-              onPress={() => setSelectedRoom(r.roomNumber)}
-            >
-              <Text style={{ color: selectedRoom === r.roomNumber ? '#fff' : '#222' }}>{r.name}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.section}>
+          <TherapistPicker
+            therapists={THERAPISTS.map(t => ({
+              ...t,
+              availability: t.availability as Record<string, string[]>
+            }))}
+            selectedTherapists={selectedTherapists}
+            setSelectedTherapists={setSelectedTherapists}
+            therapistSearch={therapistSearch}
+            setTherapistSearch={setTherapistSearch}
+            showAllTherapists={showAllTherapists}
+            setShowAllTherapists={setShowAllTherapists}
+            therapistInputFocused={therapistInputFocused}
+            setTherapistInputFocused={setTherapistInputFocused}
+            patientGender={patientGender}
+            touched={touched.therapists || submitAttempted}
+            setTouched={(t: any) => setTouched((prev: any) => ({ ...prev, therapists: true }))}
+          />
         </View>
 
-        {/* Notes */}
-        <Text style={styles.label}>Notes / Diagnosis Reference</Text>
-        <TextInput
-          style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
-          placeholder="Add any special instructions or diagnosis notes here..."
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-        />
+        <View style={styles.section}>
+          {/* Room (Optional) */}
+          <Text style={styles.label}>Room (Optional)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomAvatarRow} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+          {ROOMS.map(r => {
+            const selected = selectedRoom === r.roomNumber;
+            return (
+              <TouchableOpacity
+                key={r.roomNumber}
+                style={[styles.roomAvatarTouchable, selected && styles.roomAvatarSelected]}
+                onPress={() => setSelectedRoom(r.roomNumber)}
+              >
+                <View style={[styles.roomAvatarCircle, selected && styles.roomAvatarCircleSelected]}>
+                  <Text style={[styles.roomAvatarText, selected && styles.roomAvatarTextSelected]}>{r.roomNumber}</Text>
+                </View>
+                <Text style={styles.roomAvatarName} numberOfLines={1}>{r.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        </View>
+
+        <View style={styles.sectionBottom}>
+          {/* Notes */}
+          <Text style={styles.label}>Notes / Diagnosis Reference</Text>
+          <TextInput
+            style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
+            placeholder="Add any special instructions or diagnosis notes here..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+          />
+        </View>
 
         {/* Action Buttons */}
-        <View style={styles.actionsRow}>
+        <View style={styles.sectionBottom}>
+          <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
@@ -619,24 +638,27 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
               return acc;
             }, {});
             return (
-              <RecurringSlotPreview
-                startDate={startDate}
-                days={customMode ? Number(customDuration) : (duration ?? 1)}
-                roomNumber={selectedRoom}
-                slotTime={timeSlot}
-                appointments={appointments}
-                skipNonWorkingDays={false}
-                recurringSlotInfo={recurringSlotInfo}
-                replacementSlots={replacementSlots}
-                onSlotChange={(date, slot) => {
-                  setReplacementSlots(prev => ({ ...prev, [date]: slot }));
-                }}
-              />
+              <View style={styles.alternativesSection}>
+                <RecurringSlotPreview
+                  startDate={startDate}
+                  days={customMode ? Number(customDuration) : (duration ?? 1)}
+                  roomNumber={selectedRoom}
+                  slotTime={timeSlot}
+                  appointments={appointments}
+                  skipNonWorkingDays={false}
+                  recurringSlotInfo={recurringSlotInfo}
+                  replacementSlots={replacementSlots}
+                  onSlotChange={(date, slot) => {
+                    setReplacementSlots(prev => ({ ...prev, [date]: slot }));
+                  }}
+                />
+              </View>
             );
           }
           return null;
         })()}
         {/* Show alternatives if conflict and available */}
+        </View>
       </ScrollView>
     </View>
   );

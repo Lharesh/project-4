@@ -53,13 +53,15 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
         />
       ) : (
         <>
-          <TouchableOpacity onPress={() => setShow(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[
-              { paddingVertical: 0, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, backgroundColor: '#fafbfc', fontSize: 15, flex: 1 },
+          <TouchableOpacity onPress={() => setShow(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <View style={[
+              { height: 44, borderRadius: 8, borderColor: '#d6dbe6', borderWidth: 1, backgroundColor: '#fff', flex: 1, justifyContent: 'center', paddingHorizontal: 10 },
               inputStyle,
             ]}>
-              {formattedValue || 'Select date'}
-            </Text>
+              <Text style={{ fontSize: 16, color: '#1a2233' }}>
+                {formattedValue || 'Select date'}
+              </Text>
+            </View>
           </TouchableOpacity>
           {show && (
             <DateTimePicker

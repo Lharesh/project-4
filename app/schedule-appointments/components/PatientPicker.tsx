@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 
 interface Patient {
   id: string;
@@ -32,7 +33,7 @@ const PatientPicker: React.FC<PatientPickerProps> = ({
   setTouched,
 }) => {
   // Keep patientSearch in sync with selectedPatient
-  React.useEffect(() => {
+  useEffect(() => {
     if (!patientInputFocused && selectedPatient) {
       const found = patients.find(p => p.id === selectedPatient);
       if (found && patientSearch !== found.name) {
@@ -43,29 +44,42 @@ const PatientPicker: React.FC<PatientPickerProps> = ({
       setPatientSearch('');
     }
   }, [selectedPatient, patientInputFocused, patients]);
-  console.log('PatientPicker patients:', patients);
+  // Keep patientSearch in sync with selectedPatient
+  useEffect(() => {
+    if (!patientInputFocused && selectedPatient) {
+      const found = patients.find(p => p.id === selectedPatient);
+      if (found && patientSearch !== found.name) {
+        setPatientSearch(found.name);
+      }
+    }
+    if (!selectedPatient && !patientInputFocused && patientSearch !== '') {
+      setPatientSearch('');
+    }
+  }, [selectedPatient, patientInputFocused, patients]);
+
+  const [internalFocus, setInternalFocus] = useState(false);
   const filteredPatients = patients.filter((p: Patient) => p.name.toLowerCase().includes(patientSearch.toLowerCase()));
+  console.log('PatientPicker patients:', patients);
+
   return (
-    <>
-      <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Patient</label>
-      <div style={{ position: 'relative', marginBottom: 12, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <input
-          style={{ width: '100%', maxWidth: '100%', border: '1.5px solid #1976d2', borderRadius: 8, padding: 10, fontSize: 16, outline: patientInputFocused ? '2px solid #1976d2' : 'none', boxSizing: 'border-box' }}
+    <View style={styles.container}>
+      <Text style={styles.label}>Patient</Text>
+      <View style={styles.inputWrapper}>
+        <TextInput
+          style={[styles.input, patientInputFocused && styles.inputFocused]}
           placeholder="Search or select patient..."
           value={patientInputFocused ? patientSearch : (selectedPatient ? (patients.find(p => p.id === selectedPatient)?.name || '') : '')}
-          onFocus={() => {
-            setPatientInputFocused(true);
-          }}
+          onFocus={() => setPatientInputFocused(true)}
           onBlur={() => {
             setTimeout(() => setPatientInputFocused(false), 120);
             setTouched((t: any) => ({ ...t, patient: true }));
           }}
-          onChange={e => {
-            setPatientSearch(e.target.value);
+          onChangeText={text => {
+            setPatientSearch(text);
             setSelectedPatient(null);
           }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && filteredPatients.length > 0) {
+          onSubmitEditing={() => {
+            if (filteredPatients.length > 0) {
               const p = filteredPatients[0];
               setSelectedPatient(p.id);
               setPatientSearch(p.name);
@@ -75,43 +89,134 @@ const PatientPicker: React.FC<PatientPickerProps> = ({
           }}
         />
         {selectedPatient && (
-          <span
-            role="button"
-            aria-label="Clear patient selection"
-            tabIndex={0}
-            onClick={() => { setSelectedPatient(null); setPatientSearch(''); setPatientInputFocused(true); }}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (setSelectedPatient(null), setPatientSearch(''), setPatientInputFocused(true))}
-            style={{ position: 'absolute', right: 12, top: 12, cursor: 'pointer', color: '#888', fontSize: 18, background: 'none', border: 'none' }}
+          <TouchableOpacity
+            onPress={() => { setSelectedPatient(null); setPatientSearch(''); setPatientInputFocused(true); }}
+            style={styles.clearButton}
           >
-            ×
-          </span>
+            <Text style={styles.clearButtonText}>×</Text>
+          </TouchableOpacity>
         )}
         {patientInputFocused && !selectedPatient && patientSearch.length > 0 && (
-          <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 2000, background: '#fff', border: '1.5px solid #1976d2', borderRadius: 8, boxShadow: '0 2px 16px #0002', maxHeight: 200, overflowY: 'auto', marginTop: 2 }}>
+          <View style={styles.dropdown}>
             {filteredPatients.length === 0 ? (
-              <div style={{ padding: 14, color: '#888' }}>No patients found</div>
+              <Text style={styles.noResult}>No patients found</Text>
             ) : filteredPatients.map(p => (
-              <div
+              <TouchableOpacity
                 key={p.id}
-                style={{ padding: 12, borderBottom: '1px solid #eee', cursor: 'pointer', background: selectedPatient === p.id ? '#e3f0fc' : '#fff', fontWeight: selectedPatient === p.id ? 700 : 400 }}
-                onMouseDown={() => {
+                style={[styles.dropdownItem, selectedPatient === p.id && styles.dropdownItemSelected]}
+                onPress={() => {
                   setSelectedPatient(p.id);
                   setPatientSearch(p.name);
                   setPatientGender(p.gender as 'male' | 'female');
                   setPatientInputFocused(false);
                 }}
               >
-                <span style={{ color: selectedPatient === p.id ? '#1976d2' : '#222' }}>{p.name}</span>
-              </div>
+                <Text style={[styles.dropdownItemText, selectedPatient === p.id && styles.dropdownItemTextSelected]}>{p.name}</Text>
+              </TouchableOpacity>
             ))}
-          </div>
+          </View>
         )}
-      </div>
+      </View>
       {!selectedPatient && touched && (
-        <div style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please select a patient.</div>
+        <Text style={styles.errorText}>Please select a patient.</Text>
       )}
-    </>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 12,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    // overflow removed for dropdown visibility
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 6,
+    fontSize: 16,
+  },
+  inputWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    zIndex: 10000,
+    // overflow removed for dropdown visibility
+  },
+  input: {
+    width: '100%',
+    borderColor: '#1976d2',
+    borderWidth: 1.5,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  inputFocused: {
+    borderColor: '#1976d2',
+    borderWidth: 2,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 2,
+    padding: 2,
+  },
+  clearButtonText: {
+    color: '#888',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  dropdown: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 48, // fixed px for web/mobile compatibility
+    zIndex: 10000, // maximum for visibility
+    backgroundColor: '#fff', // fully opaque for contrast
+    opacity: 1,
+    borderColor: '#1976d2',
+    borderWidth: 3,
+    borderRadius: 10,
+    maxHeight: 240,
+    marginTop: 2,
+    overflow: 'hidden',
+    overflowY: 'auto', // for web scroll
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 20, // for Android
+  },
+  noResult: {
+    padding: 14,
+    color: '#888',
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#e3f0fc',
+  },
+  dropdownItemText: {
+    color: '#222',
+    fontSize: 16,
+  },
+  dropdownItemTextSelected: {
+    color: '#1976d2',
+    fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+});
 
 export default PatientPicker;

@@ -57,28 +57,30 @@ const allAvailable = dates.every(date => recurringSlotInfo[date]?.available);
 </Text>
                   {/* Show alternatives dropdown if available */}
                   {info.alternatives.length > 0 && (
-                    <Picker
-                      selectedValue={
-                        info.alternatives.some(a => `${a.slot}-${a.roomNumber}` === replacementSlots[date])
-                          ? replacementSlots[date]
-                          : ''
-                      }
-                      style={{ height: 30, width: 180 }}
-                      onValueChange={(itemValue: string) => {
-                        onSlotChange(date, itemValue);
-                      }}
-                    >
-                      <Picker.Item label="Select slot/room" value="" />
-                      {info.alternatives.map(({ slot, roomNumber }: { slot: string; roomNumber: string }) => (
-                        <Picker.Item key={slot + '-' + roomNumber} label={`${slot} - ${roomNumber}`} value={`${slot}-${roomNumber}`} />
-                      ))}
-                    </Picker>
-                  )}
-                  {/* Show selected value if any */}
-                  {replacementSlots[date] && (
-                    <Text style={{ marginLeft: 8, color: '#333', fontSize: 13 }}>
-                      Selected: {replacementSlots[date].replace('-', ' - ')}
-                    </Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator style={{ flexGrow: 0, marginLeft: 0, minWidth: 180, maxWidth: 320 }}>
+                      <Picker
+                        selectedValue={
+                          info.alternatives.some(a => `${a.slot}-${a.roomNumber}` === replacementSlots[date])
+                            ? replacementSlots[date]
+                            : ''
+                        }
+                        style={{ height: 30, width: 180 }}
+                        onValueChange={(itemValue: string) => {
+                          onSlotChange(date, itemValue);
+                        }}
+                      >
+                        <Picker.Item label="Select slot/room" value="" />
+                        {info.alternatives.map(({ slot, roomNumber }: { slot: string; roomNumber: string }) => (
+                          <Picker.Item key={slot + '-' + roomNumber} label={`${slot} - ${roomNumber}`} value={`${slot}-${roomNumber}`} />
+                        ))}
+                      </Picker>
+                      {/* Show selected value if any */}
+                      {replacementSlots[date] && (
+                        <Text style={{ marginLeft: 8, color: '#333', fontSize: 13 }}>
+                          Selected: {replacementSlots[date].replace('-', ' - ')}
+                        </Text>
+                      )}
+                    </ScrollView>
                   )}
                 </>
               )}
