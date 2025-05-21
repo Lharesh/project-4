@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchStaff, addStaffMember, updateStaffMember, deleteStaffMember } from '@/redux/slices/setupSlice';
+import type { User } from '../../../auth/authSlice';
+import type { StaffMember } from './setupSlice';
+import { fetchStaff, addStaffMember, updateStaffMember, deleteStaffMember } from './setupSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
@@ -27,8 +29,8 @@ interface StaffFormData {
 
 export default function StaffManagementScreen() {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-  const { staff, isLoading } = useAppSelector((state) => state.setup);
+  const { user } = useAppSelector((state) => state.auth as { user: User | null });
+  const { staff, isLoading } = useAppSelector((state) => state.setup as { staff: StaffMember[]; isLoading: boolean });
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<StaffFormData>({
@@ -118,7 +120,7 @@ export default function StaffManagementScreen() {
     }
   };
 
-  const handleEdit = (member: any) => {
+  const handleEdit = (member: StaffMember) => {
     setEditingId(member.id);
     setFormData({
       name: member.name,

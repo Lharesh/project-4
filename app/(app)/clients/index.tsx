@@ -13,16 +13,16 @@ import {
   fetchClients,
   addClient,
   updateClient,
-} from '@/redux/slices/clientsSlice';
+} from '@/features/clients/clientsSlice';
 import Card from '@/components/ui/Card';
 import { clientStyles } from './client.styles';
-import { FormField } from './ui/FormField';
-import { PrefixPicker } from './ui/PrefixPicker';
-import { CountryCodePicker } from './ui/CountryCodePicker';
-import { GenericDatePicker } from '../../../utils/GenericDatePicker';
+import { FormField } from '@/features/clients/components/FormField';
+import { PrefixPicker } from '@/features/clients/components//PrefixPicker';
+import { CountryCodePicker } from '@/features/clients/components//CountryCodePicker';
+import { GenericDatePicker } from '@/utils/GenericDatePicker';
 import { COLORS } from '@/constants/theme';
 import { ChevronRight, Phone, Mail, Search, Plus, UserPlus2, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
-import type { Client } from './types/client';
+import type { Client } from '@/features/clients/types/client';
 
 const EMPTY_CLIENT: Client & { mobileCode: string; altMobileCode: string; age?: string; prefix?: string } = {
   id: '',

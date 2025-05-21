@@ -2,7 +2,7 @@ import DateRangePicker from '@/components/ui/DateRangePicker';
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchReports, clearFilters } from '@/redux/slices/reportsSlice';
+import { fetchReports, clearFilters } from './reportsSlice';
 import Card from '@/components/ui/Card';
 import { Picker } from '@/components/ui/Picker';
 import { ReportTable } from '@/components/ui/ReportTable';

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchTemplates } from '@/redux/slices/setupSlice';
+import { fetchTemplates } from './setupSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { TemplateFormCard } from '@/components/ui/TemplateFormCard';

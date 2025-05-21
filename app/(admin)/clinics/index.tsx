@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { router } from 'expo-router';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
-import { fetchClinic } from '@/redux/slices/clinicSlice';
+import { fetchClinic } from './clinicSlice';
 import { DashboardSection } from './components/DashboardSection';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { ClinicForm } from './components/ClinicForm';
@@ -20,18 +20,16 @@ import {
   BarChart2,
 } from 'lucide-react-native';
 
-export const options = {
-  title: 'Dashboard',
-  headerShown: true,
-};
+
 
 export default function ClinicDashboardScreen() {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  // Use correct typing for user
+  const user = useAppSelector(state => state.auth.user);
   const { currentClinic, isLoading } = useAppSelector((state) => state.clinic);
 
   useEffect(() => {
-    if (user?.clinicId) {
+    if (user && user.clinicId) {
       dispatch(fetchClinic());
     }
   }, [user?.clinicId]);
@@ -70,7 +68,6 @@ export default function ClinicDashboardScreen() {
             />
           </View>
         </DashboardSection>
-
         <DashboardSection title="Setup & Configuration">
           <DashboardCard
             title="Clinic Timings"

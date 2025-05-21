@@ -8,8 +8,8 @@ import {
 } from 'react-native';
 import { Tabs, router, useSegments } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchClinic } from '@/redux/slices/clinicSlice';
-import { fetchConfig } from '@/redux/slices/configSlice';
+import { fetchClinic } from 'app/(admin)/clinics/clinicSlice';
+import { fetchConfig } from '@/features/clinicConfig/configSlice';
 import { COLORS } from '@/constants/theme';
 import { Settings } from 'lucide-react-native';
 import Card from '@/components/ui/Card';
@@ -93,22 +93,7 @@ export default function AppLayout() {
           tabBarLabelStyle: {
             fontSize: 12,
           },
-          headerStyle: {
-            backgroundColor: COLORS.white,
-            borderBottomWidth: 1,
-            borderBottomColor: COLORS.neutral[200],
-          },
-          headerTitleStyle: {
-            color: COLORS.neutral[900],
-            fontSize: 18,
-            fontWeight: '600',
-          },
-          headerRight: () =>
-            adminTabs.length > 0 ? (
-              <TouchableOpacity onPress={toggleAdminMenu} style={styles.headerButton}>
-                <Settings size={24} color={COLORS.neutral[700]} />
-              </TouchableOpacity>
-            ) : null,
+          headerShown: false,
         }}
       >
         {mainTabs.map((tab) => (

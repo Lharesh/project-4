@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchTreatmentSlots } from '@/redux/slices/setupSlice';
+import { fetchTreatmentSlots } from './setupSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';

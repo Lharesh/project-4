@@ -9,15 +9,13 @@ import {
 } from 'react-native';
 import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, Plus, Phone, Mail } from 'lucide-react-native';
-import { Linking } from 'react-native';
-import Card from '@/components/ui/Card';
-import NewAppointmentModal from '../../schedule-appointments/modal/NewAppointmentModal';
+import NewAppointmentModal from '@/features/appointments/modal/NewAppointmentModal';
 import { COLORS } from '@/constants/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import { fetchAppointments, addAppointment } from '@/redux/slices/appointmentsSlice';
-import type { Appointment } from '@/redux/slices/appointmentsSlice';
-import AppointmentCard from '../../schedule-appointments/components/AppointmentCard';
+import { fetchAppointments, addAppointment } from '@/features/appointments/appointmentsSlice';
+import type { Appointment } from '@/features/appointments/appointmentsSlice';
+import AppointmentCard from '@/features/appointments/components/AppointmentCard';
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
 

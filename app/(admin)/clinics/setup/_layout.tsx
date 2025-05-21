@@ -1,34 +1,28 @@
-import { Stack } from 'expo-router';
-import { getHeaderWithBack } from '@/utils/navigationOptions';
+import React from 'react';
+import { useSegments, Slot } from 'expo-router';
+import AppHeader from '../components/AppHeader';
+
+const TITLE_MAP = {
+  'clinic-timings': 'Clinic Timings',
+  'treatment-slots': 'Treatment Slots',
+  'staff-management': 'Staff Management',
+  'user-roles': 'User Roles',
+  'whatsapp-templates': 'WhatsApp Templates',
+  'index': 'Setups',
+};
 
 export default function SetupLayout() {
+  const segments = useSegments();
+  const lastSegment = segments[segments.length - 1] || 'index';
+  const title =
+    lastSegment in TITLE_MAP
+      ? TITLE_MAP[lastSegment as keyof typeof TITLE_MAP]
+      : 'Setups';
+
   return (
-    <Stack
-    screenOptions={{
-      headerShown: true, // prevent extra "setup" header
-      headerBackVisible: false, // Hides the back button
-    }}
-  >
-      <Stack.Screen
-        name="clinic-timings"
-        options={getHeaderWithBack('Clinic Timings')}
-      />
-      <Stack.Screen
-        name="treatment-slots"
-        options={getHeaderWithBack('Treatment Slots')}
-      />
-      <Stack.Screen
-        name="staff-management"
-        options={getHeaderWithBack('Staff Management')}
-      />
-      <Stack.Screen
-        name="user-roles"
-        options={getHeaderWithBack('User Roles')}
-      />
-      <Stack.Screen
-        name="whatsapp-templates"
-        options={getHeaderWithBack('WhatsApp Templates')}
-      />
-    </Stack>
+    <>
+      <AppHeader title={title} />
+      <Slot />
+    </>
   );
 }

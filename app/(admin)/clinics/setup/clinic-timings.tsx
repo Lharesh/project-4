@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import type { User } from '../../../auth/authSlice';
+import type { ClinicTimings } from './setupSlice';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { fetchTimings, saveTimings, setDraftTimings } from '@/redux/slices/setupSlice';
+import { fetchTimings, saveTimings, setDraftTimings } from './setupSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Picker } from '@/components/ui/Picker';
@@ -27,12 +29,12 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
 export default function ClinicTimingsScreen() {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-  const { timings, draftTimings, isLoading } = useAppSelector((state) => state.setup);
+  const { user } = useAppSelector((state) => state.auth as { user: User | null });
+  const { timings, draftTimings, isLoading } = useAppSelector((state) => state.setup as { timings: ClinicTimings; draftTimings?: ClinicTimings; isLoading: boolean });
 
-  const [editedTimings, setEditedTimings] = useState(
-  draftTimings || timings || { weekdays: {} }
-);
+  const [editedTimings, setEditedTimings] = useState<ClinicTimings>(
+    draftTimings || timings || { weekdays: {} }
+  );
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -52,7 +54,7 @@ export default function ClinicTimingsScreen() {
   type TimingStatus = 'working' | 'half_day' | 'holiday' | 'weekly_off';
 
 const handleStatusChange = (day: string, status: TimingStatus) => {
-  setEditedTimings(prev => {
+  setEditedTimings((prev: ClinicTimings) => {
     const updated = {
       weekdays: {
         ...prev.weekdays,
@@ -69,7 +71,7 @@ const handleStatusChange = (day: string, status: TimingStatus) => {
 };
 
 const handleTimeChange = (day: string, field: string, value: string) => {
-  setEditedTimings(prev => {
+  setEditedTimings((prev: ClinicTimings) => {
     const updated = {
       weekdays: {
         ...prev.weekdays,
@@ -84,7 +86,7 @@ const handleTimeChange = (day: string, field: string, value: string) => {
   });
 };
   const validateTimings = () => {
-    for (const [day, timing] of Object.entries(editedTimings.weekdays)) {
+    for (const [day, timing] of Object.entries(editedTimings.weekdays) as [string, ClinicTimings["weekdays"][string]][]) {
       if (timing.isOpen) {
         if (!timing.start || !timing.end) {
           setToastMessage(`Please set both start and end time for ${day}`);
@@ -156,10 +158,10 @@ const handleTimeChange = (day: string, field: string, value: string) => {
   const handleApplyToAll = () => {
     if (weekdays.length === 0) return;
     const [firstDay, firstTiming] = weekdays[0];
-    setEditedTimings(prev => {
+    setEditedTimings((prev: ClinicTimings) => {
       const updated = {
         weekdays: Object.fromEntries(
-          Object.entries(prev.weekdays).map(([day, timing], idx) => {
+          Object.entries(prev.weekdays).map(([day, timing]: [string, ClinicTimings["weekdays"][string]], idx: number) => {
             if (idx === 0) return [day, timing];
             return [day, { ...timing, ...firstTiming }];
           })
@@ -183,7 +185,7 @@ const handleTimeChange = (day: string, field: string, value: string) => {
   // <TouchableOpacity onPress={handleBack}><Icon name="arrow-left" /></TouchableOpacity>
 
   // Helper for summary
-  const getSummary = (timing: any) => {
+  const getSummary = (timing: ClinicTimings["weekdays"][string]) => {
     if (timing.status === 'working' || timing.status === 'half_day') {
       return `${timing.start || '--:--'} - ${timing.end || '--:--'}${timing.breakStart && timing.breakEnd ? ` (Break: ${timing.breakStart}-${timing.breakEnd})` : ''}`;
     }

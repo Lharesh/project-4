@@ -11,9 +11,9 @@ import {
 import { router } from 'expo-router';
 import { ArrowLeft, Mail, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { forgotPassword } from '@/redux/slices/authSlice';
+import { forgotPassword } from './authSlice';
 import { TextInput } from '@/components/ui/TextInput';
-import { Button } from '@/components/ui/Button';
+import Button from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
 import { COLORS } from '@/constants/theme';
 

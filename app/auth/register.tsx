@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { ArrowLeft, Mail, Lock, User } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { register } from '@/redux/slices/authSlice';
+import { register } from './authSlice';
 import { TextInput } from '@/components/ui/TextInput';
 import Button from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
