@@ -1,10 +1,11 @@
 import React from 'react';
 import { useTherapyAppointmentForm } from '../../../hooks/useTherapyAppointmentForm';
+import { MaterialIcons } from '@expo/vector-icons';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import styles from './TherapyAppointments.styles';
 import { GenericDatePicker } from '../../../utils/GenericDatePicker';
 import GenericTimePicker from '../../../utils/GenericTimePicker';
-import { THERAPIES, THERAPISTS, PATIENTS, ROOMS } from '../mock/scheduleMatrixMock';
+import { THERAPIES, THERAPISTS, PATIENTS, ROOMS, CLINIC_TIMINGS } from '../mock/scheduleMatrixMock';
 import ScheduleMatrix from '../components/ScheduleMatrix';
 
 
@@ -15,7 +16,7 @@ import { getRecurringConflicts } from '../helpers/conflictCalculations';
 import { addDays } from '../helpers/dateHelpers';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { addAppointments } from '@/features/appointments/appointmentsSlice';
+import { addAppointments } from '../appointmentsSlice';
 import { buildScheduleMatrix } from './buildScheduleMatrix';
 import RecurringSlotPreview from './RecurringSlotPreview';
 import { canBookAppointment } from '../helpers/rulesEngine';
@@ -354,32 +355,88 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
         {/* --- End Therapy Room Schedule --- */}
 
         <View style={[styles.section, {marginBottom: 16}]}> 
-          <PatientPicker
-            patients={PATIENTS}
-            selectedPatient={selectedPatient || ''}
-            setSelectedPatient={setSelectedPatient}
-            patientSearch={patientSearch}
-            setPatientSearch={setPatientSearch}
-            patientInputFocused={patientInputFocused}
-            setPatientInputFocused={setPatientInputFocused}
-            setPatientGender={setPatientGender}
-            setTouched={setTouched}
-            touched={touched.patient || submitAttempted}
-          />
+          <Text style={styles.label}>Patient</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
+            <TextInput
+              style={[styles.input, { flex: 1, paddingRight: 36 }]}
+              placeholder="Search patient by name"
+              value={patientSearch}
+              onChangeText={setPatientSearch}
+              editable={!selectedPatient}
+            />
+            {selectedPatient ? (
+              <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+                <TouchableOpacity
+                  onPress={() => { setSelectedPatient(null); setPatientSearch(''); }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <MaterialIcons name="close" size={22} color="#888" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+          {patientSearch.length > 0 && !selectedPatient && (
+            <View style={styles.dropdownList}>
+              {PATIENTS.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelectedPatient(p.id);
+                    setPatientSearch(p.name);
+                    setPatientGender && setPatientGender(p.gender as 'male' | 'female');
+                  }}
+                >
+                  <Text style={{ color: selectedPatient === p.id ? '#1a73e8' : '#222' }}>{p.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {!selectedPatient && (touched.patient || submitAttempted) && (
+            <Text style={{ color: 'red', marginBottom: 6 }}>Please select a patient</Text>
+          )}
         </View>
         {/* Therapy Picker */}
         <View style={[styles.section, {marginBottom: 16}]}> 
-          <TherapyPicker
-            therapies={THERAPIES}
-            selectedTherapy={selectedTherapy}
-            setSelectedTherapy={setSelectedTherapy}
-            therapySearch={therapySearch}
-            setTherapySearch={setTherapySearch}
-            therapyInputFocused={therapyInputFocused}
-            setTherapyInputFocused={setTherapyInputFocused}
-            touched={touched.therapy || submitAttempted}
-            setTouched={(t: any) => setTouched((prev: any) => ({ ...prev, therapy: true }))}
-          />
+          <Text style={styles.label}>Therapy Name</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
+            <TextInput
+              style={[styles.input, { flex: 1, paddingRight: 36 }]}
+              placeholder="Search therapy by name"
+              value={therapySearch}
+              onChangeText={setTherapySearch}
+              editable={!selectedTherapy}
+            />
+            {selectedTherapy ? (
+              <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+                <TouchableOpacity
+                  onPress={() => { setSelectedTherapy(''); setTherapySearch(''); }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <MaterialIcons name="close" size={22} color="#888" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+          {therapySearch.length > 0 && !selectedTherapy && (
+            <View style={styles.dropdownList}>
+              {THERAPIES.filter(t => t.name.toLowerCase().includes(therapySearch.toLowerCase())).map(t => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelectedTherapy(t.id);
+                    setTherapySearch(t.name);
+                  }}
+                >
+                  <Text style={{ color: selectedTherapy === t.id ? '#1a73e8' : '#222' }}>{t.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {!selectedTherapy && (touched.therapy || submitAttempted) && (
+            <Text style={{ color: 'red', marginBottom: 6 }}>Please select a therapy</Text>
+          )}
         </View>
 
         <View style={[styles.section, {marginBottom: 16}]}> 

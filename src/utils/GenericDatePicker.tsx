@@ -18,6 +18,7 @@ export interface GenericDatePickerProps {
   maxDate?: Date;
   style?: any;
   inputStyle?: any;
+  testID?: string;
 }
 
 export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
@@ -28,6 +29,7 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
   maxDate,
   style,
   inputStyle,
+  testID,
 }) => {
   const [show, setShow] = React.useState(false);
   const formattedValue = formatDate(value);
@@ -53,7 +55,14 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
         />
       ) : (
         <>
-          <TouchableOpacity onPress={() => setShow(true)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <TouchableOpacity
+            testID={testID}
+            onPress={() => setShow(true)}
+            style={[
+              { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+              inputStyle,
+            ]}
+          >
             <View style={[
               { height: 44, borderRadius: 8, borderColor: '#d6dbe6', borderWidth: 1, backgroundColor: '#fff', flex: 1, justifyContent: 'center', paddingHorizontal: 10 },
               inputStyle,
@@ -81,3 +90,4 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
     </View>
   );
 };
+export default GenericDatePicker;

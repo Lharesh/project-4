@@ -35,7 +35,9 @@ function AppointmentsScreen() {
   // Status counts
   const getStatusCounts = () => {
     const counts = { completed: 0, cancelled: 0, pending: 0 };
-    appointments.forEach((a) => {
+    const filtered = appointments.filter(a => a.date === selectedKey);
+    console.log('Filtered appointments for', selectedKey, tab, filtered);
+    filtered.forEach((a) => {
       if (a.status === 'scheduled') {
         counts.pending++;
       } else if (a.status === 'completed') {
@@ -93,7 +95,7 @@ function AppointmentsScreen() {
         onClose={() => setShowModal(false)}
         onCreate={(appointment: any) => {
           if (appointment.tab === 'Doctor') {
-            dispatch(addAppointment({ ...appointment, tab: 'Doctor', status: 'pending' }) as any);
+            dispatch(addAppointment({ ...appointment, tab: 'Doctor', status: 'scheduled' }) as any);
           }
           // For Therapy, dispatch is already handled in TherapyAppointments
           setShowModal(false);

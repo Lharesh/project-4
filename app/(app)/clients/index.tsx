@@ -17,8 +17,8 @@ import {
 import Card from '@/components/ui/Card';
 import { clientStyles } from './client.styles';
 import { FormField } from '@/features/clients/components/FormField';
-import { PrefixPicker } from '@/features/clients/components//PrefixPicker';
-import { CountryCodePicker } from '@/features/clients/components//CountryCodePicker';
+import { PrefixPicker } from '@/features/clients/components/PrefixPicker';
+import { CountryCodePicker } from '@/features/clients/components/CountryCodePicker';
 import { GenericDatePicker } from '@/utils/GenericDatePicker';
 import { COLORS } from '@/constants/theme';
 import { ChevronRight, Phone, Mail, Search, Plus, UserPlus2, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
@@ -194,11 +194,6 @@ function ClientsScreen() {
     // Optionally log or inspect state here
   }, [clients, filteredClients]);
 
-  // Debug: log the full Redux state to check structure
-  const fullReduxState = useAppSelector((state) => state);
-  React.useEffect(() => {
-    // Optionally log or inspect state here
-  }, [fullReduxState]);
 
   return (
     <View style={clientStyles.container}>
@@ -244,6 +239,7 @@ function ClientsScreen() {
           setModalVisible(true);
         }}
         activeOpacity={0.85}
+        testID="add-client-button"
       >
         <Plus size={24} color={'#fff'} />
       </TouchableOpacity>
@@ -263,10 +259,10 @@ function ClientsScreen() {
           <View style={clientStyles.modalContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>New Patient</Text>
-              <TouchableOpacity onPress={handleSubmit} style={{ marginRight: 16 }}>
+              <TouchableOpacity onPress={handleSubmit} style={{ marginRight: 16 }} testID="save-client-button">
                 <SaveIcon size={26} color={COLORS.vata[500]} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setModalVisible(false); setForm(EMPTY_CLIENT); setFormErrors({}); }}>
+              <TouchableOpacity onPress={() => { setModalVisible(false); setForm(EMPTY_CLIENT); setFormErrors({}); }} testID="cancel-modal-button">
                 <CancelIcon size={26} color={COLORS.error} />
               </TouchableOpacity>
             </View>
@@ -380,6 +376,7 @@ function ClientsScreen() {
                     }}
                     style={{ ...clientStyles.formField, height: 44, paddingRight: 32, justifyContent: 'center' }}
                     inputStyle={{ ...clientStyles.input, height: 44, paddingVertical: 0, paddingRight: 32, justifyContent: 'center' }}
+                    testID="dob-picker"
                   />
                 </View>
                 {/* Age input with 'Years' */}
@@ -399,10 +396,10 @@ function ClientsScreen() {
               {/* Row 7: Height, Weight */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <View style={{ flex: 1 }}>
-                  <FormField label="" value={form.height ? String(form.height) : ''} onChange={(v: string) => handleFormChange('height', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.height} placeholder="Height (cm)" />
+                  <FormField label="" value={form.height ? String(form.height) : ''} onChange={(v: string) => handleFormChange('height', v)} keyboardType="numeric" error={formErrors.height} placeholder="Height (cm)" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <FormField label="" value={form.weight ? String(form.weight) : ''} onChange={(v: string) => handleFormChange('weight', v.replace(/[^0-9]/g, ''))} keyboardType="numeric" error={formErrors.weight} placeholder="Weight (kg)" />
+                  <FormField label="" value={form.weight ? String(form.weight) : ''} onChange={(v: string) => handleFormChange('weight', v)} keyboardType="numeric" error={formErrors.weight} placeholder="Weight (kg)" />
                 </View>
               </View>
 

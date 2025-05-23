@@ -1,0 +1,512 @@
+yarn run v1.22.22
+$ jest src/features/appointments/__tests__/DoctorAppointments.test.tsx --verbose
+watchman warning:  Recrawled this watch 17 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/ayurparishkar/Downloads/project 4' ; watchman watch-project '/Users/ayurparishkar/Downloads/project 4'`
+
+  console.log
+    GenericDatePicker: [Function: GenericDatePicker]
+
+      at Object.log (src/features/appointments/__tests__/DoctorAppointments.test.tsx:20:9)
+
+  console.log
+    GenericTimePicker: [Function: _default]
+
+      at Object.log (src/features/appointments/__tests__/DoctorAppointments.test.tsx:21:9)
+
+FAIL src/features/appointments/__tests__/DoctorAppointments.test.tsx
+  DoctorAppointments
+    ✕ renders all required fields (454 ms)
+    ✕ calls onClose when cancel is pressed (2 ms)
+    ✕ disables create if required fields are missing (2 ms)
+    Mobile compatibility and accessibility
+      ✕ has accessible labels for all fields and buttons (4 ms)
+      ✕ renders correctly on small device (mobile viewport) (4 ms)
+      ✕ is scrollable when content overflows (8 ms)
+      ✕ keeps input visible when keyboard is open (3 ms)
+    Double booking prevention
+      ✕ prevents double booking for doctor or client at same time (26 ms)
+      ✕ prevents double booking for doctor or client at same time with form filling (22 ms)
+    15-minute gap conflict
+      ✕ prevents booking if another appointment is within 15 minutes (25 ms)
+      ✕ prevents booking on weekly off (Sunday) (20 ms)
+      ✕ prevents booking on holiday (19 ms)
+      ✕ allows booking when all rules are satisfied (20 ms)
+
+  ● DoctorAppointments › renders all required fields
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      48 | describe('DoctorAppointments', () => {
+      49 |   it('renders all required fields', () => {
+    > 50 |     const { getByText } = render(
+         |                                 ^
+      51 |       <Provider store={store}>
+      52 |         <DoctorAppointments {...baseProps} />
+      53 |       </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:50:33)
+
+  ● DoctorAppointments › Mobile compatibility and accessibility › has accessible labels for all fields and buttons
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      67 |   describe('Mobile compatibility and accessibility', () => {
+      68 |     it('has accessible labels for all fields and buttons', () => {
+    > 69 |       const { getByPlaceholderText, getByText } = render(
+         |                                                         ^
+      70 |         <Provider store={store}>
+      71 |           <DoctorAppointments {...baseProps} />
+      72 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:69:57)
+
+  ● DoctorAppointments › Mobile compatibility and accessibility › renders correctly on small device (mobile viewport)
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      83 |
+      84 |     it('renders correctly on small device (mobile viewport)', () => {
+    > 85 |       const { getByText, getByPlaceholderText } = render(
+         |                                                         ^
+      86 |         <Provider store={store}>
+      87 |           <DoctorAppointments {...baseProps} />
+      88 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:85:57)
+
+  ● DoctorAppointments › Mobile compatibility and accessibility › is scrollable when content overflows
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      93 |
+      94 |     it('is scrollable when content overflows', () => {
+    > 95 |       const { getByTestId } = render(
+         |                                     ^
+      96 |         <Provider store={store}>
+      97 |           <DoctorAppointments {...baseProps} />
+      98 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:95:37)
+
+  ● DoctorAppointments › Mobile compatibility and accessibility › keeps input visible when keyboard is open
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      102 |
+      103 |     it('keeps input visible when keyboard is open', () => {
+    > 104 |       const { getByPlaceholderText } = render(
+          |                                              ^
+      105 |         <Provider store={store}>
+      106 |           <DoctorAppointments {...baseProps} />
+      107 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:104:46)
+
+  ● DoctorAppointments › calls onClose when cancel is pressed
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      115 |   it('calls onClose when cancel is pressed', () => {
+      116 |     const onClose = jest.fn();
+    > 117 |     const { getByText } = render(
+          |                                 ^
+      118 |       <Provider store={store}>
+      119 |         <DoctorAppointments {...baseProps} onClose={onClose} />
+      120 |       </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:117:33)
+
+  ● DoctorAppointments › disables create if required fields are missing
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      125 |
+      126 |   it('disables create if required fields are missing', () => {
+    > 127 |     const { getByText } = render(
+          |                                 ^
+      128 |       <Provider store={store}>
+      129 |         <DoctorAppointments {...baseProps} />
+      130 |       </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:127:33)
+
+  ● DoctorAppointments › Double booking prevention › prevents double booking for doctor or client at same time
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      166 |       const customStore = mockStore({ appointments: mockAppointments });
+      167 |       const onCreate = jest.fn();
+    > 168 |       const { getByText } = render(
+          |                                   ^
+      169 |         <Provider store={customStore}>
+      170 |           <DoctorAppointments {...baseProps} onCreate={onCreate} />
+      171 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:168:35)
+
+  ● DoctorAppointments › Double booking prevention › prevents double booking for doctor or client at same time with form filling
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      200 |       const customStore = mockStore({ appointments: mockAppointments });
+      201 |       const onCreate = jest.fn();
+    > 202 |       const { getByText, getByPlaceholderText } = render(
+          |                                                         ^
+      203 |         <Provider store={customStore}>
+      204 |           <DoctorAppointments {...baseProps} onCreate={onCreate} />
+      205 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:202:57)
+
+  ● DoctorAppointments › 15-minute gap conflict › prevents booking if another appointment is within 15 minutes
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      251 |       const customStore = mockStore({ appointments: mockAppointments.appointments });
+      252 |       const onCreate = jest.fn();
+    > 253 |       const { getByText, getByPlaceholderText } = render(
+          |                                                         ^
+      254 |         <Provider store={customStore}>
+      255 |           <DoctorAppointments {...baseProps} onCreate={onCreate} />
+      256 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:253:57)
+
+  ● DoctorAppointments › 15-minute gap conflict › prevents booking on weekly off (Sunday)
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      272 |       const customStore = mockStore({ appointments: mockAppointments.appointments });
+      273 |       const onCreate = jest.fn();
+    > 274 |       const { getByText, getByPlaceholderText } = render(
+          |                                                         ^
+      275 |         <Provider store={customStore}>
+      276 |           <DoctorAppointments {...baseProps} onCreate={onCreate} />
+      277 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:274:57)
+
+  ● DoctorAppointments › 15-minute gap conflict › prevents booking on holiday
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      292 |       const customStore = mockStore({ appointments: mockAppointments.appointments });
+      293 |       const onCreate = jest.fn();
+    > 294 |       const { getByText, getByPlaceholderText } = render(
+          |                                                         ^
+      295 |         <Provider store={customStore}>
+      296 |           <DoctorAppointments {...baseProps} onCreate={onCreate} />
+      297 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:294:57)
+
+  ● DoctorAppointments › 15-minute gap conflict › allows booking when all rules are satisfied
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `DoctorAppointments`.
+
+      312 |       const customStore = mockStore({ appointments: mockAppointments.appointments });
+      313 |       const onCreate = jest.fn();
+    > 314 |       const { getByText, getByPlaceholderText } = render(
+          |                                                         ^
+      315 |         <Provider store={customStore}>
+      316 |           <DoctorAppointments {...baseProps} onCreate={onCreate} />
+      317 |         </Provider>
+
+      at Error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4475:26)
+      at createChild (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4805:25)
+      at reconcileChildrenArray (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5122:30)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33)
+      at mountChildFibers (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7551:13)
+      at callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at callback (node_modules/react/cjs/react.development.js:566:34)
+      at flushActQueue (node_modules/react/cjs/react.development.js:859:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:12:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:81:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (src/features/appointments/__tests__/DoctorAppointments.test.tsx:314:57)
+
+Test Suites: 1 failed, 1 total
+Tests:       13 failed, 13 total
+Snapshots:   0 total
+Time:        1.209 s, estimated 2 s
+Ran all test suites matching /src\/features\/appointments\/__tests__\/DoctorAppointments.test.tsx/i.
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

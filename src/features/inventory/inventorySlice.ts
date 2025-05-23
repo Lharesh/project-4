@@ -87,7 +87,7 @@ export const deleteInventoryItem = createAsyncThunk(
   }
 );
 
-import { parseExcel } from '@/utils/parseExcel';
+import { parseExcel } from '@/features/inventory/utils/parseExcel';
 import { validateMappedRow } from '@/utils/validateMappedRow';
 import { mockUploadResponse } from '@/data/inventory/upload_simulated_response';
 import { InventorySchema } from '@/utils/inventorySchema';

@@ -8,8 +8,7 @@ export function getTherapistConflicts(
   return therapistIds.filter(tid =>
     appointments.some((apt: any) =>
       apt.date === date &&
-      apt.time === slot &&
-      apt.tab === 'Therapy' &&
+      ((apt.slot && apt.slot === slot) || (apt.time && apt.time === slot)) &&
       apt.therapistIds && apt.therapistIds.includes(tid)
     )
   );

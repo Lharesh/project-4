@@ -2,25 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import DoctorAppointments from './DoctorAppointments';
 import TherapyAppointments from './TherapyAppointments';
+import { PATIENTS, MOCK_TIMES, DOCTORS } from '../mock/scheduleMatrixMock';
 
-// Mock Data
-const DOCTORS = [
-  { id: '1', name: 'Dr. Sharma (Ayurvedic Physician)' },
-  { id: '2', name: 'Dr. Gupta (Therapist)' },
-];
 export interface Client {
   id: string;
   name: string;
   mobile: string; // primary phone number, required
 }
 
-export const CLIENTS: Client[] = [
-  { id: 'c1', name: 'Amit Kumar', mobile: '9876543210' },
-  { id: 'c2', name: 'Sunita Singh', mobile: '9123456780' },
-  { id: 'c3', name: 'Ravi Patel', mobile: '9988776655' },
-];
+
 const NON_WORKING_DAYS = [0, 6]; // Sunday, Saturday
-const MOCK_TIMES = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM'];
 const CONSULT_TYPES = ['Initial', 'Follow Up', 'Online', 'Walk-in'];
 
 interface NewAppointmentModalProps {
@@ -41,7 +32,7 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onCl
   const [consultation, setConsultation] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
 
-  const filteredClients = CLIENTS.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
+  const filteredClients = PATIENTS.filter((p: { id: string; name: string; gender: string; mobile: string }) => p.name.toLowerCase().includes(clientSearch.toLowerCase()));
 
   const toggleConsultation = (type: string) => {
     setConsultation(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
@@ -77,7 +68,7 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onCl
     }
     if (!valid) return;
     // Find client and doctor objects
-    const clientObj = CLIENTS.find(c => c.id === selectedClient);
+    const clientObj = PATIENTS.find(c => c.id === selectedClient);
     const doctorObj = DOCTORS.find(d => d.id === doctor);
     // Use consultation or default
     const consultationArr = consultation.length > 0 ? consultation : ['Consultation'];
@@ -123,7 +114,7 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onCl
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <Text style={styles.title}>New Appointment</Text>
-              <TouchableOpacity onPress={onClose}><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={onClose} accessibilityLabel="close-modal"><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
             </View>
             {/* Tabs */}
             <View style={styles.tabs}>
@@ -135,10 +126,10 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onCl
               </TouchableOpacity>
             </View>
             {tab === 'Doctor' ? (
-  <DoctorAppointments onClose={onClose} onCreate={onCreate} />
-) : (
-  <TherapyAppointments onClose={onClose} onCreate={onCreate} />
-)}
+              <DoctorAppointments onClose={onClose} onCreate={onCreate} />
+            ) : (
+              <TherapyAppointments onClose={onClose} onCreate={onCreate} />
+            )}
           </View>
         </View>
       </View>

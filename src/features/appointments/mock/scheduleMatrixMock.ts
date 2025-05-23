@@ -1,5 +1,14 @@
 // scheduleMatrixMock.ts
+export const NON_WORKING_DAYS = [0, 6]; // Sunday, Saturday
+export const MOCK_TIMES = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM'];
+export const CONSULT_TYPES = ['New', 'Follow Up'];
+export const CONSULT_MODE = ['Walk-In', 'On-Line'];
 
+// Mock Data
+export const DOCTORS = [
+  { id: '1', name: 'Dr. Sharma (Ayurvedic Physician)' },
+  { id: '2', name: 'Dr. Gupta (Therapist)' },
+];
 // Mock: List of therapies
 export const THERAPIES = [
   { id: 't1', name: 'Abhyanga', slotDuration: 60 },
@@ -19,6 +28,9 @@ export const THERAPIES = [
 
 // Mock: List of rooms
 export const ROOMS = [
+    { roomNumber: '101', name: 'Room 101' },
+    { roomNumber: '102', name: 'Room 102' },
+    { roomNumber: '103', name: 'Room 103' },
     { roomNumber: 'r1', name: 'Room 1 (Therapy)' },
     { roomNumber: 'r2', name: 'Room 2 (Therapy)' },
     { roomNumber: 'r3', name: 'Room 3 (Therapy)' },
@@ -26,8 +38,10 @@ export const ROOMS = [
   
   // Mock: List of patients
 export const PATIENTS = [
-  { id: 'p1', name: 'Anita', gender: 'female' },
-  { id: 'p2', name: 'Rahul', gender: 'male' },
+  { id: 'p1', name: 'Test Male', gender: 'male', mobile: '9876543210' },
+  { id: 'p2', name: 'Rahul', gender: 'male', mobile: '9123456780' },
+  { id: 'p3', name: 'Sunita Singh', gender: 'female', mobile: '9123456781' },
+  { id: 'p4', name: 'Amit Kumar', gender: 'male', mobile: '9988776655' },
 ];
 
 // Mock: List of therapists
@@ -41,9 +55,10 @@ export interface Therapist {
 export const THERAPISTS: Therapist[] = [
   {
     id: 't1',
-    name: 'Ms. Priya',
-    gender: 'female',
+    name: 'Test Male Therapist',
+    gender: 'male',
     availability: {
+      '2025-06-01': ['09:00'],
       '2025-05-20': ['07:00', '08:00', '09:00', '15:00'],
       '2025-05-21': ['07:00', '08:00', '09:00', '10:00'],
       '2025-05-22': ['07:00', '09:00', '10:00', '15:00'],
@@ -51,9 +66,10 @@ export const THERAPISTS: Therapist[] = [
   },
   {
     id: 't2',
-    name: 'Mr. Raj',
-    gender: 'male',
+    name: 'Test Female Therapist',
+    gender: 'female',
     availability: {
+      '2025-06-01': ['09:00'],
       '2025-05-20': ['07:00', '09:00', '10:00', '15:00'],
       '2025-05-21': ['08:00', '09:00', '11:00', '16:00'],
       '2025-05-22': ['07:00', '08:00', '09:00', '10:00', '12:00'],

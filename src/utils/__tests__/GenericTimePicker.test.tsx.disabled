@@ -1,0 +1,45 @@
+// import React from 'react';
+// import { render, fireEvent } from '@testing-library/react-native';
+// import GenericTimePicker from '../GenericTimePicker';
+//
+// // describe('GenericTimePicker', () => {
+// //   it('renders with label and initial value', () => {
+// //     const { getByText } = render(
+// //       <GenericTimePicker label="Time" value="12:30" onChange={() => {}} />
+// //     );
+// //     expect(getByText('Time')).toBeTruthy();
+// //     expect(getByText('12 : 30')).toBeTruthy();
+// //   });
+//
+// //   it('opens modal and displays pickers', () => {
+// //     const { getByText, getByPlaceholderText } = render(
+// //       <GenericTimePicker label="Pick Time" value="09:15" onChange={() => {}} />
+// //     );
+// //     const timeField = getByText('09 : 15');
+// //     fireEvent.press(timeField);
+// //     expect(getByText('Select Time')).toBeTruthy();
+// //     expect(getByPlaceholderText('HH:MM')).toBeTruthy();
+// //   });
+//
+// //   it('calls onChange with new time when confirmed', () => {
+// //     const onChange = jest.fn();
+// //     const { getByText, getAllByText } = render(
+// //       <GenericTimePicker label="Time" value="08:00" onChange={onChange} />
+// //     );
+// //     fireEvent.press(getByText('08 : 00'));
+// //     // Simulate selecting hour and minute
+// //     fireEvent.press(getAllByText('10')[0]); // hour
+// //     fireEvent.press(getAllByText('30')[0]); // minute
+// //     fireEvent.press(getByText('Confirm'));
+// //     expect(onChange).toHaveBeenCalledWith('10:30');
+// //   });
+//
+// //   it('disables confirm button if hour or minute is missing', () => {
+// //     const { getByText, getByPlaceholderText, getByA11yState } = render(
+// //       <GenericTimePicker label="Time" value={''} onChange={() => {}} />
+// //     );
+// //     fireEvent.press(getByText('HH : MM'));
+// //     // Use getByA11yState to check for disabled button
+// //     expect(getByA11yState({ disabled: true })).toBeTruthy();
+// //   });
+// // });

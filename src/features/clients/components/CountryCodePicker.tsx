@@ -21,7 +21,13 @@ export function CountryCodePicker({ value, onChange }: { value: string; onChange
       >
         <Text style={styles.code}>{value}</Text>
       </TouchableOpacity>
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+      <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+          testID="Modal"
+        >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <FlatList
@@ -47,12 +53,14 @@ export function CountryCodePicker({ value, onChange }: { value: string; onChange
   );
 }
 
+import { COLORS } from '../../../constants/theme';
+
 const styles = StyleSheet.create({
   picker: {
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: COLORS.vata[500],
     borderRadius: 8,
     backgroundColor: '#fafbfc',
     marginRight: 6,
@@ -62,6 +70,7 @@ const styles = StyleSheet.create({
   code: {
     fontSize: 15,
     fontWeight: '600',
+    color: COLORS.vata[500],
   },
   modalOverlay: {
     flex: 1,

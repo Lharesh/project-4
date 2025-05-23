@@ -27,7 +27,7 @@ interface ClientsState {
   error: string | null;
 }
 
-const initialState: ClientsState = {
+export const initialState: ClientsState = {
   clients: [
     {
       id: 'CNT-001',

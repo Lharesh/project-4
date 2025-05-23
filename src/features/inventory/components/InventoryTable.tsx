@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Platform, StyleSheet, TouchableOpacity, Dimensions, ViewStyle, TextStyle } from 'react-native';
 import { DataTable, IconButton, TextInput, Button, Portal, Dialog, Checkbox, Menu, Modal, Provider as PaperProvider } from 'react-native-paper';
 import { Calendar } from 'lucide-react-native'; // Calendar icon
-import { InventoryItem } from '@/app/(admin)/inv/types/inventory';
+import { InventoryItem } from '../types/inventory';
 // NOTE: Remove EditableRow and lucide-react-native imports, use only react-native-paper UI.
 import type { FieldDescriptor } from '@/components/ui/EditableRow';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -23,9 +23,8 @@ const NUMBER_COLUMN_WIDTH = 80;   // Reduced width for numbers
 const DATE_COLUMN_WIDTH = 120;    // Width for dates
 
 // Extend the InventoryItem type to include SKU
-interface ExtendedInventoryItem extends InventoryItem {
-  sku: string;
-}
+// ExtendedInventoryItem is now identical to InventoryItem (sku, id, all fields are present)
+type ExtendedInventoryItem = InventoryItem;
 
 interface InventoryTableProps {
   items: ExtendedInventoryItem[];
@@ -748,7 +747,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
     // This is required because validation and backend logic expect both fields,
     // and some rows may only have one of them set (e.g., new or imported rows).
     // Do not remove this logic unless you update all validation and backend code accordingly.
-    const rowWithSku: ExtendedInventoryItem = { ...row, sku: row.sku || row.id, id: row.id || row.sku };
+    const rowWithSku: ExtendedInventoryItem = { ...row, sku: row.sku || row.id };
 
     //'Save clicked for row:', row);
 
@@ -876,6 +875,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
         <View style={styles.dropdownIcon}>
           <IconButton
             icon="chevron-down"
+            accessibilityLabel="chevron-down"
             size={16}
             iconColor={theme.text}
           />
@@ -908,7 +908,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
               >
                 {value ? format(new Date(value), 'yyyy-MM-dd') : 'Select date...'}
               </Text>
-              <View style={styles.calendarIcon}>
+              <View style={styles.calendarIcon} accessibilityLabel="calendar">
                 <Calendar size={18} color={theme.text} />
               </View>
             </TouchableOpacity>
@@ -969,6 +969,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
           <>
             <IconButton
               icon="check"
+              accessibilityLabel="save-row"
               size={18}
               onPress={() => handleSaveClick(row)}
               iconColor={theme.kapha.dark}
@@ -976,6 +977,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
             />
             <IconButton
               icon="close"
+              accessibilityLabel="cancel-edit"
               size={18}
               onPress={handleCancel}
               iconColor={theme.pitta.dark}
@@ -986,6 +988,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
           <>
             <IconButton
               icon="pencil"
+              accessibilityLabel="edit-row"
               size={18}
               onPress={() => handleEdit(row.id)}
               iconColor={theme.vata.dark}
@@ -993,6 +996,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
             />
             <IconButton
               icon="delete"
+              accessibilityLabel="delete-row"
               size={18}
               onPress={() => handleDelete(row.id)}
               iconColor={theme.pitta.dark}
@@ -1050,7 +1054,18 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
       </Portal>
 
       <ScrollView style={styles.scrollViewContainer} ref={scrollViewRef}>
-        <DataTable style={[styles.table, { width: '100%' }]}>
+        <DataTable style={[styles.table, { width: '100%' }]}> 
+          {items.length === 0 && !newRow && (
+            <DataTable.Row>
+              <DataTable.Cell style={{ justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ width: '100%', alignItems: 'center', padding: 24 }}>
+                  <Text style={{ color: '#888', fontSize: 16, textAlign: 'center' }}>
+                    No inventory items found.
+                  </Text>
+                </View>
+              </DataTable.Cell>
+            </DataTable.Row>
+          )}
           <View style={styles.header}>
             <DataTable.Header style={{ height: 52 }}>
               <DataTable.Title
@@ -1085,6 +1100,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
                     {(col.field === 'brand' || col.field === 'type' || col.field === 'unit') && (
                       <IconButton
                         icon={columnFilters[col.field] ? 'close-circle' : 'filter'}
+                        accessibilityLabel={columnFilters[col.field] ? `clear-filter-${col.field}` : `filter-${col.field}`}
                         size={16}
                         iconColor={theme.kapha.dark}
                         style={styles.filterButton}
@@ -1129,7 +1145,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
                     CENTER_ALIGNED_FIELDS.includes(col.field) && styles.centerAlignedCell
                   ]}
                 >
-                  {renderCell('new', col.field, newRow[col.field as keyof InventoryItem], true)}
+                  {renderCell('new', col.field, newRow[col.field as keyof ExtendedInventoryItem], true)}
                 </DataTable.Cell>
               ))}
             </DataTable.Row>
@@ -1172,7 +1188,7 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
                       CENTER_ALIGNED_FIELDS.includes(col.field) && styles.centerAlignedCell
                     ]}
                   >
-                    {renderCell(item.id, col.field, rowData[col.field as keyof InventoryItem])}
+                    {renderCell(item.id, col.field, rowData[col.field as keyof ExtendedInventoryItem])}
                   </DataTable.Cell>
                 ))}
               </DataTable.Row>
@@ -1197,8 +1213,8 @@ const InventoryTable: React.FC<InventoryTableProps> = (props) => {
                 {dropdownOpen.options.map((option: string) => {
                   const isNewRow = dropdownOpen.id === 'new';
                   const currentValue = isNewRow
-                    ? newRow?.[dropdownOpen.field as keyof InventoryItem]
-                    : items.find(item => item.id === dropdownOpen.id)?.[dropdownOpen.field as keyof InventoryItem];
+                    ? newRow?.[dropdownOpen.field as keyof ExtendedInventoryItem]
+                    : items.find(item => item.id === dropdownOpen.id)?.[dropdownOpen.field as keyof ExtendedInventoryItem];
 
                   return (
                     <TouchableOpacity

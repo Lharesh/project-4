@@ -271,6 +271,7 @@ const GenericTimePicker: React.FC<GenericTimePickerProps> = ({
                 style={[styles.confirmBtn, !(tempHour && tempMinute) && { opacity: 0.6 }]}
                 onPress={handleConfirm}
                 disabled={!(tempHour && tempMinute)}
+                accessibilityState={{ disabled: !(tempHour && tempMinute) }}
               >
                 <Text style={styles.confirmBtnText}>Confirm</Text>
               </TouchableOpacity>

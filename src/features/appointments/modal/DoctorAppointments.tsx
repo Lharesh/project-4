@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { CLIENTS } from './NewAppointmentModal';
+import { MaterialIcons } from '@expo/vector-icons';
+import { PATIENTS } from '../mock/scheduleMatrixMock';
 import { GenericDatePicker } from '../../../utils/GenericDatePicker';
 import GenericTimePicker from '../../../utils/GenericTimePicker';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import styles from './DoctorAppointments.styles';
 
 const DOCTORS = [
@@ -23,6 +24,8 @@ interface DoctorAppointmentsProps {
 }
 
 const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCreate }) => {
+  const appointments = useSelector((state: any) => state.appointments.appointments || []);
+  const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
   const [doctor, setDoctor] = useState(DOCTORS[0].id);
   const [clientSearch, setClientSearch] = useState('');
@@ -41,13 +44,14 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
   const CONSULT_TYPES = ['New Consultation', 'Follow Up Consultation'];
   const MODE_OPTIONS = ['Online', 'Walk-in'];
 
-  const filteredClients = CLIENTS.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
+  const filteredClients = PATIENTS.filter(p => p.name.toLowerCase().includes(clientSearch.toLowerCase()));
 
   const toggleConsultation = (type: string) => {
     setConsultation(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
   const handleCreate = () => {
+    setError(null);
     let valid = true;
     if (!selectedClient) {
       setClientTouched(true);
@@ -66,20 +70,33 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       valid = false;
     }
     if (!valid) return;
+    // Double-booking check
+    const roomNumber = '101'; // Can be randomized or set
+    const canBook = require('../helpers/rulesEngine').canBookAppointment({
+      therapistIds: [doctor],
+      roomNumber,
+      date,
+      slot: time,
+      appointments,
+      patientId: selectedClient,
+    });
+    if (!canBook) {
+      setError('Appointment already Booked.');
+      return;
+    }
     // Find client and doctor objects
-    const clientObj = CLIENTS.find(c => c.id === selectedClient);
+    const patientObj = PATIENTS.find(p => p.id === selectedClient);
     const doctorObj = DOCTORS.find(d => d.id === doctor);
     // Use consultation or default
     const consultationArr = consultation.length > 0 ? consultation : ['Consultation'];
     const consultationId = consultationArr[0]?.toLowerCase().replace(/\s+/g, '-') || 'consultation';
     const consultationName = consultationArr[0] || 'Consultation';
     const duration = 15;
-    const roomNumber = '101'; // Can be randomized or set
     onCreate({
       id: Date.now().toString(),
-      clientId: clientObj?.id || selectedClient,
-      clientName: clientObj?.name || '',
-      clientMobile: clientMobile,
+      clientId: patientObj?.id || selectedClient,
+      clientName: patientObj?.name || '',
+      clientMobile: patientObj?.mobile || clientMobile,
       doctorId: doctorObj?.id || '',
       doctorName: doctorObj?.name || '',
       treatmentId: 'treatment1',
@@ -91,7 +108,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       date,
       time,
       mode, // Added mode field
-      status: 'pending',
+      status: 'scheduled',
       notes,
       tab: 'Doctor',
     });
@@ -100,6 +117,11 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
 
   return (
     <ScrollView style={styles.container}>
+      {error && (
+        <View style={{ backgroundColor: '#ffe0e0', borderRadius: 10, padding: 12, marginBottom: 14, alignItems: 'center' }}>
+          <Text style={{ color: '#d32f2f', fontWeight: '700', fontSize: 16 }}>{error}</Text>
+        </View>
+      )}
       <Text style={styles.label}>Select Doctor</Text>
       <View style={styles.pickerWrapper}>
         <Picker
@@ -114,13 +136,25 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       </View>
 
       <Text style={styles.label}>Client</Text>
-      <TextInput
-        style={[styles.input, { marginBottom: 6 }]}
-        placeholder="Search client by name"
-        value={clientSearch}
-        onChangeText={setClientSearch}
-        editable={!selectedClient}
-      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
+        <TextInput
+          style={[styles.input, { flex: 1, paddingRight: 36 }]}
+          placeholder="Search client by name"
+          value={clientSearch}
+          onChangeText={setClientSearch}
+          editable={!selectedClient}
+        />
+        {selectedClient ? (
+          <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+            <TouchableOpacity
+              onPress={() => { setSelectedClient(null); setClientSearch(''); setClientMobile(''); }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialIcons name="close" size={22} color="#888" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
       {clientSearch.length > 0 && !selectedClient && (
         <View style={styles.dropdownList}>
           {filteredClients.map(c => (
@@ -212,6 +246,9 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
         multiline
       />
 
+      {error && (
+        <Text style={{ color: 'red', marginBottom: 8, textAlign: 'center' }}>{error}</Text>
+      )}
       <View style={{ flexDirection: 'row', marginTop: 18, gap: 12 }}>
         <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
           <Text style={styles.cancelBtnText}>Cancel</Text>

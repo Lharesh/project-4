@@ -13,7 +13,7 @@ import RetryFailedRowsTable from '@/components/ui/RetryFailedRowsTable';
 import UploadErrorBanner from '@/components/ui/UploadErrorBanner';
 import ConfirmUploadModal from '@/components/ui/ConfirmUploadModal';
 import { InventorySchema } from '@/utils/inventorySchema';
-import { parseExcel } from '@/utils/parseExcel';
+import { parseExcel } from '@/features/inventory/utils/parseExcel';
 import { validateMappedRow } from '@/utils/validateMappedRow';
 import { uploadExcelFile, retryFailedRows, setUploadErrors, setLastUploadSummary, addInventoryItem } from '../inventorySlice';
 

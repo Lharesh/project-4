@@ -1,0 +1,134 @@
+// import React from 'react';
+// import { render, fireEvent, waitFor } from '@testing-library/react-native';
+// import { Provider } from 'react-redux';
+// import { configureStore as realConfigureStore } from '@reduxjs/toolkit';
+// import clientsReducer from '../clientsSlice';
+// import ClientsScreen from '../../../../app/(app)/clients';
+// import { initialState as clientsInitialState } from '../clientsSlice';
+//
+// function renderWithStore(storeState = {}) {
+//   const store = realConfigureStore({
+//     reducer: { clients: clientsReducer },
+//     preloadedState: { clients: { ...clientsInitialState, ...storeState } },
+//   });
+//   return render(
+//     <Provider store={store}>
+//       <ClientsScreen />
+//     </Provider>
+//   );
+// }
+//
+// describe('ClientsScreen Full Coverage', () => {
+//   it('opens and closes the add client modal', () => {
+//     const { getByTestId, queryByTestId } = renderWithStore({ clients: [] });
+//     fireEvent.press(getByTestId('add-client-button'));
+//     expect(getByTestId('save-client-button')).toBeTruthy();
+//     fireEvent.press(getByTestId('cancel-modal-button'));
+//     expect(queryByTestId('save-client-button')).toBeNull();
+//   });
+  });
+
+  it('shows validation errors for empty/invalid fields', async () => {
+    const { getByTestId, getByText, getByPlaceholderText } = renderWithStore({ clients: [] });
+    fireEvent.press(getByTestId('add-client-button'));
+    fireEvent.changeText(getByPlaceholderText('Name'), 'A');
+    fireEvent.changeText(getByPlaceholderText('Mobile'), '12345');
+    fireEvent.press(getByTestId('save-client-button'));
+    await waitFor(() => {
+      expect(getByText('Name must be at least 2 characters')).toBeTruthy();
+      expect(getByText('Mobile number must be 10 digits')).toBeTruthy();
+    });
+  });
+
+  it('shows validation error for invalid email', async () => {
+    const { getByTestId, getByText, getByPlaceholderText } = renderWithStore({ clients: [] });
+    fireEvent.press(getByTestId('add-client-button'));
+    fireEvent.changeText(getByPlaceholderText('Name'), 'Valid Name');
+    fireEvent.changeText(getByPlaceholderText('Mobile'), '1234567890');
+    fireEvent.changeText(getByPlaceholderText('e.g. john@example.com'), 'bademail');
+    fireEvent.press(getByTestId('save-client-button'));
+    await waitFor(() => {
+      expect(getByText('Invalid email')).toBeTruthy();
+    });
+  });
+
+  it('shows validation error for negative height/weight', async () => {
+    const { getByTestId, getByText, getByPlaceholderText } = renderWithStore({ clients: [] });
+    fireEvent.press(getByTestId('add-client-button'));
+    fireEvent.changeText(getByPlaceholderText('Name'), 'Valid Name');
+    fireEvent.changeText(getByPlaceholderText('Mobile'), '1234567890');
+    fireEvent.changeText(getByPlaceholderText('Height (cm)'), '-10');
+    fireEvent.changeText(getByPlaceholderText('Weight (kg)'), '-5');
+    fireEvent.press(getByTestId('save-client-button'));
+    await waitFor(() => {
+      expect(getByText('Height must be positive')).toBeTruthy();
+      expect(getByText('Weight must be positive')).toBeTruthy();
+    });
+  });
+
+  it('can select all gender options and known issues', () => {
+    const { getByTestId, getByText } = renderWithStore({ clients: [] });
+    fireEvent.press(getByTestId('add-client-button'));
+    fireEvent.press(getByText('Female'));
+    fireEvent.press(getByText('Other'));
+    fireEvent.press(getByText('Male'));
+    fireEvent.press(getByText('BP'));
+    fireEvent.press(getByText('DM'));
+    fireEvent.press(getByText('BP')); // Deselect
+  });
+
+  it.skip('renders error and loading states', () => {
+    // Skipped: Update this test if/when the UI renders error/loading as visible text.
+    const { getByText } = renderWithStore({ clients: [], error: 'Load error', isLoading: true });
+    expect(getByText('Load error')).toBeTruthy();
+    expect(getByText(/loading/i)).toBeTruthy();
+  });
+
+  it('renders a list of clients and supports search', () => {
+    const clients = [
+      { id: 'Client 1', name: 'Alice', mobile: '1234567890', gender: 'Female' },
+      { id: 'Client 2', name: 'Bob', mobile: '2222222222', gender: 'Male' },
+    ];
+    const { getByText, getByPlaceholderText } = renderWithStore({ clients });
+    expect(getByText('Alice')).toBeTruthy();
+    expect(getByText('Bob')).toBeTruthy();
+    fireEvent.changeText(getByPlaceholderText('Search by name, phone, or ID'), 'Bob');
+    expect(getByText('Bob')).toBeTruthy();
+  });
+
+  it.skip('edits an existing client', async () => {
+    // Skipped: The client card does not open the edit modal in the current UI. Enable this test after implementing edit functionality.
+    const clients = [
+      { id: 'Client 1', name: 'Alice', mobile: '1234567890', gender: 'Female' },
+    ];
+    const { getByText, getByTestId, getByPlaceholderText } = renderWithStore({ clients });
+    fireEvent.press(getByText('Alice'));
+    fireEvent.changeText(getByPlaceholderText('Name'), 'Alicia');
+    fireEvent.press(getByTestId('save-client-button'));
+    await waitFor(() => {
+      expect(getByText('Alicia')).toBeTruthy();
+    });
+  });
+
+  it('adds a client with all optional fields', async () => {
+    const { getByTestId, getByPlaceholderText, getByText } = renderWithStore({ clients: [] });
+    fireEvent.press(getByTestId('add-client-button'));
+    fireEvent.changeText(getByPlaceholderText('Name'), 'Full Fields');
+    fireEvent.changeText(getByPlaceholderText('Mobile'), '1234567890');
+    fireEvent.changeText(getByPlaceholderText('Alternate Mobile'), '9876543210');
+    fireEvent.changeText(getByPlaceholderText('e.g. john@example.com'), 'full@fields.com');
+    fireEvent.press(getByTestId('dob-picker'));
+fireEvent(getByTestId('dob-picker'), 'onChange', '2000-01-01');
+    fireEvent.changeText(getByPlaceholderText('Height (cm)'), '180');
+    fireEvent.changeText(getByPlaceholderText('Weight (kg)'), '75');
+    fireEvent.changeText(getByPlaceholderText('Present complaints'), 'None');
+    fireEvent.changeText(getByPlaceholderText('Past illnesses'), 'None');
+    fireEvent.changeText(getByPlaceholderText('Allergies'), 'None');
+    fireEvent.changeText(getByPlaceholderText('Family History'), 'None');
+    fireEvent.changeText(getByPlaceholderText('Current Medication'), 'None');
+    fireEvent.press(getByTestId('save-client-button'));
+    await waitFor(() => {
+      expect(getByText('Full Fields')).toBeTruthy();
+    });
+  });
+});

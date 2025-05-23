@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { COLORS } from '@/theme/constants/theme';
+import { COLORS } from '../theme/constants/theme';
 import { RelativePathString, router } from 'expo-router';
 
 export const getHeaderWithBack = (title: string, showBack = true) => ({

@@ -2,7 +2,7 @@
 // Utility functions for Inventory: validation, sorting, and other pure helpers
 
 import type { InventoryItem } from '../types/inventory';
-import { InventorySchema } from '../../../../utils/inventorySchema';
+import { InventorySchema } from '../../../utils/inventorySchema';
 
 /**
  * Validate an InventoryItem against the InventorySchema.
