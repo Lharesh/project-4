@@ -5,20 +5,21 @@ export interface Client {
   id: string; // CNT-001 style
   name: string;
   mobile: string;
-  altMobile: string;
+  altMobile?: string;
   mobileCode: string;
-  altMobileCode: string;
+  altMobileCode?: string;
   gender: 'Male' | 'Female' | 'Other';
-  email: string;
-  dob: string;
+  email?: string;
+  dob?: string;
+  age: number;
   height?: number;
   weight?: number;
-  presentComplaints: string;
-  knownIssues: string[];
-  pastIllnesses: string;
-  allergies: string;
-  familyHistory: string;
-  currentMedication: string;
+  presentComplaints?: string;
+  knownIssues?: string[];
+  pastIllnesses?: string;
+  allergies?: string;
+  familyHistory?: string;
+  currentMedication?: string;
 } 
 
 interface ClientsState {
@@ -32,13 +33,14 @@ export const initialState: ClientsState = {
     {
       id: 'CNT-001',
       name: 'John Smith',
-      mobile: '+919876543210',
-      altMobile: '+919812345678',
+      mobile: '9876543210',
+      altMobile: '9812345678',
       mobileCode: '+91',
       altMobileCode: '+91',
       gender: 'Male',
       email: 'john.smith@example.com',
       dob: '1985-06-15',
+      age: 38,
       height: 175,
       weight: 70,
       presentComplaints: 'Back pain',
@@ -51,13 +53,14 @@ export const initialState: ClientsState = {
     {
       id: 'CNT-002',
       name: 'Sarah Johnson',
-      mobile: '+919812345678',
-      altMobile: '+918888888888',
+      mobile: '9812345678',
+      altMobile: '8888888888',
       mobileCode: '+91',
       altMobileCode: '+91',
       gender: 'Female',
       email: 'sarah.j@example.com',
       dob: '1990-03-22',
+      age: 30,
       height: 160,
       weight: 55,
       presentComplaints: 'Headache',
@@ -70,13 +73,14 @@ export const initialState: ClientsState = {
     {
       id: 'CNT-003',
       name: 'Michael Brown',
-      mobile: '+919800112233',
+      mobile: '9800112233',
       altMobile: '',
       mobileCode: '+91',
       altMobileCode: '+91',
       gender: 'Male',
       email: 'michael.b@example.com',
       dob: '1978-11-30',
+      age: 45,
       height: 180,
       weight: 85,
       presentComplaints: '',

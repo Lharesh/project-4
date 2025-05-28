@@ -1,13 +1,42 @@
 import React, { useEffect, useState } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { COLORS } from '@/constants/theme';
+import { clientStyles } from './client.styles';
+import AppSwitch from '@/components/ui/AppSwitch';
+
+const textStyles = {
+  formTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: COLORS.vata[900],
+    textAlign: 'center' as const,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: COLORS.vata[500],
+    textAlign: 'center' as const,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: COLORS.white,
+    textAlign: 'center' as const,
+  },
+};
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
+  StyleSheet,
+  ScrollView,
   Modal,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, typography } from '@/theme';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   fetchClients,
@@ -15,16 +44,16 @@ import {
   updateClient,
 } from '@/features/clients/clientsSlice';
 import Card from '@/components/ui/Card';
-import { clientStyles } from './client.styles';
-import { FormField } from '@/features/clients/components/FormField';
+import AppTextField from '@/components/ui/AppTextField';
+import FormContainer from '@/components/ui/FormContainer';
+import FormFieldRow from 'src/components/ui/FormFieldRow';
 import { PrefixPicker } from '@/features/clients/components/PrefixPicker';
 import { CountryCodePicker } from '@/features/clients/components/CountryCodePicker';
-import { GenericDatePicker } from '@/utils/GenericDatePicker';
-import { COLORS } from '@/constants/theme';
+import { GenericDatePicker } from 'src/components/ui/GenericDatePicker';
 import { ChevronRight, Phone, Mail, Search, Plus, UserPlus2, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
 import type { Client } from '@/features/clients/types/client';
 
-const EMPTY_CLIENT: Client & { mobileCode: string; altMobileCode: string; age?: string; prefix?: string } = {
+const EMPTY_CLIENT: Client & { mobileCode: string; altMobileCode: string; prefix?: string } = {
   id: '',
   prefix: 'Mr.',
   name: '',
@@ -43,36 +72,55 @@ const EMPTY_CLIENT: Client & { mobileCode: string; altMobileCode: string; age?: 
   allergies: '',
   familyHistory: '',
   currentMedication: '',
-  age: '',
+  age: 0,
 };
+
 
 const GENDER_OPTIONS: Array<'Male' | 'Female' | 'Other'> = ['Male', 'Female', 'Other'];
 
-function calculateAge(dob?: string): string {
-  if (!dob) return '';
+function calculateAge(dob?: string): number {
+  if (!dob) return 0;
   const birth = new Date(dob);
   const today = new Date();
   let years = today.getFullYear() - birth.getFullYear();
   let m = today.getMonth() - birth.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) years--;
-  return years > 0 ? years + ' years' : '';
+  return years > 0 ? years : 0;
 }
 
-
-
-
 function ClientsScreen() {
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const dispatch = useAppDispatch();
-  const clientsState = useAppSelector((state) => state.clients);
+
+const clientsState = useAppSelector(state => state.clients);
   const clients = clientsState.clients;
   const loading = clientsState.isLoading;
-  const error = clientsState.error;
+  const error: string | null = clientsState.error;
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
-  type ClientForm = Partial<Client> & { mobileCode: string; altMobileCode: string; age?: string; prefix?: string };
-  const [form, setForm] = useState<ClientForm>(EMPTY_CLIENT);
+  type ClientForm = Partial<Client> & { mobileCode: string; altMobileCode: string; prefix?: string }; // age is always number, not string
+  const [form, setForm] = useState<ClientForm>({
+    id: '',
+    prefix: 'Mr.',
+    name: '',
+    mobile: '',
+    altMobile: '',
+    mobileCode: '+91',
+    altMobileCode: '+91',
+    gender: 'Male',
+    email: '',
+    dob: '',
+    height: undefined,
+    weight: undefined,
+    presentComplaints: '',
+    knownIssues: [],
+    pastIllnesses: '',
+    allergies: '',
+    familyHistory: '',
+    currentMedication: '',
+    age: 0,
+  });
 
-  // Checkbox handler for known issues
   const handleKnownIssuesChange = (issue: string) => {
     setForm((prev) => {
       const knownIssues = prev.knownIssues || [];
@@ -86,11 +134,6 @@ function ClientsScreen() {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // useEffect(() => {
-  //   dispatch(fetchClients());
-  // }, [dispatch]);
-
-  // Validation logic
   const validate = () => {
     const errors: Record<string, string> = {};
     if (!form.name || form.name.trim().length < 2) errors.name = 'Name must be at least 2 characters';
@@ -102,7 +145,18 @@ function ClientsScreen() {
   };
 
   const handleFormChange = (field: string, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      let newForm = { ...prev };
+      if (field === 'dob') {
+        newForm.dob = value;
+        newForm.age = calculateAge(value);
+      } else if (field === 'age') {
+        newForm.age = value === '' ? 0 : Number(value);
+      } else {
+        (newForm as any)[field] = value;
+      }
+      return newForm;
+    });
   };
 
   const handleSubmit = async () => {
@@ -110,11 +164,9 @@ function ClientsScreen() {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    // Compose full mobile numbers
     const fullMobile = (form.mobileCode || '+91') + (form.mobile || '');
     const fullAltMobile = form.altMobile ? (form.altMobileCode || '+91') + form.altMobile : '';
 
-    // Find max id in current clients
     const idPrefix = 'Client ';
     const maxIdNum = clients
       .map((c: any) => (typeof c.id === 'string' && c.id.startsWith(idPrefix)) ? parseInt(c.id.replace(idPrefix, '')) : 1000)
@@ -135,8 +187,11 @@ function ClientsScreen() {
     try {
       if (form.id && clients.some((c: any) => c.id === form.id)) {
         console.log('[UI] Dispatching updateClient with:', clientData);
+        // If dob is provided, calculate age; otherwise, use age from form (must be number)
+        const age = clientData.dob ? calculateAge(clientData.dob) : (typeof clientData.age === 'number' ? clientData.age : 0);
         dispatch(updateClient({
           ...clientData,
+          age,
           email: clientData.email || '',
           dob: clientData.dob || '',
           presentComplaints: clientData.presentComplaints || '',
@@ -151,8 +206,11 @@ function ClientsScreen() {
         setFormErrors({});
       } else {
         console.log('[UI] Dispatching addClient with:', clientData);
+        // If dob is provided, calculate age; otherwise, use age from form (must be number)
+        const age = clientData.dob ? calculateAge(clientData.dob) : (typeof clientData.age === 'number' ? clientData.age : 0);
         dispatch(addClient({
           ...clientData,
+          age,
           email: clientData.email || '',
           dob: clientData.dob || '',
           presentComplaints: clientData.presentComplaints || '',
@@ -172,9 +230,8 @@ function ClientsScreen() {
   };
 
   const filteredClients = clients
-    .slice() // copy
+    .slice()
     .sort((a: any, b: any) => {
-      // Sort by id descending (latest first)
       const getIdNum = (id: string) => {
         if (typeof id !== 'string') return 0;
         if (id.startsWith('Client ')) return parseInt(id.replace('Client ', ''));
@@ -189,265 +246,310 @@ function ClientsScreen() {
         (typeof client.id === 'string' && client.id.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-  // Debug: log clients and filteredClients on change
-  React.useEffect(() => {
-    // Optionally log or inspect state here
-  }, [clients, filteredClients]);
-
-
   return (
-    <View style={clientStyles.container}>
-      {/* Search Bar */}
-      <View style={{ marginBottom: 8 }}>
-        <FormField
-          label="Search"
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search by name, phone, or ID"
-        />
-      </View>
-      {!loading && filteredClients.length === 0 ? (
-        <View style={clientStyles.emptyContainer}>
-          <UserPlus2 size={48} color={COLORS.vata[500]} />
-          <Text style={clientStyles.emptyText}>You don't have any clients added yet.</Text>
-        </View>
-      ) : (
-        <ScrollView>
-          {filteredClients.map((client: Client) => (
-            <Card key={client.id} style={{ marginBottom: 12 }}>
-              <TouchableOpacity
-                onPress={() => { /* Future: open client detail */ }}
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: '600', fontSize: 16 }}>{client.name}</Text>
-                  <Text style={{ color: COLORS.neutral[500], fontSize: 14 }}>
-                    Mobile: {client.mobile}
-                  </Text>
-                </View>
-                <ChevronRight size={20} color={COLORS.neutral[500]} />
-              </TouchableOpacity>
-            </Card>
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Add Client Button */}
-      <TouchableOpacity
-        style={clientStyles.addButton}
-        onPress={() => {
-          setModalVisible(true);
-        }}
-        activeOpacity={0.85}
-        testID="add-client-button"
-      >
-        <Plus size={24} color={'#fff'} />
-      </TouchableOpacity>
-
-      {/* Add/Update Client Modal */}
+    <>
+      <SafeAreaView style={clientStyles.container} edges={['top', 'bottom', 'left', 'right']}>
+        <FormContainer>
+          {/* Main Content */}
+          {/* Search Bar */}
+          <FormFieldRow>
+            <AppTextField
+              label="Search"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by name, phone, or ID"
+            />
+          </FormFieldRow>
+          {!loading && filteredClients.length === 0 ? (
+            <View style={clientStyles.emptyContainer}>
+              <UserPlus2 size={48} color={colors.vata.primary} />
+              <Text style={clientStyles.emptyText}>You don't have any clients added yet.</Text>
+            </View>
+          ) : (
+            <ScrollView>
+              {filteredClients.map((client: Client) => (
+                <Card key={client.id} style={{ marginBottom: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => { /* Future: open client detail */ }}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: '600', fontSize: 16 }}>{client.name}</Text>
+                      <Text style={{ color: colors.gray, fontSize: 14 }}>
+                        Mobile: {client.mobile}
+                      </Text>
+                    </View>
+                    <ChevronRight size={20} color={colors.gray} />
+                  </TouchableOpacity>
+                </Card>
+              ))}
+            </ScrollView>
+          )}
+        </FormContainer>
+      </SafeAreaView>
       <Modal
         visible={modalVisible}
-        animationType={Platform.OS === 'ios' ? 'slide' : 'fade'}
-        transparent={true}
-        onRequestClose={() => {
-          setModalVisible(false);
-          setForm(EMPTY_CLIENT);
-          setFormErrors({});
-        }}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
       >
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-          <View style={clientStyles.modalContainer}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>New Patient</Text>
-              <TouchableOpacity onPress={handleSubmit} style={{ marginRight: 16 }} testID="save-client-button">
-                <SaveIcon size={26} color={COLORS.vata[500]} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setModalVisible(false); setForm(EMPTY_CLIENT); setFormErrors({}); }} testID="cancel-modal-button">
-                <CancelIcon size={26} color={COLORS.error} />
-              </TouchableOpacity>
+        <SafeAreaView style={[clientStyles.modalOverlay, { padding: 10, backgroundColor: '#fff' }]} edges={['top', 'bottom']}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <Text style={textStyles.formTitle}>New Patient</Text>
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {/* Row 1: Prefix + Name */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 18 }}>
-                {/* Prefix dropdown */}
-                <View style={{ width: 88, height: 44, justifyContent: 'center', alignItems: 'center', marginStart: 16 }}>
-                  <PrefixPicker
-                    value={form.prefix ? form.prefix : undefined}
-                    onChange={(v: string) => handleFormChange('prefix', v)}
-                  />
-                </View>
-                {/* Name input */}
-                <View style={{ flex: 1, justifyContent: 'center', marginBottom: 2 }}>
-                  <FormField
-                    label=""
-                    value={form.name || ''}
-                    onChange={(v: string) => handleFormChange('name', v)}
-                    placeholder="Name"
-                    error={formErrors.name}
-                    containerStyle={{ height: 44, justifyContent: 'center' }}
-                    inputStyle={{ height: 44, paddingVertical: 10, textAlignVertical: 'center', marginStart: 8 }}
-                  />
-                </View>
+            <FormFieldRow>
+              <TextInput
+                value={form.name || ''}
+                onChangeText={(v: string) => handleFormChange('name', v)}
+                placeholder="* Name"
+                style={clientStyles.input}
+              />
+              {formErrors.name ? (
+                <Text style={clientStyles.errorText}>{formErrors.name}</Text>
+              ) : null}
+            </FormFieldRow>
+            {/* Row 2: Mobile */}
+            <FormFieldRow style={clientStyles.mobileRow}>
+              <View style={clientStyles.codePickerWrapper}>
+                <CountryCodePicker
+                  value={form.mobileCode || '+91'}
+                  onChange={(code: string) => handleFormChange('mobileCode', code)}
+                />
               </View>
-
-              {/* Row 2: Gender */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-                <Text style={{ fontSize: 15, fontWeight: '600' }}>Gender:</Text>
-                {['Male', 'Female', 'Other'].map((g) => (
-                  <TouchableOpacity key={g} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }} onPress={() => handleFormChange('gender', g)}>
-                    <View style={{
-                      height: 20,
-                      width: 20,
-                      borderRadius: 4,
-                      borderWidth: 2,
-                      borderColor: COLORS.vata[500],
+              <TextInput
+                value={form.mobile || ''}
+                onChangeText={(v: string) => handleFormChange('mobile', v.replace(/[^0-9]/g, ''))}
+                placeholder="Mobile"
+                style={clientStyles.input}
+                keyboardType="numeric"
+              />
+            </FormFieldRow>
+            {formErrors.mobile ? (
+              <Text style={clientStyles.errorText}>{formErrors.mobile}</Text>
+            ) : null}
+            {/* Row 3: Alternate Mobile */}
+            <FormFieldRow style={clientStyles.mobileRow}>
+              <View style={clientStyles.codePickerWrapper}>
+                <CountryCodePicker
+                  value={form.altMobileCode || '+91'}
+                  onChange={(code: string) => handleFormChange('altMobileCode', code)}
+                />
+              </View>
+              <TextInput
+                value={form.altMobile || ''}
+                onChangeText={(v: string) => handleFormChange('altMobile', v.replace(/[^0-9]/g, ''))}
+                placeholder="Alt Mobile"
+                style={clientStyles.input}
+                keyboardType="numeric"
+              />
+            </FormFieldRow>
+            {/* Row 4: Gender */}
+            <FormFieldRow style={{ marginBottom: 12 }}>
+              <AppSwitch
+                value={form.gender === 'Female' ? 'Female' : 'Male'}
+                options={['Male', 'Female']}
+                label="Gender:"
+                onValueChange={(g: 'Male' | 'Female') => handleFormChange('gender', g)}
+              />
+            </FormFieldRow>
+            {/* Row 5: Date of Birth & Age */}
+            <FormFieldRow style={{ marginBottom: 12 }}>
+              {Platform.OS === 'web' ? (
+                <input
+                  type="date"
+                  value={form.dob || ''}
+                  onChange={e => handleFormChange('dob', e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: '1px solid #b1aaff',
+                    borderRadius: 8,
+                    height: 44,
+                    padding: '0 12px',
+                    fontSize: 15,
+                    fontFamily: 'System',
+                    marginRight: 8,
+                  }}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    clientStyles.input,
+                    {
+                      flex: 1,
+                      marginRight: 8,
+                      flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: form.gender === g ? COLORS.vata[100] : '#fff',
-                      marginRight: 2,
-                    }}>
-                      {form.gender === g && (
-                        <View style={{ height: 12, width: 12, borderRadius: 2, backgroundColor: COLORS.vata[500] }} />
-                      )}
-                    </View>
-                    <Text style={{ fontSize: 15 }}>{g}</Text>
-                  </TouchableOpacity>
-                ))}
+                      borderColor: COLORS.vata[500],
+                      height: 44, // match Age field height
+                      paddingVertical: 0,
+                      paddingHorizontal: 12,
+                    },
+                  ]}
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{
+                    flex: 1,
+                    color: form.dob ? COLORS.neutral[900] : COLORS.neutral[400],
+                    fontSize: 15,
+                    fontFamily: 'System',
+                  }}>
+                    {form.dob ? form.dob : 'DOB'}
+                  </Text>
+                  <View style={{ paddingHorizontal: 6 }}>
+                    <Text style={{ fontSize: 20 }}>📅</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              {showDatePicker && Platform.OS !== 'web' && (
+                <DateTimePicker
+                  value={form.dob ? new Date(form.dob) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (event.type === 'set' && selectedDate) {
+                      handleFormChange('dob', selectedDate.toISOString().slice(0, 10));
+                    }
+                  }}
+                />
+              )}
+              <TextInput
+                value={form.age ? String(form.age) : ''}
+                onChangeText={(v: string) => handleFormChange('age', v.replace(/[^0-9]/g, ''))}
+                placeholder="*Age"
+                style={[clientStyles.input, { flex: 1 }]}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
+              {formErrors.age ? (
+                <Text style={clientStyles.errorText}>{formErrors.age}</Text>
+              ) : null}
+            </FormFieldRow>
+            {/* Row 6: Height & Weight */}
+            <FormFieldRow style={{ marginBottom: 12 }}>
+              <TextInput
+                value={String(form.height || '')}
+                onChangeText={(v: string) => handleFormChange('height', v)}
+                placeholder="Height"
+                style={[clientStyles.input, { marginRight: 8, boxSizing: 'border-box', width: '100%' }]}
+                keyboardType="numeric"
+              />
+              {formErrors.height ? (
+                <Text style={clientStyles.errorText}>{formErrors.height}</Text>
+              ) : null}
+              <TextInput
+                value={String(form.weight || '')}
+                onChangeText={(v: string) => handleFormChange('weight', v)}
+                placeholder="Weight"
+                style={[clientStyles.input, { boxSizing: 'border-box', width: '100%' }]}
+                keyboardType="numeric"
+              />
+              {formErrors.weight ? (
+                <Text style={clientStyles.errorText}>{formErrors.weight}</Text>
+              ) : null}
+            </FormFieldRow>
+            {/* Row 7: Present Complaints */}
+            <FormFieldRow>
+              <TextInput
+                value={form.presentComplaints || ''}
+                onChangeText={(v: string) => handleFormChange('presentComplaints', v)}
+                placeholder="Present Complaints"
+                multiline
+                style={[clientStyles.input, { minHeight: 60, maxHeight: 120, textAlignVertical: 'top' }]}
+              />
+            </FormFieldRow>
+            <FormFieldRow style={{ marginBottom: 16 }} />
+            <FormFieldRow>
+              <TextInput
+                value={form.pastIllnesses || ''}
+                onChangeText={(v: string) => handleFormChange('pastIllnesses', v)}
+                placeholder="Past Illnesses"
+                multiline
+                style={[clientStyles.input, { minHeight: 60, maxHeight: 120, textAlignVertical: 'top' }]}
+              />
+            </FormFieldRow>
+            <FormFieldRow style={{ marginBottom: 16 }} />
+            <FormFieldRow>
+              <TextInput
+                value={form.allergies || ''}
+                onChangeText={(v: string) => handleFormChange('allergies', v)}
+                placeholder="Allergies"
+                multiline
+                style={[clientStyles.input, { minHeight: 60, maxHeight: 120, textAlignVertical: 'top' }]}
+              />
+            </FormFieldRow>
+            <FormFieldRow style={{ marginBottom: 16 }} />
+            <FormFieldRow>
+              <TextInput
+                value={form.currentMedication || ''}
+                onChangeText={(v: string) => handleFormChange('currentMedication', v)}
+                placeholder="Current Medication"
+                multiline
+                style={[clientStyles.input, { minHeight: 60, maxHeight: 120, textAlignVertical: 'top' }]}
+              />
+            </FormFieldRow>
+            <FormFieldRow style={{ marginBottom: 24 }} />
+
+            {/* Row 11: Buttons */}
+            <FormFieldRow>
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+                <TouchableOpacity
+                  style={[
+                    clientStyles.modalButton,
+                    {
+                      flex: 1,
+                      backgroundColor: COLORS.white,
+                      borderColor: COLORS.vata[500],
+                      borderWidth: 1,
+                    },
+                  ]}
+                  onPress={() => { setModalVisible(false); setForm(EMPTY_CLIENT); setFormErrors({}); }}
+                >
+                  <Text style={[
+                    textStyles.cancelButtonText,
+                    {
+                      color: COLORS.vata[500],
+                      fontFamily: typography.fontFamily,
+                      fontSize: typography.fontSizeMd,
+                    },
+                  ]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    clientStyles.modalButton,
+                    {
+                      flex: 1,
+                      backgroundColor: COLORS.vata[500],
+                      borderColor: COLORS.vata[500],
+                      borderWidth: 1,
+                    },
+                  ]}
+                  onPress={handleSubmit}
+                >
+                  <Text style={[
+                    textStyles.saveButtonText,
+                    {
+                      color: COLORS.white,
+                      fontFamily: 'System',
+                      fontSize: 15,
+                    },
+                  ]}>
+                    Save
+                  </Text>
+                </TouchableOpacity>
               </View>
-
-              {/* Row 3: Mobile Number */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <CountryCodePicker value={form.mobileCode || '+91'} onChange={(code: string) => handleFormChange('mobileCode', code)} />
-                <View style={{ flex: 1 }}>
-                  <FormField
-                    label=""
-                    value={form.mobile || ''}
-                    onChange={(v: string) => handleFormChange('mobile', v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric"
-                    error={formErrors.mobile}
-                    placeholder="Mobile"
-                  />
-                </View>
-              </View>
-
-              {/* Row 4: Alternate Mobile Number */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-                <CountryCodePicker value={form.altMobileCode || '+91'} onChange={(code: string) => handleFormChange('altMobileCode', code)} />
-                <View style={{ flex: 1 }}>
-                  <FormField
-                    label=""
-                    value={form.altMobile || ''}
-                    onChange={(v: string) => handleFormChange('altMobile', v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric"
-                    error={formErrors.altMobile}
-                    placeholder="Alternate Mobile"
-                  />
-                </View>
-              </View>
-
-              {/* Row 5: Email */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <FormField
-                    label="Email"
-                    value={form.email || ''}
-                    onChange={(v: string) => handleFormChange('email', v)}
-                    keyboardType="email-address"
-                    placeholder="e.g. john@example.com"
-                    error={formErrors.email}
-                    inputStyle={{ height: 44, paddingVertical: 0 }}
-                  />
-                </View>
-              </View>
-
-              {/* Row 6: DOB and Age */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                {/* DOB Picker with icon inside cell */}
-                <View style={{ flex: 3, position: 'relative', justifyContent: 'center' }}>
-                  <GenericDatePicker
-                    label="DOB"
-                    value={form.dob || ''}
-                    onChange={(v: string) => {
-                      handleFormChange('dob', v);
-                      if (v) {
-                        const age = calculateAge(v);
-                        handleFormChange('age', age);
-                      }
-                    }}
-                    style={{ ...clientStyles.formField, height: 44, paddingRight: 32, justifyContent: 'center' }}
-                    inputStyle={{ ...clientStyles.input, height: 44, paddingVertical: 0, paddingRight: 32, justifyContent: 'center' }}
-                    testID="dob-picker"
-                  />
-                </View>
-                {/* Age input with 'Years' */}
-                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                  <FormField
-                    label=""
-                    value={form.age || ''}
-                    placeholder="Age"
-                    onChange={(v: string) => handleFormChange('age', v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric"
-                    inputStyle={{ height: 40, paddingVertical: 0, width: 80 }}
-                  />
-                  <Text style={{ marginLeft: 6, fontSize: 15, color: '#333' }}>Years</Text>
-                </View>
-              </View>
-
-              {/* Row 7: Height, Weight */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <FormField label="" value={form.height ? String(form.height) : ''} onChange={(v: string) => handleFormChange('height', v)} keyboardType="numeric" error={formErrors.height} placeholder="Height (cm)" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <FormField label="" value={form.weight ? String(form.weight) : ''} onChange={(v: string) => handleFormChange('weight', v)} keyboardType="numeric" error={formErrors.weight} placeholder="Weight (kg)" />
-                </View>
-              </View>
-
-              {/* Row 8: Present complaints */}
-              <FormField label="" value={form.presentComplaints || ''} onChange={(v: string) => handleFormChange('presentComplaints', v)} multiline placeholder="Present complaints" />
-
-              {/* Row 9: Known issues checkboxes */}
-              <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 8 }}>Known issues</Text>
-                <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-                  {['BP', 'DM', 'Hypo Thyroidism'].map((issue) => (
-                    <TouchableOpacity key={issue} style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => handleKnownIssuesChange(issue)}>
-                      <View style={{
-                        height: 20,
-                        width: 20,
-                        borderRadius: 4,
-                        borderWidth: 2,
-                        borderColor: COLORS.vata[500],
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 6,
-                        backgroundColor: form.knownIssues?.includes(issue) ? COLORS.vata[100] : '#fff',
-                      }}>
-                        {form.knownIssues?.includes(issue) && <View style={{ height: 12, width: 12, borderRadius: 2, backgroundColor: COLORS.vata[500] }} />}
-                      </View>
-                      <Text style={{ fontSize: 15 }}>{issue}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Row 10: Past illnesses */}
-              <FormField label="" value={form.pastIllnesses || ''} onChange={(v: string) => handleFormChange('pastIllnesses', v)} multiline placeholder="Past illnesses" />
-
-              {/* Row 11: Allergies */}
-              <FormField label="" value={form.allergies || ''} onChange={(v: string) => handleFormChange('allergies', v)} multiline placeholder="Allergies" />
-
-              {/* Row 12: Family History */}
-              <FormField label="" value={form.familyHistory || ''} onChange={(v: string) => handleFormChange('familyHistory', v)} multiline placeholder="Family History" />
-
-              {/* Row 13: Current Medication */}
-              <FormField label="" value={form.currentMedication || ''} onChange={(v: string) => handleFormChange('currentMedication', v)} multiline placeholder="Current Medication" />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </View>
+            </FormFieldRow>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal >
+      <TouchableOpacity style={clientStyles.addButton} onPress={() => setModalVisible(true)} accessibilityLabel="Add Client">
+        <Plus size={28} color="#fff" />
+      </TouchableOpacity>
+    </>
   );
 }
-
 export default ClientsScreen;

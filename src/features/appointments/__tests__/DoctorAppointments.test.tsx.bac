@@ -1,0 +1,326 @@
+import React from 'react';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import DoctorAppointments from '@/features/appointments/modal/DoctorAppointments';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+import * as selectors from '@/features/appointments/selectors';
+import * as doctorBookingUtils from '@/features/appointments/helpers/doctorBookingUtils';
+import { Client } from '@/features/clients/clientsSlice';
+
+const mockStore = configureStore([]);
+
+const mockClients: Client[] = [
+    {
+        id: 'CNT-001',
+        name: 'Alice Smith',
+        mobile: '9876543210',
+        mobileCode: '+91',
+        gender: 'Female',
+        age: 30,
+    },
+    {
+        id: 'CNT-002',
+        name: 'Bob Johnson',
+        mobile: '9123456789',
+        mobileCode: '+91',
+        gender: 'Male',
+        age: 40,
+    },
+];
+
+const mockDoctors = [
+    { id: 'doc-1', name: 'Dr. John Doe', role: 'doctor' },
+    { id: 'doc-2', name: 'Dr. Jane Roe', role: 'doctor' },
+];
+
+const mockDoctorAvailability = {
+    'doc-1': {
+        '2025-06-01': ['09:00 AM', '10:00 AM'],
+    },
+};
+
+const mockAppointments = [
+    {
+        id: 'appt-1',
+        doctorId: 'doc-1',
+        date: '2025-06-01',
+        time: '09:00 AM',
+        clientId: 'CNT-001',
+    },
+];
+
+function renderWithStore(store: any, props: any) {
+    return render(
+        <Provider store={store}>
+            <DoctorAppointments {...props} />
+        </Provider>
+    );
+}
+
+beforeEach(() => {
+    jest.spyOn(selectors, 'selectDoctors').mockImplementation(() => mockDoctors);
+    jest.spyOn(selectors, 'selectDoctorAvailability').mockImplementation(() => mockDoctorAvailability);
+    jest.spyOn(selectors, 'selectAppointments').mockImplementation(() => mockAppointments);
+    jest.spyOn(selectors, 'selectClients').mockImplementation(() => mockClients);
+});
+
+afterEach(() => {
+    jest.restoreAllMocks();
+});
+
+test('should_create_appointment_with_valid_inputs', async () => {
+    const store = mockStore({});
+    const onCreate = jest.fn();
+    const onClose = jest.fn();
+
+    jest.spyOn(doctorBookingUtils, 'checkDoctorBooking').mockReturnValue({ available: true, reason: '', alternatives: [] });
+
+    const { getByText, getByPlaceholderText, getByTestId } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate,
+        onClose,
+    });
+
+    // Select client
+    const clientInput = getByPlaceholderText('Search client by name');
+    fireEvent.changeText(clientInput, 'Alice');
+    await waitFor(() => getByTestId('client-select-CNT-001'));
+    fireEvent.press(getByTestId('client-select-CNT-001'));
+
+    // Mobile should be autofilled, but let's ensure it's valid
+    const mobileInput = getByTestId('mobile-input');
+    expect(mobileInput.props.value).toBe('9876543210');
+
+    // Pick date
+    const datePicker = getByTestId('date-picker');
+    act(() => {
+        datePicker.props.onChange('2025-06-01');
+    });
+
+    // Pick time
+    const timePicker = getByTestId('time-picker');
+    act(() => {
+        timePicker.props.onChange('10:00 AM');
+    });
+
+    // Press create
+    const createBtn = getByTestId('create-appointment-btn');
+    fireEvent.press(createBtn);
+
+    await waitFor(() => {
+        expect(onCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                clientId: 'CNT-001',
+                clientName: 'Alice Smith',
+                clientMobile: '9876543210',
+                doctorId: 'doc-1',
+                doctorName: 'Dr. John Doe',
+                date: '2025-06-01',
+                time: '10:00 AM',
+                status: 'scheduled',
+            })
+        );
+        expect(onClose).toHaveBeenCalled();
+    });
+});
+
+test('should_filter_and_select_client_and_autofill_mobile', async () => {
+    const store = mockStore({});
+    const { getByPlaceholderText, getByTestId } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate: jest.fn(),
+        onClose: jest.fn(),
+    });
+
+    const clientInput = getByPlaceholderText('Search client by name');
+    fireEvent.changeText(clientInput, 'Bob');
+    await waitFor(() => getByTestId('client-select-CNT-002'));
+    fireEvent.press(getByTestId('client-select-CNT-002'));
+
+    const mobileInput = getByTestId('mobile-input');
+    expect(mobileInput.props.value).toBe('9123456789');
+});
+
+test('should_select_consultation_type_and_mode_and_include_in_appointment', async () => {
+    const store = mockStore({});
+    const onCreate = jest.fn();
+    const onClose = jest.fn();
+
+    jest.spyOn(doctorBookingUtils, 'checkDoctorBooking').mockReturnValue({ available: true, reason: '', alternatives: [] });
+
+    const { getByText, getByPlaceholderText, getByTestId } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate,
+        onClose,
+    });
+
+    // Select client
+    fireEvent.changeText(getByPlaceholderText('Search client by name'), 'Alice');
+    await waitFor(() => getByTestId('client-select-CNT-001'));
+    fireEvent.press(getByTestId('client-select-CNT-001'));
+
+    // Date & Time
+    act(() => {
+        getByTestId('date-picker').props.onChange('2025-06-01');
+        getByTestId('time-picker').props.onChange('09:00 AM');
+    });
+
+    // Select consultation type "Follow-up"
+    fireEvent.press(getByText('Follow-up'));
+
+    // Select mode "Online"
+    fireEvent.press(getByText('Online'));
+
+    // Create
+    fireEvent.press(getByTestId('create-appointment-btn'));
+
+    await waitFor(() => {
+        expect(onCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                consultationName: 'Follow-up',
+                mode: 'Online',
+            })
+        );
+        expect(onClose).toHaveBeenCalled();
+    });
+});
+
+test('should_show_error_when_no_client_selected', async () => {
+    const store = mockStore({});
+    const onCreate = jest.fn();
+    const { getByTestId, getByText, queryByText } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate,
+        onClose: jest.fn(),
+    });
+
+    // Fill date and time
+    act(() => {
+        getByTestId('date-picker').props.onChange('2025-06-01');
+        getByTestId('time-picker').props.onChange('09:00 AM');
+    });
+
+    // Fill valid mobile
+    fireEvent.changeText(getByTestId('mobile-input'), '9999999999');
+
+    // Try to create without selecting client
+    fireEvent.press(getByTestId('create-appointment-btn'));
+
+    await waitFor(() => {
+        expect(getByText('Please select a client')).toBeTruthy();
+        expect(onCreate).not.toHaveBeenCalled();
+    });
+});
+
+test('should_show_error_for_invalid_mobile_number', async () => {
+    const store = mockStore({});
+    const onCreate = jest.fn();
+    const { getByTestId, getByText } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate,
+        onClose: jest.fn(),
+    });
+
+    // Select client
+    fireEvent.changeText(getByPlaceholderText('Search client by name'), 'Alice');
+    await waitFor(() => getByTestId('client-select-CNT-001'));
+    fireEvent.press(getByTestId('client-select-CNT-001'));
+
+    // Enter invalid mobile
+    fireEvent.changeText(getByTestId('mobile-input'), '12345');
+    fireEvent(getByTestId('mobile-input'), 'blur');
+
+    // Fill date and time
+    act(() => {
+        getByTestId('date-picker').props.onChange('2025-06-01');
+        getByTestId('time-picker').props.onChange('09:00 AM');
+    });
+
+    // Try to create
+    fireEvent.press(getByTestId('create-appointment-btn'));
+
+    await waitFor(() => {
+        expect(getByText('Enter valid 10-digit mobile')).toBeTruthy();
+        expect(onCreate).not.toHaveBeenCalled();
+    });
+});
+
+test('should_disable_create_and_show_error_when_no_doctors_available', async () => {
+    jest.spyOn(selectors, 'selectDoctors').mockImplementation(() => []);
+    const store = mockStore({});
+    const onCreate = jest.fn();
+    const { getByTestId, getByText } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate,
+        onClose: jest.fn(),
+    });
+
+    // Try to create
+    fireEvent.press(getByTestId('create-appointment-btn'));
+
+    await waitFor(() => {
+        expect(getByText('No doctors available. Please add doctors in staff management.')).toBeTruthy();
+        expect(getByTestId('create-appointment-btn').props.disabled).toBe(true);
+        expect(onCreate).not.toHaveBeenCalled();
+    });
+});
+
+test('should_update_date_and_time_fields_with_picker_selection', async () => {
+    const store = mockStore({});
+    const { getByTestId } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate: jest.fn(),
+        onClose: jest.fn(),
+    });
+
+    // Select date
+    act(() => {
+        getByTestId('date-picker').props.onChange('2025-06-01');
+    });
+
+    // Select time
+    act(() => {
+        getByTestId('time-picker').props.onChange('10:00 AM');
+    });
+
+    // The component does not expose the value directly, but we can check the prop value
+    expect(getByTestId('date-picker').props.value).toBe('2025-06-01');
+    expect(getByTestId('time-picker').props.value).toBe('10:00 AM');
+});
+
+test('should_show_error_when_doctor_slot_is_unavailable', async () => {
+    const store = mockStore({});
+    const onCreate = jest.fn();
+    const onClose = jest.fn();
+
+    jest.spyOn(doctorBookingUtils, 'checkDoctorBooking').mockReturnValue({
+        available: false,
+        reason: 'Slot already booked',
+        alternatives: [],
+    });
+
+    const { getByTestId, getByText, getByPlaceholderText } = renderWithStore(store, {
+        clients: mockClients,
+        onCreate,
+        onClose,
+    }); // getByPlaceholderText is destructured here
+
+    // Select client
+    fireEvent.changeText(getByPlaceholderText('Search client by name'), 'Alice');
+    await waitFor(() => getByTestId('client-select-CNT-001'));
+    fireEvent.press(getByTestId('client-select-CNT-001'));
+
+    // Pick date and time
+    act(() => {
+        getByTestId('date-picker').props.onChange('2025-06-01');
+        getByTestId('time-picker').props.onChange('09:00 AM');
+    });
+
+    // Try to create
+    fireEvent.press(getByTestId('create-appointment-btn'));
+
+    await waitFor(() => {
+        expect(getByText('Slot already booked')).toBeTruthy();
+        expect(onCreate).not.toHaveBeenCalled();
+    });
+});

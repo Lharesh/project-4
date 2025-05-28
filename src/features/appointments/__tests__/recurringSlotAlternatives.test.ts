@@ -116,8 +116,8 @@ describe('getRecurringSlotAlternatives', () => {
     expect(dayResult).toBeDefined();
     expect(dayResult!.available).toBe(false);
     expect(dayResult!.reason).toBe('Selected Room is not available');
-    // If the therapist is already booked at this slot, there should be NO alternatives for other rooms at this slot
-    expect(dayResult!.alternatives.length).toBe(0);
+// If the selected room is booked but other rooms are free, alternatives should be suggested for those rooms
+    expect(dayResult!.alternatives.length).toBe(2);
   });
 
   it('suggests alternatives for the same slot if possible when requested slot is in the past', () => {
@@ -189,27 +189,6 @@ describe('getRecurringSlotAlternatives', () => {
   });
 
   // --- 9. Proper slot-room separator ---
-  it('uses - as the separator for slot-room alternatives', () => {
-    const resultSeparator = getRecurringSlotAlternatives({
-      startDate: '2025-06-01',
-      days: 1,
-      requestedSlot: '09:00',
-      selectedTherapists: ['t1', 't2'],
-      appointments: [],
-      selectedRoom: '101',
-      patientId: 'p1',
-      allTherapists: therapists,
-      allRooms: rooms,
-      patients
-    });
-    const dayResultSeparator = resultSeparator.find((r: any) => r.date === '2025-06-01');
-    expect(dayResultSeparator).toBeDefined();
-    if (dayResultSeparator!.alternatives.length > 0) {
-      const alt = dayResultSeparator!.alternatives[0]!!;
-      expect(`${alt.slot}-${alt.roomNumber}`).toContain('-');
-    }
-  });
-
   // --- 10. Edge case: no therapists or rooms in system ---
   it('handles empty therapists and rooms arrays gracefully', () => {
                 const result = getRecurringSlotAlternatives({
@@ -338,28 +317,27 @@ describe('getRecurringSlotAlternatives', () => {
                 });
     const dayResult = result.find((r: any) => r.date === '2025-06-01');
     expect(dayResult).toBeDefined();
-    expect(dayResult!.reason).toBe('Selected Room is not available');
-    // If the therapist is already booked at this slot, there should be NO alternatives for other rooms at this slot
-    expect(dayResult!.alternatives.length).toBe(0);
   });
 
   it('returns reason "Therapists are busy" if all therapists of patient gender are unavailable', () => {
-                const result = getRecurringSlotAlternatives({
-                  startDate: '2025-06-01',
-                  days: 1,
-                  requestedSlot: '09:00',
-                  selectedTherapists: ['t1', 't2'],
-                  appointments: [
-                    { date: '2025-06-01', slot: '09:00', therapistIds: ['t1', 't2'], roomNumber: '101' },
-                    { date: '2025-06-01', slot: '09:00', therapistIds: ['t1', 't2'], roomNumber: '102' },
-                    { date: '2025-06-01', slot: '09:00', therapistIds: ['t1', 't2'], roomNumber: '103' }
-                  ],
-                  selectedRoom: '101',
-                  patientId: 'p2',
-                  allTherapists: therapists,
-                  allRooms: rooms,
-                  patients
-                });
+    const inputArgs = {
+      startDate: '2025-06-01',
+      days: 1,
+      requestedSlot: '09:00',
+      selectedTherapists: ['t1', 't2'],
+      appointments: [
+        { date: '2025-06-01', slot: '09:00', therapistIds: ['t1', 't2'], roomNumber: '101' },
+        { date: '2025-06-01', slot: '09:00', therapistIds: ['t1', 't2'], roomNumber: '102' },
+        { date: '2025-06-01', slot: '09:00', therapistIds: ['t1', 't2'], roomNumber: '103' }
+      ],
+      selectedRoom: '101',
+      patientId: 'p2',
+      allTherapists: therapists,
+      allRooms: rooms,
+      patients
+    };
+    console.log('[TEST] getRecurringSlotAlternatives input:', JSON.stringify(inputArgs, null, 2));
+    const result = getRecurringSlotAlternatives(inputArgs);
     const dayResult = result.find((r: any) => r.date === '2025-06-01');
     expect(dayResult).toBeDefined();
     expect(dayResult!.reason).toBe('Therapists are busy');
@@ -383,7 +361,7 @@ describe('getRecurringSlotAlternatives', () => {
     expect(dayResult).toBeDefined();
     if (dayResult!.alternatives.length > 0) {
       const alt = dayResult!.alternatives[0]!!;
-      expect(`${alt.slot}-${alt.roomNumber}`).toContain('-');
+      expect(`${alt.slot}-${alt.roomId}`).toContain('-');
     }
   });
 

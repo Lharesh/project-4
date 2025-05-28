@@ -26,8 +26,9 @@ export interface StaffMember {
   id: string;
   name: string;
   role: 'doctor' | 'therapist' | 'admin' | 'receptionist';
-  email: string;
+  email?: string;
   phone: string;
+  gender: 'Male' | 'Female' | 'Other';
   specialization?: string;
   isActive: boolean;
 }
@@ -40,75 +41,37 @@ export interface WhatsAppTemplate {
   isActive: boolean;
 }
 
+export interface Room {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+}
+
 interface SetupState {
   timings: ClinicTimings;
   draftTimings?: ClinicTimings;
   treatmentSlots: TreatmentSlot[];
   staff: StaffMember[];
   whatsappTemplates: WhatsAppTemplate[];
+  rooms: Room[];
   isLoading: boolean;
   error: string | null;
 }
-
-const initialState: SetupState = {
-  timings: {
-    weekdays: {
-      monday: { isOpen: true, start: '09:00', end: '18:00', status: 'working' },
-      tuesday: { isOpen: true, start: '09:00', end: '18:00', status: 'working' },
-      wednesday: { isOpen: true, start: '09:00', end: '18:00', status: 'working' },
-      thursday: { isOpen: true, start: '09:00', end: '18:00', status: 'working' },
-      friday: { isOpen: true, start: '09:00', end: '18:00', status: 'working' },
-      saturday: { isOpen: true, start: '09:00', end: '14:00', status: 'working' },
-      sunday: { isOpen: false, start: '09:00', end: '18:00', status: 'working' },
-    },
-  },
-  draftTimings: undefined,
-  treatmentSlots: [],
-  staff: [],
-  whatsappTemplates: [],
-  isLoading: false,
-  error: null,
-};
-
 // Mock data
 const MOCK_TREATMENT_SLOTS: TreatmentSlot[] = [
-  {
-    id: '1',
-    name: 'Abhyanga Massage',
-    duration: 60,
-    price: 120,
-    description: 'Traditional Ayurvedic full body massage',
-    isActive: true,
-  },
-  {
-    id: '2',
-    name: 'Shirodhara',
-    duration: 45,
-    price: 90,
-    description: 'Relaxing oil flow therapy',
-    isActive: true,
-  },
-];
-
-const MOCK_STAFF: StaffMember[] = [
-  {
-    id: '1',
-    name: 'Dr. Sharma',
-    role: 'doctor',
-    email: 'sharma@clinic.com',
-    phone: '+1234567890',
-    specialization: 'Panchakarma',
-    isActive: true,
-  },
-  {
-    id: '2',
-    name: 'John Doe',
-    role: 'therapist',
-    email: 'john@clinic.com',
-    phone: '+1234567891',
-    specialization: 'Massage Therapy',
-    isActive: true,
-  },
+  { id: 't1', name: 'Abhyanga', duration: 60, price: 100, description: 'Traditional Ayurvedic full body massage', isActive: true },
+  { id: 't2', name: 'Elakizhi', duration: 60, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't3', name: 'Podikizhi', duration: 60, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't4', name: 'Navarakizhi', duration: 60, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't5', name: 'Shirodhara', duration: 90, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't6', name: 'Udvartana', duration: 45, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't7', name: 'Nasya', duration: 30, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't8', name: 'Kati Basti', duration: 60, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't9', name: 'Panchakarma', duration: 90, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't10', name: 'Pizhichil', duration: 90, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't11', name: 'Karna purana', duration: 60, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
+  { id: 't12', name: 'Akshi Tarpanam', duration: 60, price: 100, description: 'Traditional Ayurvedic treatment', isActive: true },
 ];
 
 const MOCK_TEMPLATES: WhatsAppTemplate[] = [
@@ -120,6 +83,105 @@ const MOCK_TEMPLATES: WhatsAppTemplate[] = [
     isActive: true,
   },
 ];
+
+// Mock rooms
+export const ROOMS_MOCK: Room[] = [
+  { id: 'r1', name: 'Vata', type: 'therapy', isActive: true },
+  { id: 'r2', name: 'Pitta', type: 'therapy', isActive: true },
+  { id: 'r3', name: 'Kapha', type: 'therapy', isActive: true },
+];
+
+// Mock: Clinic timings (7:00-13:00, 15:00-18:00, Monday off)
+export const CLINIC_TIMINGS: ClinicTimings = {
+
+
+  weekdays: {
+    monday: { isOpen: false, start: '', end: '', status: 'weekly_off' },
+    tuesday: { isOpen: true, start: '07:00', end: '18:00', status: 'working', breakStart: '13:00', breakEnd: '15:00' },
+    wednesday: { isOpen: true, start: '07:00', end: '18:00', status: 'working', breakStart: '13:00', breakEnd: '15:00' },
+    thursday: { isOpen: true, start: '07:00', end: '18:00', status: 'working', breakStart: '13:00', breakEnd: '15:00' },
+    friday: { isOpen: true, start: '07:00', end: '18:00', status: 'working', breakStart: '13:00', breakEnd: '15:00' },
+    saturday: { isOpen: true, start: '07:00', end: '18:00', status: 'working', breakStart: '13:00', breakEnd: '15:00' },
+    sunday: { isOpen: true, start: '07:00', end: '18:00', status: 'working', breakStart: '13:00', breakEnd: '15:00' },
+  },
+};
+
+// Mock staff must be defined before initialState
+const MOCK_STAFF: StaffMember[] = [
+  {
+    id: '1',
+    name: 'Dr. Sharma',
+    role: 'doctor',
+    email: 'sharma@clinic.com',
+    phone: '234567890',
+    gender: 'Male',
+    specialization: 'Panchakarma',
+    isActive: true,
+  },
+  {
+    id: '2',
+    name: 'Dr. Haresh',
+    role: 'doctor',
+    email: 'haresh@clinic.com',
+    phone: '9877654432',
+    gender: 'Male',
+    specialization: 'Panchakarma',
+    isActive: true,
+  },
+  {
+    id: '3',
+    name: 'John Doe',
+    role: 'therapist',
+    email: 'john@clinic.com',
+    phone: '234567891',
+    gender: 'Male',
+    specialization: '',
+    isActive: true,
+  },
+  {
+    id: '4',
+    name: 'Nitin',
+    role: 'therapist',
+    email: 'nitin@clinic.com',
+    phone: '2222222222',
+    gender: 'Male',
+    specialization: '',
+    isActive: true,
+  },
+  {
+    id: '5',
+    name: 'Shilpa',
+    role: 'therapist',
+    email: 'shilpa@clinic.com',
+    phone: '1212112122',
+    gender: 'Female',
+    specialization: '',
+    isActive: true,
+  },
+  {
+    id: '6',
+    name: 'Anjali',
+    role: 'therapist',
+    email: 'anjali@clinic.com',
+    phone: '234567891',
+    gender: 'Female',
+    specialization: '',
+    isActive: true,
+  },
+];
+
+const initialState: SetupState = {
+  timings: CLINIC_TIMINGS,
+  draftTimings: undefined,
+  treatmentSlots: MOCK_TREATMENT_SLOTS,
+  staff: MOCK_STAFF,
+  whatsappTemplates: [],
+  rooms: ROOMS_MOCK,
+  isLoading: false,
+  error: null,
+};
+
+
 
 // Thunks
 export const fetchTimings = createAsyncThunk(
@@ -314,5 +376,13 @@ const setupSlice = createSlice({
   },
 });
 
+// Selectors
+import type { RootState } from '@/redux/store';
+export const selectTherapists = (state: RootState) => state.setup.staff.filter(s => s.role === 'therapist');
+export const selectRooms = (state: RootState) => state.setup.rooms;
+// Selector to get clinic timings from Redux state
+export const selectClinicTimings = (state: any) => state.setup?.timings || CLINIC_TIMINGS;
+
 export const { clearError, setDraftTimings } = setupSlice.actions;
 export default setupSlice.reducer;
+export { MOCK_STAFF };

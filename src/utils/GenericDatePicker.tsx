@@ -32,7 +32,12 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
   testID,
 }) => {
   const [show, setShow] = React.useState(false);
+  const [tempDate, setTempDate] = React.useState<string | undefined>(value);
   const formattedValue = formatDate(value);
+
+  React.useEffect(() => {
+    if (show) setTempDate(value);
+  }, [show, value]);
 
   return (
     <View style={style}>
@@ -74,14 +79,18 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
           </TouchableOpacity>
           {show && (
             <DateTimePicker
-              value={value ? new Date(value) : new Date()}
+              value={tempDate ? new Date(tempDate) : value ? new Date(value) : new Date()}
               mode="date"
               display="default"
               minimumDate={minDate}
               maximumDate={maxDate}
-              onChange={(_, selectedDate?: Date) => {
-                setShow(false);
-                if (selectedDate) onChange(formatDate(selectedDate));
+              onChange={(event, selectedDate?: Date) => {
+                if (event.type === 'set' && selectedDate) {
+                  setShow(false);
+                  onChange(formatDate(selectedDate));
+                } else if (event.type === 'dismissed') {
+                  setShow(false);
+                }
               }}
             />
           )}

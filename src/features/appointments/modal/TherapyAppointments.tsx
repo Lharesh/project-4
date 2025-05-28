@@ -5,131 +5,199 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import styles from './TherapyAppointments.styles';
 import { GenericDatePicker } from '../../../utils/GenericDatePicker';
 import GenericTimePicker from '../../../utils/GenericTimePicker';
-import { THERAPIES, THERAPISTS, PATIENTS, ROOMS, CLINIC_TIMINGS } from '../mock/scheduleMatrixMock';
 import ScheduleMatrix from '../components/ScheduleMatrix';
-
 
 import PatientPicker from '../components/PatientPicker';
 import TherapyPicker from '../components/TherapyPicker';
-import TherapistPicker from '../components/TherapistPicker';
+import { TherapistPicker } from '../components/TherapistPicker';
 import { getRecurringConflicts } from '../helpers/conflictCalculations';
+import { getRecurringSlotAlternatives } from '../helpers/recurringSlotAlternatives';
+import { isPatientAvailable } from '../helpers/availabilityUtils';
 import { addDays } from '../helpers/dateHelpers';
-
-import { useDispatch, useSelector } from 'react-redux';
-import { addAppointments } from '../appointmentsSlice';
+import { format } from 'date-fns';
+import type { Client } from '@/features/clients/clientsSlice';
 import { buildScheduleMatrix } from './buildScheduleMatrix';
-import RecurringSlotPreview from './RecurringSlotPreview';
-import { canBookAppointment } from '../helpers/rulesEngine';
+import { getBookingOptions, filterTherapistsByGender } from '../helpers/rulesEngine';
 import { isSlotInPast } from '../helpers/isSlotInPast';
+import { addDynamicAvailability } from '../helpers/dynamicAvailability';
 
-interface Therapist {
-  id: string;
-  name: string;
-  gender: 'male' | 'female';
-  availability: Record<string, string[]>;
-}
+import type { Therapist } from '../helpers/availabilityUtils';
 
 interface TherapyAppointmentsProps {
+  visible: boolean;
   onClose: () => void;
   onCreate: (appointment: any) => void;
+  clients: Client[];
+  therapists: any[];
+  rooms: any[];
+  clinicTimings: any;
+  appointments: any[];
+  therapies: any[];
+  enforceGenderMatch: boolean;
 }
 
 const DURATION_PRESETS = [1, 3, 7, 14, 21];
 
-const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCreate }) => {
-  // State for slot replacements
-  const [replacementSlots, setReplacementSlots] = React.useState<Record<string, string>>({});
+const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ visible, onClose, onCreate, clients, therapists, rooms, clinicTimings, appointments, therapies, enforceGenderMatch }) => {
+  // Local state for schedule collapse
+  const [showSchedule, setShowSchedule] = React.useState(false);
+  // --- Redux removed: all data comes from props ---
 
-  const appointments = useSelector((state: any) => state.appointments.appointments || []);
-  // console.log('[TherapyAppointments] Current Redux appointments:', appointments);
-
-  const dispatch = useDispatch();
-
-  // Use custom form hook
+  // --- Picker local state ---
+  // Therapy picker
+  const [therapySearch, setTherapySearch] = React.useState('');
+  const [therapyInputFocused, setTherapyInputFocused] = React.useState(false);
+  // Therapist picker
+  const [therapistSearch, setTherapistSearch] = React.useState('');
+  const [showAllTherapists, setShowAllTherapists] = React.useState(false);
+  const [therapistInputFocused, setTherapistInputFocused] = React.useState(false);
+  // Use custom form hook (must come before mapping)
   const {
     touched, setTouched, submitAttempted, setSubmitAttempted,
     selectedDate, setSelectedDate,
-    patientSearch, setPatientSearch, selectedPatient, setSelectedPatient, patientGender, setPatientGender, patientInputFocused, setPatientInputFocused,
-    therapySearch, setTherapySearch, selectedTherapy, setSelectedTherapy, therapyInputFocused, setTherapyInputFocused,
-    selectedTherapists, setSelectedTherapists, therapistSearch, setTherapistSearch, showAllTherapists, setShowAllTherapists, therapistInputFocused, setTherapistInputFocused,
+    selectedPatient, setSelectedPatient, patientGender, setPatientGender,
+    selectedTherapy, setSelectedTherapy,
+    selectedTherapists, setSelectedTherapists,
     startDate, setStartDate, timeSlot, setTimeSlot, showTimePicker, setShowTimePicker,
     duration, setDuration, customDuration, setCustomDuration, customMode, setCustomMode,
     selectedRoom, setSelectedRoom,
     notes, setNotes,
-  } = useTherapyAppointmentForm({ initialDate: '2025-05-20' });
+  } = useTherapyAppointmentForm({ initialDate: format(new Date(), 'yyyy-MM-dd') });
+
+// Centralized gender filtering logic
+const filteredTherapists = React.useMemo(() => {
+  if (!patientGender) return therapists;
+  return filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
+}, [therapists, patientGender, enforceGenderMatch]);
+  const [replacementSlots, setReplacementSlots] = React.useState<Record<string, string>>({});
+
+// Map therapists and rooms with all required variables from props
+  const date = startDate;
+  const slotDuration = 15; // or get from config/clinicTimings
+  const therapistsWithAvailability = addDynamicAvailability({
+    entities: therapists,
+    entityType: 'therapist',
+    date: startDate || format(new Date(), 'yyyy-MM-dd'),
+    appointments,
+    clinicTimings,
+    slotDuration,
+  });
+  const roomsWithAvailability = addDynamicAvailability({
+    entities: rooms,
+    entityType: 'room',
+    date: startDate || format(new Date(), 'yyyy-MM-dd'),
+    appointments,
+    clinicTimings,
+    slotDuration,
+  });
+
   // State hooks at the top
-  const [refreshKey, setRefreshKey] = React.useState(0);
   const [showAlternatives, setShowAlternatives] = React.useState(false);
   // Only declare recommendedSlots state ONCE at the top
   const [recommendedSlots, setRecommendedSlots] = React.useState<any[]>([]);
-  const [selectedAlternativeSlot, setSelectedAlternativeSlot] = React.useState<any>(null);
 
   // --- Therapy Room Schedule states ---
-
-  // Compute recurring slot alternatives and reasons
-  const getRecurringSlotInfo = React.useCallback(() => {
-    if (!startDate || !selectedRoom) return {};
-    return require('../helpers/recurringSlotAlternatives').getRecurringSlotAlternatives({
-      startDate,
-      days: customMode ? Number(customDuration) : (duration ?? 1),
-      requestedSlot: timeSlot,
-      selectedTherapists,
-      appointments,
-      selectedRoom,
-      customMode,
-      customDuration,
-      duration,
-      now: new Date(),
-    });
-  }, [startDate, selectedRoom, customMode, customDuration, duration, selectedTherapists, appointments, timeSlot]);
-
-  const recurringSlotInfo = getRecurringSlotInfo();
-
-  // Handler for dropdown
-  const handleSlotChange = (date: string, slot: string) => {
-    setReplacementSlots(prev => ({ ...prev, [date]: slot }));
-  };
-
-  // --- Therapy Room Schedule states ---
-  const [showSchedule, setShowSchedule] = React.useState(false);
-
   const [scheduleDate, setScheduleDate] = React.useState(() => {
     const today = new Date();
     return today.toISOString().slice(0, 10);
   });
   // Always rebuild matrix when appointments or scheduleDate change
   const matrix = React.useMemo(() => {
-    return buildScheduleMatrix(scheduleDate, appointments || []);
-  }, [scheduleDate, appointments]);
+    return buildScheduleMatrix(scheduleDate, appointments || [], rooms, therapists, clinicTimings);
+  }, [scheduleDate, appointments, rooms, therapists, clinicTimings]);
 
   // Log matrix after it is built
   React.useEffect(() => {
-    console.log('[TherapyAppointments] Matrix built:', matrix);
   }, [matrix]);
+
+  // Compute recurring slot alternatives and reasons
+  const getRecurringSlotInfo = React.useCallback(() => {
+    // Prevent if no patient selected
+    if (!startDate || !selectedRoom || !selectedPatient || !selectedTherapists) return {};
+    const date = startDate;
+    const slotDuration = 15; // or get from config/clinicTimings
+    const therapistsWithAvailability = addDynamicAvailability({
+      entities: therapists,
+      entityType: 'therapist',
+      date,
+      appointments,
+      clinicTimings,
+      slotDuration,
+    });
+    const roomsWithAvailability = addDynamicAvailability({
+      entities: rooms,
+      entityType: 'room',
+      date,
+      appointments,
+      clinicTimings,
+      slotDuration,
+    });
+    return getRecurringSlotAlternatives({
+      enforceGenderMatch,
+      startDate,
+      days: customMode ? Number(customDuration) : (duration ?? 1),
+      requestedSlot: timeSlot,
+      selectedTherapists,
+      appointments,
+      selectedRoom,
+      patientId: selectedPatient,
+      allTherapists: therapistsWithAvailability,
+      allRooms: roomsWithAvailability,
+      patients: clients,
+      now: new Date(),
+    });
+  }, [appointments, startDate, timeSlot, selectedTherapists, selectedRoom, selectedPatient, therapists, rooms, clients, customMode, customDuration, duration]);
+
+  // Handler for dropdown
+  const handleSlotChange = (date: string, slot: string) => {
+    setReplacementSlots((prev: Record<string, string>) => ({ ...prev, [date]: slot }));
+  };
 
   // Show alternatives if there is a conflict
   React.useEffect(() => {
-    // Only compute if all required fields are present
     if (!selectedDate || !timeSlot || !selectedTherapists.length || !selectedRoom) {
       setRecommendedSlots([]);
       setShowAlternatives(false);
       return;
     }
-    // Check if booking is possible
-    const canBook = canBookAppointment({
-      therapistIds: selectedTherapists,
-      roomNumber: selectedRoom ?? '',
-      date: selectedDate,
+    const canBook = getBookingOptions({
+      enforceGenderMatch,
+      patientId: selectedPatient ?? '',
+      selectedTherapists,
+      selectedRoom: selectedRoom ?? '',
+      date: format(new Date(selectedDate), 'yyyy-MM-dd'),
       slot: timeSlot,
-      appointments
+      appointments,
+      allTherapists: therapists,
+      allRooms: rooms,
+      patients: clients,
+      now: new Date(),
+      maxAlternatives: 3
     });
     if (canBook) {
       setRecommendedSlots([]);
       setShowAlternatives(false);
       return;
     }
-    // Alternatives logic removed (getRecommendedSlots is unused)
-  }, [appointments, selectedDate, selectedTherapists, selectedRoom ?? '', timeSlot, matrix]);
+    // --- FIX: Compute recurring slot alternatives ---
+    const days = customMode ? Number(customDuration) : (duration ?? 1);
+    const alternativesResult = getRecurringSlotAlternatives({
+      enforceGenderMatch,
+      startDate: selectedDate,
+      days,
+      requestedSlot: timeSlot,
+      selectedTherapists,
+      appointments,
+      selectedRoom,
+      patientId: selectedPatient || "",
+      allTherapists: therapists,
+      allRooms: rooms,
+      patients: clients,
+      now: new Date(),
+    });
+    setRecommendedSlots(alternativesResult[0]?.alternatives || []);
+    setShowAlternatives(true);
+  }, [appointments, selectedDate, selectedTherapists, selectedRoom, timeSlot, matrix, customMode, customDuration, duration, clients, therapists, rooms]);
 
   // Memoize recurringConflicts
   const isRecurring = (customMode && Number(customDuration) > 1) || (!customMode && duration && [3, 7, 14, 21].includes(duration));
@@ -149,154 +217,188 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
     return [];
   }, [appointments, startDate, timeSlot, selectedTherapists, customMode, customDuration, duration, isRecurring]);
 
-  // Log recurringConflicts after it is built
-  React.useEffect(() => {
-    console.log('[TherapyAppointments] Recurring conflicts:', recurringConflicts);
-  }, [recurringConflicts]);
-
-
   // Validation logic 
   const isValid = () => {
     if (!selectedPatient || !selectedTherapy || selectedTherapists.length === 0 || !startDate || !timeSlot || (!duration && !(customMode && !!customDuration && Number(customDuration) > 0))) {
       return false;
     }
-    const dates = Object.keys(recurringSlotInfo);
-    for (const date of dates) {
-      const info = recurringSlotInfo[date];
-      if (info.available) continue;
-      // If not available, must have a replacement selected and it must be valid
-      const replacement = replacementSlots[date];
-      if (!replacement) return false;
-      if (!info.alternatives.some((a: { slot: string; roomNumber: string }) => `${a.slot}@${a.roomNumber}` === replacement)) return false;
-    }
+    // Ensure selectedPatient and selectedRoom are never null or undefined
+    const patientId = selectedPatient ? selectedPatient : '';
+    const roomId = selectedRoom ? selectedRoom : '';
     // Check for any slot in the series being in the past or unresolved
     const daysToBook = customMode ? Number(customDuration) : (duration ?? 1);
     const now = new Date();
+
+    // DEBUG: Log input values for isValid
+    console.log('[DEBUG][isValid][INPUT]', {
+      selectedPatient,
+      selectedTherapy,
+      selectedTherapists,
+      startDate,
+      timeSlot,
+      duration,
+      customMode,
+      customDuration,
+      patientId,
+      roomId,
+      daysToBook,
+      now,
+      appointments,
+      therapists,
+      rooms,
+      clients,
+      enforceGenderMatch
+    });
     for (let i = 0; i < daysToBook; i++) {
       const dateVal = addDays(startDate, i);
       // Use replacement slot if present
       const slot = replacementSlots[dateVal] || timeSlot;
       if (!slot) return false;
       if (isSlotInPast(dateVal, slot, now)) return false;
-      if (!canBookAppointment({
-        therapistIds: selectedTherapists,
-        roomNumber: selectedRoom ?? '',
-        date: dateVal,
-        slot,
-        appointments
-      })) return false;
-    }
-    return true;
-  };
-
-  const handleStartTherapy = () => {
-    setTouched({
-      patient: true,
-      therapy: true,
-      therapists: true,
-      date: true,
-      time: true,
-      duration: true
-    });
-    setSubmitAttempted(true);
-    const now = new Date();
-    const daysToBook = customMode ? Number(customDuration) : (duration ?? 1);
-    const newAppointments = [];
-    let lastCreatedAppointment = null;
-    for (let i = 0; i < daysToBook; i++) {
-      const dateVal = addDays(startDate, i);
-      let slot: string | undefined = timeSlot === null ? undefined : timeSlot;
-      let roomNumber: string | undefined = selectedRoom === null ? undefined : selectedRoom;
-      // Use replacement if present and valid
-      if (replacementSlots[dateVal]) {
-        const [parsedSlot, parsedRoom] = replacementSlots[dateVal].split('-');
-        slot = parsedSlot;
-        roomNumber = parsedRoom;
-      }
-      if (!slot) {
-        alert('Please select a valid slot for all unavailable days.');
-        return;
-      }
-      if (isSlotInPast(dateVal, slot, now)) {
-        alert('Cannot book a slot in the past. Please select a future time slot.');
-        return;
-      }
-      if (!canBookAppointment({
-        therapistIds: selectedTherapists,
-        roomNumber: roomNumber ?? undefined,
-        date: dateVal,
+      const bookingOptionsInput = {
+        enforceGenderMatch,
+        patientId,
+        selectedTherapists,
+        selectedRoom: roomId,
+        date: format(new Date(dateVal), 'yyyy-MM-dd'),
         slot,
         appointments,
-        patientId: selectedPatient ?? undefined
-      })) {
-        alert('Room or therapist is already booked for this slot. Please choose another.');
-        return;
-      }
-      const appointment = {
-        id: `${Date.now()}_${selectedPatient}_${selectedTherapists.join('_')}_${dateVal}`,
-        clientId: String(selectedPatient ?? ''),
-        clientName: (PATIENTS.find(p => p.id === selectedPatient)?.name || selectedPatient || ''),
-        therapistIds: selectedTherapists,
-        therapistNames: selectedTherapists.map(id => (THERAPISTS.find(t => t.id === id)?.name || id)),
-        treatmentId: selectedTherapy || '',
-        treatmentName: (THERAPIES.find(t => t.id === selectedTherapy)?.name || selectedTherapy || ''),
-        duration: daysToBook,
-        dayIndex: i + 1,
-        totalDays: daysToBook,
-        roomNumber: roomNumber !== undefined && roomNumber !== null ? String(roomNumber) : undefined,
-        date: dateVal,
-        time: slot,
-        status: 'scheduled' as 'scheduled',
-        notes,
-        tab: 'Therapy' as 'Therapy',
+        allTherapists: therapists,
+        allRooms: rooms,
+        patients: clients,
+        now: new Date(),
+        maxAlternatives: 3
       };
-      newAppointments.push(appointment);
+      // DEBUG: Log input to getBookingOptions
+      console.log('[DEBUG][isValid][getBookingOptions][INPUT]', bookingOptionsInput);
+      const bookingOptionsResult = getBookingOptions(bookingOptionsInput);
+      // DEBUG: Log output from getBookingOptions
+      console.log('[DEBUG][isValid][getBookingOptions][OUTPUT]', bookingOptionsResult);
+      if (!bookingOptionsResult) return false;
+    } 
+    return true;
+  };
+  // --- Handler for booking appointments ---
+  const handleBookAppointments = () => {
+    setTouched({ patient: true, therapy: true, therapists: true, date: true, time: true, duration: true });
+    setSubmitAttempted(true);
+    if (!isValid()) return;
+
+    // Strict conflict check using getBookingOptions
+    const bookingOptions = getBookingOptions({
+      enforceGenderMatch,
+      patientId: selectedPatient ? selectedPatient : '',
+      selectedTherapists,
+      selectedRoom: selectedRoom ? selectedRoom : '',
+      date: typeof startDate === 'string' ? format(new Date(startDate), 'yyyy-MM-dd') : format(startDate, 'yyyy-MM-dd'),
+      slot: timeSlot,
+      appointments,
+      allTherapists: therapists,
+      allRooms: rooms,
+      patients: clients,
+      now: new Date(),
+      maxAlternatives: 3
+    });
+    if (!bookingOptions[0]?.available) {
+      setShowAlternatives(true);
+      setRecommendedSlots(bookingOptions[0]?.alternatives || []);
+      // Optionally show a message to the user
+      return;
+    }
+
+    // Build recurring appointments for each day in duration
+    const days = customMode ? Number(customDuration) : (duration ?? 1);
+    let lastCreatedAppointment = null;
+    const daysToBook = Number(days);
+    const generatedAppointments: any[] = [];
+   
+    // Find the selected therapy object for duration/name/id lookup
+    const selectedTherapyObj = therapies.find((t: any) => t.id === selectedTherapy);
+    for (let i = 0; i < daysToBook; i++) {
+      const dateObj = addDays(startDate, i);
+      const slotString = timeSlot;
+      const roomObj = rooms.find((r: any) => r.id === selectedRoom);
+      const appointment = {
+        id: `${selectedPatient}_${selectedTherapists.join('_')}_${roomObj?.id || selectedRoom}_${format(new Date(dateObj), 'yyyy-MM-dd')}_${slotString}`,
+        clientId: String(selectedPatient),
+        clientName: (clients.find((p: Client) => p.id === selectedPatient)?.name || selectedPatient || ''),
+        therapistIds: selectedTherapists,
+        therapistNames: selectedTherapists.map((id: string) => (therapists.find((t: Therapist) => t.id === id)?.name || id)),
+        date: format(new Date(dateObj), 'yyyy-MM-dd'),
+        time: slotString,
+        slot: slotString,
+        roomId: roomObj?.id || selectedRoom,
+        roomName: roomObj?.name || selectedRoom,
+        recurringDays: daysToBook,
+        notes: notes || '',
+        status: 'scheduled',
+        tab: 'Therapy',
+        therapyId: selectedTherapyObj?.id || selectedTherapy,
+        therapyName: selectedTherapyObj?.name || '',
+        duration: (() => {
+          if (customMode && customDuration && Number(customDuration) > 0) return Number(customDuration) * (selectedTherapyObj?.duration || 60);
+          return selectedTherapyObj?.duration || 60;
+        })(),
+      };
+      generatedAppointments.push(appointment);
       lastCreatedAppointment = appointment;
+      console.log('[TherapyAppointments] Generated appointment:', appointment);
     }
-    console.log('[handleStartTherapy] Current Redux appointments:', appointments);
-    console.log('[handleStartTherapy] Adding new appointments:', newAppointments);
-    dispatch(addAppointments(newAppointments));
-    // Note: Accessing window.store is not type-safe and may not exist.
-    // Instead, rely on Redux state updates and useSelector for latest appointments in the component.
-    // If you need to debug, use useEffect to log appointments when they change.
-    // setTimeout block removed to fix lint error.
-    setRefreshKey(prev => prev + 1);
-    if (onCreate && lastCreatedAppointment) onCreate(lastCreatedAppointment);
+    const uniqueAppointments = Array.from(
+      new Map(generatedAppointments.map(a => [`${a.clientId}_${a.therapistIds.join('_')}_${a.roomId}_${a.date}_${a.slot}`, a])).values()
+    );
+    if (onCreate) onCreate(uniqueAppointments);
     if (onClose) onClose();
+    setCustomDuration('');
   };
 
-
-  // Therapist filter logic
-  const patientObj = PATIENTS.find((p: { id: string }) => p.id === selectedPatient);
-  const genderFilter = patientObj ? patientObj.gender : null;
-  let filteredTherapists = THERAPISTS as Therapist[];
-  if (genderFilter && !showAllTherapists && !therapistSearch) {
-    filteredTherapists = (THERAPISTS as Therapist[]).filter((t: Therapist) => t.gender === genderFilter);
-  }
-  if (therapistSearch) {
-    filteredTherapists = (THERAPISTS as Therapist[]).filter((t: Therapist) => t.name.toLowerCase().includes(therapistSearch.toLowerCase()));
-  }
-
-  // Duration logic
-  const handleDurationSelect = (val: number | 'custom') => {
-    if (val === 'custom') {
-      setCustomMode(true);
-      setDuration(null);
-    } else {
-      setCustomMode(false);
-      setDuration(val);
-      setCustomDuration('');
-    }
-  };
-
-  // Therapist selection
-  const toggleTherapist = (id: string) => {
-    setSelectedTherapists(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
-  };
+  const DURATION_PRESETS = [1, 3, 7, 14, 21];
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* Duration Picker UI */}
+        <View style={{ marginVertical: 12 }}>
+          <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>Duration (days)</Text>
+          <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+            {DURATION_PRESETS.map((d) => (
+              <TouchableOpacity
+                key={d}
+                style={{
+                  backgroundColor: duration === d ? '#007AFF' : '#eee',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  marginRight: 8,
+                }}
+                onPress={() => {
+                  setDuration(d);
+                  setCustomDuration('');
+                }}
+              >
+                <Text style={{ color: duration === d ? '#fff' : '#333' }}>{d}</Text>
+              </TouchableOpacity>
+            ))}
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 16,
+                paddingHorizontal: 10,
+                width: 50,
+                marginLeft: 8,
+                color: '#333',
+              }}
+              keyboardType="numeric"
+              placeholder="Custom"
+              value={customDuration}
+              onChangeText={(val) => {
+                setCustomDuration(val);
+                setDuration(null);
+              }}
+            />
+          </View>
+        </View>
         {/* --- Therapy Room Schedule (Collapsible) --- */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -305,7 +407,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 20, marginRight: 6 }}>{showSchedule ? '📅' : '🗓️'}</Text>
-            <Text style={{ fontWeight: 600, fontSize: 16 }}>Therapy Room Schedule</Text>
+            <Text style={{ fontWeight: '600', fontSize: 16 }}>Therapy Room Schedule</Text>
             <Text style={{ fontSize: 18, marginLeft: 'auto' }}>{showSchedule ? '▲' : '▼'}</Text>
           </TouchableOpacity>
           {showSchedule && (
@@ -354,157 +456,45 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
         </View>
         {/* --- End Therapy Room Schedule --- */}
 
-        <View style={[styles.section, {marginBottom: 16}]}> 
-          <Text style={styles.label}>Patient</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
-            <TextInput
-              style={[styles.input, { flex: 1, paddingRight: 36 }]}
-              placeholder="Search patient by name"
-              value={patientSearch}
-              onChangeText={setPatientSearch}
-              editable={!selectedPatient}
-            />
-            {selectedPatient ? (
-              <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
-                <TouchableOpacity
-                  onPress={() => { setSelectedPatient(null); setPatientSearch(''); }}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <MaterialIcons name="close" size={22} color="#888" />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-          {patientSearch.length > 0 && !selectedPatient && (
-            <View style={styles.dropdownList}>
-              {PATIENTS.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setSelectedPatient(p.id);
-                    setPatientSearch(p.name);
-                    setPatientGender && setPatientGender(p.gender as 'male' | 'female');
-                  }}
-                >
-                  <Text style={{ color: selectedPatient === p.id ? '#1a73e8' : '#222' }}>{p.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {!selectedPatient && (touched.patient || submitAttempted) && (
-            <Text style={{ color: 'red', marginBottom: 6 }}>Please select a patient</Text>
-          )}
+        {/* Patient Picker - placed at the top, outside nested Views */}
+        <View style={[styles.section, { marginBottom: 16 }]} pointerEvents="box-none">
+          <PatientPicker
+            patients={clients}
+            value={selectedPatient}
+            onChange={setSelectedPatient}
+            setPatientGender={setPatientGender}
+            touched={touched.patient || submitAttempted}
+          />
         </View>
         {/* Therapy Picker */}
-        <View style={[styles.section, {marginBottom: 16}]}> 
-          <Text style={styles.label}>Therapy Name</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
-            <TextInput
-              style={[styles.input, { flex: 1, paddingRight: 36 }]}
-              placeholder="Search therapy by name"
-              value={therapySearch}
-              onChangeText={setTherapySearch}
-              editable={!selectedTherapy}
-            />
-            {selectedTherapy ? (
-              <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
-                <TouchableOpacity
-                  onPress={() => { setSelectedTherapy(''); setTherapySearch(''); }}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <MaterialIcons name="close" size={22} color="#888" />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-          {therapySearch.length > 0 && !selectedTherapy && (
-            <View style={styles.dropdownList}>
-              {THERAPIES.filter(t => t.name.toLowerCase().includes(therapySearch.toLowerCase())).map(t => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setSelectedTherapy(t.id);
-                    setTherapySearch(t.name);
-                  }}
-                >
-                  <Text style={{ color: selectedTherapy === t.id ? '#1a73e8' : '#222' }}>{t.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {!selectedTherapy && (touched.therapy || submitAttempted) && (
-            <Text style={{ color: 'red', marginBottom: 6 }}>Please select a therapy</Text>
-          )}
+        <View style={[styles.section, { marginBottom: 16 }]}>
+          <TherapyPicker
+            therapies={therapies}
+            selectedTherapy={selectedTherapy}
+            setSelectedTherapy={setSelectedTherapy}
+            therapySearch={therapySearch}
+            setTherapySearch={setTherapySearch}
+            therapyInputFocused={therapyInputFocused}
+            setTherapyInputFocused={setTherapyInputFocused}
+            touched={touched.therapy || submitAttempted}
+            setTouched={setTouched}
+          />
         </View>
-
-        <View style={[styles.section, {marginBottom: 16}]}> 
+        {/* Date Picker */}
+        <View style={[styles.section, { marginBottom: 16 }]}>
           <GenericDatePicker
-            label="Start Date"
+            label="Date"
             value={startDate}
-            onChange={val => { setStartDate(val); setTouched(t => ({ ...t, date: true })); }}
-            inputStyle={{ fontVariant: ['tabular-nums'], fontFamily: 'monospace' }}
+            onChange={setStartDate}
+            minDate={new Date()}
           />
           {/* Validation: Date */}
           {!startDate && (touched.date || submitAttempted) && (
             <Text style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please select a date.</Text>
           )}
-          {/* Time Picker */}
-          <GenericTimePicker
-            label="Start Time"
-            value={timeSlot}
-            onChange={val => { setTimeSlot(val); setTouched(t => ({ ...t, time: true })); }}
-          />
-        </View>
-
-        <View style={[styles.section, {marginBottom: 16}]}> 
-          {/* Duration Picker */}
-          <Text style={styles.label}>Duration (days)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.durationScroll} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
-            {DURATION_PRESETS.map(preset => (
-              <TouchableOpacity
-                key={preset}
-                style={[styles.durationBox, duration === preset && !customMode && styles.durationBoxActive]}
-                onPress={() => { setDuration(preset); setCustomMode(false); setTouched(t => ({ ...t, duration: true })); }}
-              >
-                <Text style={{ color: duration === preset && !customMode ? '#fff' : '#222' }}>{preset} days</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.durationBox, customMode && styles.durationBoxActive]}
-              onPress={() => { setCustomMode(true); setDuration(null); setTouched(t => ({ ...t, duration: true })); }}
-            >
-              <Text style={{ color: customMode ? '#fff' : '#222' }}>Custom</Text>
-            </TouchableOpacity>
-            {customMode && (
-              <TextInput
-                style={[styles.input, { width: 70, marginLeft: 8 }]}
-                placeholder="Enter days"
-                keyboardType="numeric"
-                value={customDuration ?? ''}
-                onChangeText={text => {
-                  // Only allow numeric input
-                  if (/^\d*$/.test(text)) setCustomDuration(text);
-                  setTouched(t => ({ ...t, duration: true }));
-                }}
-              />
-            )}
-          </ScrollView>
-
-          {/* Validation: Duration (only show duration errors here) */}
-          {((!duration && !customMode) || (customMode && (!customDuration || Number(customDuration) <= 0))) && (touched.duration || submitAttempted) && (
-            <Text style={{ color: 'red', fontSize: 13, marginBottom: 4 }}>Please enter a valid duration in days.</Text>
-          )}
-        </View>
-
-        {/* Therapist Picker */}
-        <View style={styles.section}>
+          <View style={[styles.section, { marginBottom: 16 }]}></View>
           <TherapistPicker
-            therapists={THERAPISTS.map(t => ({
-              ...t,
-              availability: t.availability as Record<string, string[]>
-            }))}
+            therapists={filteredTherapists}
             selectedTherapists={selectedTherapists}
             setSelectedTherapists={setSelectedTherapists}
             therapistSearch={therapistSearch}
@@ -513,32 +503,39 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
             setShowAllTherapists={setShowAllTherapists}
             therapistInputFocused={therapistInputFocused}
             setTherapistInputFocused={setTherapistInputFocused}
-            patientGender={patientGender}
+            patientGender={patientGender ?? undefined}
             touched={touched.therapists || submitAttempted}
-            setTouched={(t: any) => setTouched((prev: any) => ({ ...prev, therapists: true }))}
+            setTouched={setTouched}
+          />
+        </View>
+        <View style={[styles.section, { marginBottom: 16 }]}>
+          {/* Time Picker */}
+          <GenericTimePicker
+            value={timeSlot}
+            onChange={setTimeSlot}
           />
         </View>
 
+        {/* Room (Optional) */}
         <View style={styles.section}>
-          {/* Room (Optional) */}
           <Text style={styles.label}>Room (Optional)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomAvatarRow} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
-          {ROOMS.map(r => {
-            const selected = selectedRoom === r.roomNumber;
-            return (
+            {roomsWithAvailability.map((r: any) => (
               <TouchableOpacity
-                key={r.roomNumber}
-                style={[styles.roomAvatarTouchable, selected && styles.roomAvatarSelected]}
-                onPress={() => setSelectedRoom(r.roomNumber)}
+                key={r.id}
+                style={[
+                  styles.roomBox,
+                  selectedRoom === r.id && styles.roomBoxActive
+                ]}
+                onPress={() => setSelectedRoom(r.id)}
               >
-                <View style={[styles.roomAvatarCircle, selected && styles.roomAvatarCircleSelected]}>
-                  <Text style={[styles.roomAvatarText, selected && styles.roomAvatarTextSelected]}>{r.roomNumber}</Text>
-                </View>
-                <Text style={styles.roomAvatarName} numberOfLines={1}>{r.name}</Text>
+                <Text style={[
+                  styles.roomAvatarText,
+                  selectedRoom === r.id && styles.roomAvatarTextSelected
+                ]}>{r.name}</Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.sectionBottom}>
@@ -556,169 +553,78 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ onClose, onCr
         {/* Action Buttons */}
         <View style={styles.sectionBottom}>
           <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.startBtn} onPress={() => {
-            setTouched({ patient: true, therapy: true, therapists: true, date: true, time: true, duration: true });
-            setSubmitAttempted(true);
-            if (!isValid()) return;
-            // Conflict check before booking
-            const conflict = !canBookAppointment({
-              therapistIds: selectedTherapists,
-              roomNumber: selectedRoom ?? undefined,
-              date: startDate,
-              slot: timeSlot,
-              appointments,
-              patientId: selectedPatient ?? undefined,
-            });
-            if (conflict) {
-              setTouched(t => ({ ...t, conflict: true }));
-              setSubmitAttempted(true);
-              // Show error message
-              alert('Room or therapist is already booked for this slot. Please choose another.');
-              return;
-            }
-            // Build recurring appointments for each day in duration
-            const days = customMode ? Number(customDuration) : (duration ?? 1);
-            let lastCreatedAppointment = null;
-            const newAppointments = [];
-            for (let i = 0; i < days; i++) {
-              const date = addDays(startDate, i);
-              const appointment = {
-                id: `${Date.now()}_${selectedPatient}_${selectedTherapists.join('_')}_${date}`,
-                clientId: String(selectedPatient ?? ''),
-                clientName: (PATIENTS.find(p => p.id === selectedPatient)?.name || selectedPatient || ''),
-                therapistIds: selectedTherapists,
-                therapistNames: selectedTherapists.map(id => (THERAPISTS.find(t => t.id === id)?.name || id)),
-                treatmentId: selectedTherapy || '',
-                treatmentName: (THERAPIES.find(t => t.id === selectedTherapy)?.name || selectedTherapy || ''),
-                duration: days, // Store total therapy duration for all appointments
-                dayIndex: i + 1, // Store the day index (1-based)
-                roomNumber: selectedRoom != null ? String(selectedRoom) : undefined,
-                date,
-                time: timeSlot,
-                status: 'scheduled' as 'scheduled',
-                notes,
-                tab: 'Therapy' as 'Therapy',
-                totalDays: days,
-              };
-              newAppointments.push(appointment);
-              lastCreatedAppointment = appointment;
-            }
-            dispatch(addAppointments(newAppointments.map(appointment => {
-              const replacementSlot = replacementSlots[appointment.date];
-              return {
-                ...appointment,
-                time: replacementSlot || appointment.time,
-              };
-            })));
-            if (onCreate && lastCreatedAppointment) onCreate(lastCreatedAppointment);
-            // Close the form after booking
-            if (onClose) onClose();
-          }}>
-            <Text style={styles.startBtnText}>Start Therapy</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Show recurring slot preview if recurring booking is selected and any slot is unavailable */}
-        {(() => {
-          const daysToBook = customMode ? Number(customDuration) : (duration ?? 1);
-          const proposedAppointments = [];
-          // Guard against invalid startDate
-          const isValidDate = (dateStr: string) => {
-            if (!dateStr) return false;
-            const d = new Date(dateStr);
-            return !isNaN(d.getTime());
-          };
-          if (!isValidDate(startDate)) {
-            return null;
-          }
-          for (let i = 0; i < daysToBook; i++) {
-            const dateVal = addDays(startDate, i);
-            const slotInPast = isSlotInPast(dateVal, timeSlot, new Date('2025-05-19T10:28:03+05:30'));
-            const canBook = canBookAppointment({
-              therapistIds: selectedTherapists,
-              roomNumber: selectedRoom ?? '',
-              date: dateVal,
-              slot: timeSlot,
-              appointments
-            });
-            proposedAppointments.push({
-              id: `preview_${selectedPatient}_${selectedTherapists.join('_')}_${dateVal}`,
-              clientId: String(selectedPatient ?? ''),
-              clientName: (PATIENTS.find(p => p.id === selectedPatient)?.name || selectedPatient || ''),
-              therapistIds: selectedTherapists,
-              therapistNames: selectedTherapists.map(id => (THERAPISTS.find(t => t.id === id)?.name || id)),
-              treatmentId: selectedTherapy || '',
-              treatmentName: (THERAPIES.find(t => t.id === selectedTherapy)?.name || selectedTherapy || ''),
-              duration: daysToBook,
-              dayIndex: i + 1,
-              totalDays: daysToBook,
-              roomNumber: selectedRoom != null ? String(selectedRoom) : undefined,
-              date: dateVal,
-              time: timeSlot,
-              status: slotInPast ? 'unavailable' : (!canBook ? 'conflict' : 'preview'),
-              notes,
-              tab: 'Therapy',
-              reason: slotInPast ? 'N/A' : (!canBook ? 'Conflict' : undefined),
-            });
-          }
-          const previewAppointments = [...appointments, ...proposedAppointments];
-          // Import checkRecurringSlotAvailability here to avoid circular deps
-          const { checkRecurringSlotAvailability } = require('../../../utils/checkRecurringSlotAvailability');
-          let previewResults: any[] = [];
-          let anyUnavailable = false;
-          try {
-            previewResults = checkRecurringSlotAvailability({
-              startDate,
-              days: daysToBook,
-              roomNumber: selectedRoom,
-              slotTime: timeSlot,
-              appointments: previewAppointments,
-              skipNonWorkingDays: false,
-              clientId: selectedPatient,
-            });
-            anyUnavailable = previewResults.some((r: any) => !r.available);
-          } catch (e) {
-            // fallback: show preview if error
-            anyUnavailable = true;
-          }
-          if (isRecurring && selectedRoom && timeSlot && anyUnavailable) {
-            const availableSlotsByDate = previewResults.reduce((acc, result) => {
-              acc[result.date] = result.availableSlots;
-              return acc;
-            }, {});
-            const replacementSlots = previewResults.reduce((acc, result) => {
-              if (result.replacementSlot) {
-                acc[result.date] = result.replacementSlot;
-              }
-              return acc;
-            }, {});
-            return (
-              <View style={styles.alternativesSection}>
-                <RecurringSlotPreview
-                  startDate={startDate}
-                  days={customMode ? Number(customDuration) : (duration ?? 1)}
-                  roomNumber={selectedRoom}
-                  slotTime={timeSlot}
-                  appointments={appointments}
-                  skipNonWorkingDays={false}
-                  recurringSlotInfo={recurringSlotInfo}
-                  replacementSlots={replacementSlots}
-                  onSlotChange={(date, slot) => {
-                    setReplacementSlots(prev => ({ ...prev, [date]: slot }));
-                  }}
-                />
-              </View>
-            );
-          }
-          return null;
-        })()}
-        {/* Show alternatives if conflict and available */}
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.startBtn}
+              onPress={handleBookAppointments}
+              disabled={!isValid() || (showAlternatives && recommendedSlots.length > 0)}
+            >
+              <Text style={[styles.startBtnText, (!isValid() || (showAlternatives && recommendedSlots.length > 0)) && { opacity: 0.5 }]}>Start Therapy</Text>
+            </TouchableOpacity>
+
+          </View>
+          {/* Show recurring slot alternatives if slot is unavailable */}
+{/* Always use getRecurringSlotAlternatives output for alternatives UI */}
+{showAlternatives && (() => {
+  const altResults = getRecurringSlotAlternatives({
+    startDate,
+    days: 1,
+    requestedSlot: timeSlot,
+    selectedTherapists,
+    appointments,
+    selectedRoom: selectedRoom || '',
+    patientId: selectedPatient || '',
+    allTherapists: therapistsWithAvailability,
+    allRooms: roomsWithAvailability,
+    patients: clients,
+    now: new Date(),
+    enforceGenderMatch,
+  });
+  const reason = altResults[0]?.reason ?? '';
+  // Deduplicate by slot-room for display only
+  const uniqueAlternatives = altResults[0]?.alternatives ? Array.from(
+    new Map(altResults[0].alternatives.map(alt => [alt.slot, alt])).values()
+  ) : [];
+  return (
+    <View style={{ marginTop: 20, padding: 10, backgroundColor: '#fff8e1', borderRadius: 8 }}>
+      {typeof reason === 'string' && reason ? (
+        <Text style={{ color: '#c62828', fontWeight: 'bold', marginBottom: 8 }}>{reason}</Text>
+      ) : null}
+      <Text style={{ color: '#c62828', fontWeight: 'bold', marginBottom: 8 }}>
+        This slot is unavailable. Please select an alternative:
+      </Text>
+      {uniqueAlternatives.map((alt) => (
+        <TouchableOpacity
+          key={alt.slot}
+          style={{
+            padding: 10,
+            backgroundColor: '#e3f2fd',
+            borderRadius: 6,
+            marginBottom: 8,
+            borderWidth: 1,
+            borderColor: '#90caf9',
+          }}
+          onPress={() => {
+            const [altSlot, altRoom] = alt.slot.split('-');
+            setTimeSlot(altSlot);
+            setSelectedRoom(altRoom);
+            setShowAlternatives(false);
+          }}
+        >
+          <Text style={{ color: '#1976d2' }}>{`Time: ${alt.slot.replace('-', ' | Room: ')}`}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+})()}
+
+
+
         </View>
       </ScrollView>
     </View>
   );
-};
-
+}
 export default TherapyAppointments;

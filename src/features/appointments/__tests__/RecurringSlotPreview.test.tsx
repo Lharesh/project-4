@@ -23,8 +23,8 @@ describe('RecurringSlotPreview', () => {
   describe('Mobile compatibility and accessibility', () => {
     it('has accessible labels for all fields and buttons', () => {
       const { getByLabelText, getByRole } = render(<RecurringSlotPreview {...baseProps} />);
-      expect(getByLabelText(/recurring slot/i)).toBeTruthy();
-      expect(getByRole('button', { name: /close|cancel/i })).toBeTruthy();
+      expect(getByLabelText('Recurring Slot Availability')).toBeTruthy();
+      expect(getByLabelText('Recurring Slot Alternative Picker for 2025-06-01')).toBeTruthy();
     });
     it('renders correctly on small device (mobile viewport)', () => {
       const { getByText } = render(<RecurringSlotPreview {...baseProps} />, {
@@ -32,7 +32,7 @@ describe('RecurringSlotPreview', () => {
           <div style={{ width: 320, height: 600 }}>{children}</div>
         ),
       });
-      expect(getByText(/recurring/i)).toBeTruthy();
+      expect(getByText('Recurring Slot Availability (3 days @ 09:00 AM)')).toBeTruthy();
     });
     it('is scrollable when content overflows', () => {
       const { getByTestId } = render(<RecurringSlotPreview {...baseProps} />);
@@ -40,7 +40,7 @@ describe('RecurringSlotPreview', () => {
     });
     it('keeps input visible when keyboard is open', () => {
       const { getByLabelText } = render(<RecurringSlotPreview {...baseProps} />);
-      const input = getByLabelText(/recurring slot/i);
+      const input = getByLabelText('Recurring Slot Alternative Picker for 2025-06-01');
       fireEvent(input, 'focus');
       // expect(input).toBeVisible();
     });

@@ -4,6 +4,7 @@ import type { ThemeMode, DoshaType } from '@/theme/constants/theme';
 
 // Types
 export interface ClinicConfig {
+  enforceGenderMatch: boolean;
   id: string;
   clinicId: string;
   notifications: {
@@ -30,6 +31,7 @@ interface ConfigState {
   clinicConfig: ClinicConfig | null;
   isLoading: boolean;
   error: string | null;
+  enforceGenderMatch: boolean;
 }
 
 // Initial state
@@ -37,10 +39,12 @@ const initialState: ConfigState = {
   clinicConfig: null,
   isLoading: false,
   error: null,
+  enforceGenderMatch: true,
 };
 
 // Mock config data
 const MOCK_CONFIG: ClinicConfig = {
+  enforceGenderMatch: true,
   id: 'config1',
   clinicId: 'clinic1',
   notifications: {
@@ -160,6 +164,13 @@ const configSlice = createSlice({
       });
   },
 });
+
+export const selectEnforceGenderMatch = (state: RootState) => {
+  if (state.config.clinicConfig && typeof state.config.clinicConfig.enforceGenderMatch === 'boolean') {
+    return state.config.clinicConfig.enforceGenderMatch;
+  }
+  return state.config.enforceGenderMatch;
+};
 
 export const { clearConfigError } = configSlice.actions;
 

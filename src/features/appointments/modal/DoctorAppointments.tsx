@@ -1,58 +1,72 @@
 import React, { useState } from 'react';
+import { format } from 'date-fns';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { MaterialIcons } from '@expo/vector-icons';
-import { PATIENTS } from '../mock/scheduleMatrixMock';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { THERAPISTS, ROOMS } from '../mock/scheduleMatrixMock';
 import { GenericDatePicker } from '../../../utils/GenericDatePicker';
 import GenericTimePicker from '../../../utils/GenericTimePicker';
 import { useDispatch, useSelector } from 'react-redux';
+import { selectDoctors, selectDoctorAvailability, selectAppointments, selectClients } from '../selectors';
 import styles from './DoctorAppointments.styles';
+import { CountryCodePicker } from '../../clients/components/CountryCodePicker';
+import { Picker as CustomPicker } from '../../../components/ui/Picker';
+import { Client } from '@/features/clients/clientsSlice';
 
-const DOCTORS = [
-  { id: '1', name: 'Dr. Sharma (Ayurvedic Physician)' },
-  { id: '2', name: 'Dr. Gupta (Therapist)' },
-];
 
-interface DoctorAppointmentsProps {
-  onClose: () => void;
-  onCreate: (appointment: any) => void;
-}
 
 interface DoctorAppointmentsProps {
+  clients: Client[];
   onClose: () => void;
   onCreate: (appointment: any) => void;
+  appointments: any[];
 }
 
-const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCreate }) => {
-  const appointments = useSelector((state: any) => state.appointments.appointments || []);
+const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appointments, onClose, onCreate }) => {
+  // Debug print: log the full Redux state
+  // eslint-disable-next-line no-console
+  //console.log('DEBUG Redux state:', useSelector((s) => s));
+  // State for submit attempt
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  // Fetch doctors, doctor availability, and clients from Redux
+  const doctors = useSelector(selectDoctors);
+  const doctorAvailability = useSelector(selectDoctorAvailability);
+  
+  const clientsList = useSelector(selectClients);
   const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
-  const [doctor, setDoctor] = useState(DOCTORS[0].id);
+  const [doctor, setDoctor] = useState(doctors.length > 0 ? doctors[0].id : '');
   const [clientSearch, setClientSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [clientMobile, setClientMobile] = useState('');
+  const [clientMobileCode, setClientMobileCode] = useState('+91');
   const [clientMobileTouched, setClientMobileTouched] = useState(false);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('09:00 AM');
   const [consultation, setConsultation] = useState<string[]>([]);
-  const [mode, setMode] = useState<'Online' | 'Walk-in'>('Online');
+  const [mode, setMode] = useState<'Online' | 'Walk-in'>('Walk-in');
   const [notes, setNotes] = useState('');
   const [clientTouched, setClientTouched] = useState(false);
   const [dateTouched, setDateTouched] = useState(false);
   const [timeTouched, setTimeTouched] = useState(false);
 
-  const CONSULT_TYPES = ['New Consultation', 'Follow Up Consultation'];
-  const MODE_OPTIONS = ['Online', 'Walk-in'];
+  const CONSULT_TYPES = ['New', 'Follow-up'];
+  const MODE_OPTIONS = ['Walk-in', 'Online'];
 
-  const filteredClients = PATIENTS.filter(p => p.name.toLowerCase().includes(clientSearch.toLowerCase()));
+  
+  const filteredClients = clients.filter((p: Client) => p.name.toLowerCase().includes(clientSearch.toLowerCase()));
 
   const toggleConsultation = (type: string) => {
     setConsultation(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
   const handleCreate = () => {
+    setSubmitAttempted(true);
     setError(null);
     let valid = true;
+    // Debug print: show doctor, selectedClient, date, time, clientMobile
+    // eslint-disable-next-line no-console
+    console.log('DEBUG handleCreate: doctor', doctor, 'selectedClient', selectedClient, 'date', date, 'time', time, 'clientMobile', clientMobile);
+
     if (!selectedClient) {
       setClientTouched(true);
       valid = false;
@@ -70,30 +84,37 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       valid = false;
     }
     if (!valid) return;
-    // Double-booking check
-    const roomNumber = '101'; // Can be randomized or set
-    const canBook = require('../helpers/rulesEngine').canBookAppointment({
-      therapistIds: [doctor],
-      roomNumber,
+    // Doctor appointment booking check using new helper
+    const { checkDoctorBooking } = require('../helpers/doctorBookingUtils');
+    const bookingResult = checkDoctorBooking({
+      doctorId: doctor,
       date,
       slot: time,
       appointments,
       patientId: selectedClient,
+      doctorAvailability,
+      now: new Date(),
     });
-    if (!canBook) {
-      setError('Appointment already Booked.');
+    // eslint-disable-next-line no-console
+    console.log('DEBUG bookingResult:', bookingResult);
+    if (!bookingResult.available) {
+      // eslint-disable-next-line no-console
+      console.log('DEBUG setError:', bookingResult.reason || 'Slot unavailable.');
+      setError(bookingResult.reason || 'Slot unavailable.');
+      // Optionally, show alternatives to the user
+      // bookingResult.alternatives contains up to 5 next available slots
       return;
     }
     // Find client and doctor objects
-    const patientObj = PATIENTS.find(p => p.id === selectedClient);
-    const doctorObj = DOCTORS.find(d => d.id === doctor);
+    const patientObj = clients.find((p: Client) => p.id === selectedClient);
+    const doctorObj = doctors.find((d: any) => d.id === doctor);
     // Use consultation or default
     const consultationArr = consultation.length > 0 ? consultation : ['Consultation'];
     const consultationId = consultationArr[0]?.toLowerCase().replace(/\s+/g, '-') || 'consultation';
     const consultationName = consultationArr[0] || 'Consultation';
     const duration = 15;
     onCreate({
-      id: Date.now().toString(),
+      id: `${patientObj?.id || selectedClient}_${doctorObj?.id || ''}_${format(new Date(date), 'yyyy-MM-dd')}_${time}`,
       clientId: patientObj?.id || selectedClient,
       clientName: patientObj?.name || '',
       clientMobile: patientObj?.mobile || clientMobile,
@@ -104,8 +125,8 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       consultationId,
       consultationName,
       duration,
-      roomNumber,
-      date,
+
+      date: format(new Date(date), 'yyyy-MM-dd'),
       time,
       mode, // Added mode field
       status: 'scheduled',
@@ -116,25 +137,23 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
       {error && (
         <View style={{ backgroundColor: '#ffe0e0', borderRadius: 10, padding: 12, marginBottom: 14, alignItems: 'center' }}>
-          <Text style={{ color: '#d32f2f', fontWeight: '700', fontSize: 16 }}>{error}</Text>
+          {/* eslint-disable-next-line no-console */}
+          {(() => { console.log('DEBUG render error:', error); return null; })()}
+          <Text testID="error-message" style={{ color: '#d32f2f', fontWeight: '700', fontSize: 16 }}>{error}</Text>
         </View>
       )}
-      <Text style={styles.label}>Select Doctor</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker
+      <View style={{ marginBottom: 8 }}>
+        <CustomPicker
+          label="Doctor"
+          items={doctors.length > 0 ? doctors.map((d: any) => ({ label: d.name, value: d.id })) : [{ label: 'No doctors available', value: '' }]}
           selectedValue={doctor}
-          onValueChange={setDoctor}
-          style={styles.picker}
+          onValueChange={doctors.length > 0 ? setDoctor : () => {}}
         >
-          {DOCTORS.map(d => (
-            <Picker.Item key={d.id} label={d.name} value={d.id} />
-          ))}
-        </Picker>
+        </CustomPicker>
       </View>
-
       <Text style={styles.label}>Client</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
         <TextInput
@@ -143,6 +162,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
           value={clientSearch}
           onChangeText={setClientSearch}
           editable={!selectedClient}
+          testID="client-search"
         />
         {selectedClient ? (
           <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
@@ -157,7 +177,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       </View>
       {clientSearch.length > 0 && !selectedClient && (
         <View style={styles.dropdownList}>
-          {filteredClients.map(c => (
+          {filteredClients.map((c: Client) => (
             <TouchableOpacity
               key={c.id}
               style={styles.dropdownItem}
@@ -166,6 +186,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
                 setClientSearch(c.name);
                 setClientMobile(c.mobile);
               }}
+              testID={`client-select-${c.id}`}
             >
               <Text style={{ color: selectedClient === c.id ? '#1a73e8' : '#222' }}>{c.name}</Text>
             </TouchableOpacity>
@@ -178,17 +199,26 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
       )}
 
       <Text style={styles.label}>Client Mobile</Text>
-      <TextInput
-        style={[styles.input, { marginBottom: 6 }]}
-        placeholder="Enter mobile number"
-        value={clientMobile}
-        onChangeText={setClientMobile}
-        keyboardType="phone-pad"
-        maxLength={10}
-        onBlur={() => setClientMobileTouched(true)}
-      />
+      <View style={styles.mobileRow}>
+        <View style={styles.codePickerWrapper}>
+          <CountryCodePicker
+            value={clientMobileCode}
+            onChange={setClientMobileCode}
+          />
+        </View>
+        <TextInput
+          style={[styles.input, { flex: 1, height: 44, marginBottom: 0 }]}
+          placeholder="Mobile"
+          value={clientMobile}
+          onChangeText={setClientMobile}
+          keyboardType="numeric"
+          maxLength={10}
+          onBlur={() => setClientMobileTouched(true)}
+          testID="mobile-input"
+        />
+      </View>
       {clientMobileTouched && !/^\d{10,}$/.test(clientMobile) && (
-        <Text style={{ color: 'red', marginBottom: 6 }}>Enter valid 10-digit mobile</Text>
+        <Text style={styles.errorText}>Enter valid 10-digit mobile</Text>
       )}
 
       <GenericDatePicker
@@ -197,6 +227,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
         onChange={val => setDate(val)}
         inputStyle={{ fontVariant: ['tabular-nums'], fontFamily: 'monospace' }}
         style={{ marginBottom: 8 }}
+        testID="date-picker"
       />
       {dateTouched && !date && (
         <Text style={{ color: 'red', marginBottom: 6 }}>Select a date</Text>
@@ -207,20 +238,21 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
   value={time}
   onChange={val => { setTime(val); setTimeTouched(true); }}
   style={{ marginBottom: 8 }}
+  testID="time-picker"
 />
       {timeTouched && !time && (
         <Text style={{ color: 'red', marginBottom: 6 }}>Select a time</Text>
       )}
 
       <Text style={styles.label}>Consultation Type</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
+      <View style={styles.consultationRow}>
         {CONSULT_TYPES.map(type => (
           <TouchableOpacity
             key={type}
             style={[styles.checkbox, consultation.includes(type) && styles.checkboxActive]}
             onPress={() => toggleConsultation(type)}
           >
-            <Text style={{ color: consultation.includes(type) ? '#fff' : '#1a73e8' }}>{type}</Text>
+            <Text style={{ color: consultation.includes(type) ? '#fff' : '#1a73e8', fontSize: 15, fontWeight: '600' }}>{type}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -246,14 +278,23 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ onClose, onCrea
         multiline
       />
 
-      {error && (
-        <Text style={{ color: 'red', marginBottom: 8, textAlign: 'center' }}>{error}</Text>
+      
+      {/* Show doctor error only after submit is attempted */}
+      {submitAttempted && doctors.length === 0 && (
+        <Text style={{ color: 'red', marginBottom: 8 }}>
+          No doctors available. Please add doctors in staff management.
+        </Text>
       )}
-      <View style={{ flexDirection: 'row', marginTop: 18, gap: 12 }}>
+      <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
           <Text style={styles.cancelBtnText}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.startBtn} onPress={handleCreate}>
+        <TouchableOpacity
+          testID="create-appointment-btn"
+          style={[styles.startBtn, doctors.length === 0 && { opacity: 0.5 }]}
+          onPress={handleCreate}
+          disabled={doctors.length === 0}
+        >
           <Text style={styles.startBtnText}>Create Appointment</Text>
         </TouchableOpacity>
       </View>

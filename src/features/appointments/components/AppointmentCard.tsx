@@ -2,7 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import Card from '@/components/ui/Card';
 import { Clock, Phone } from 'lucide-react-native';
-import { Appointment } from '@/features/appointments/appointmentsSlice';
+import { Appointment as AppointmentBase } from '@/features/appointments/appointmentsSlice';
+
+type Appointment = AppointmentBase & { roomName?: string };
+
 import type { ViewStyle } from 'react-native';
 let styles: any = {};
 try {
@@ -61,11 +64,11 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
 ) : (
   <>
     <Text style={{ color: COLORS.vata[600], fontWeight: 'normal', fontSize: 13, marginTop: 0, marginBottom: 0 }}>{appointment.treatmentName}</Text>
-    {appointment.roomNumber ? (
-      <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>Room: {appointment.roomNumber}</Text>
+    {(appointment.roomName || appointment.roomNumber) ? (
+      <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>Room: {appointment.roomName || appointment.roomNumber}</Text>
     ) : null}
     <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>
-      Duration: {appointment.duration || 15} min
+      Duration: {appointment.duration} min
     </Text>
   </>
 )}

@@ -32,6 +32,8 @@ export function getRecommendedSlots({
   const patient = PATIENTS.find(p => p.id === patientId);
   if (!patient) return [];
   const patientGender = patient.gender;
+  // Use filterTherapistsByGender for all gender filtering
+  // (Apply in slot/therapist selection logic below as appropriate)
 
   // Flatten all available slots
   let allSlots: SlotRecommendation[] = [];
@@ -50,7 +52,7 @@ export function getRecommendedSlots({
           reason = 'other';
         }
         allSlots.push({
-          roomNumber: room.roomNumber,
+          roomNumber: room.id,
           slot: cell.slot,
           therapistId: t.id,
           reason,

@@ -15,5 +15,5 @@ export interface Client {
   familyHistory?: string;
   currentMedication?: string;
   prefix?: string;
-  age?: string;
+  age?: number;
 }

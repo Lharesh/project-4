@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Pressable } from 'react-native';
 
 interface Therapy {
   id: string;
@@ -29,6 +29,8 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
   touched,
   setTouched,
 }: TherapyPickerProps) => {
+  // Prevent dropdown from closing on blur if a dropdown item is clicked
+  const dropdownItemClicked = React.useRef(false);
   // Keep therapySearch in sync with selectedTherapy
   React.useEffect(() => {
     if (!therapyInputFocused && selectedTherapy) {
@@ -53,55 +55,76 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
       value={therapyInputFocused ? therapySearch : (selectedTherapy ? (therapies.find(t => t.id === selectedTherapy)?.name || '') : '')}
       onFocus={() => setTherapyInputFocused(true)}
       onBlur={() => {
-        setTimeout(() => setTherapyInputFocused(false), 120);
-        setTouched((touch: any) => ({ ...touch, therapy: true }));
-      }}
-      onChangeText={text => {
-        setTherapySearch(text);
-        setSelectedTherapy(null);
-      }}
-      onSubmitEditing={() => {
-        if (filteredTherapies.length > 0) {
-          const t = filteredTherapies[0];
-          setSelectedTherapy(t.id);
-          setTherapySearch(t.name);
-          setTherapyInputFocused(false);
-        }
-      }}
-    />
-    {selectedTherapy && (
-      <TouchableOpacity
-        onPress={() => { setSelectedTherapy(null); setTherapySearch(''); setTherapyInputFocused(true); }}
-        style={styles.clearButton}
-      >
-        <Text style={styles.clearButtonText}>×</Text>
-      </TouchableOpacity>
-    )}
-    {therapyInputFocused && !selectedTherapy && therapySearch.length > 0 && (
-      <View style={styles.dropdown}>
-        {filteredTherapies.length === 0 ? (
-          <Text style={styles.noResult}>No therapies found</Text>
-        ) : filteredTherapies.map(t => (
-          <TouchableOpacity
-            key={t.id}
-            style={[styles.dropdownItem, selectedTherapy === t.id && styles.dropdownItemSelected]}
-            onPress={() => {
+        setTimeout(() => {
+          if (!dropdownItemClicked.current) {
+                setTherapyInputFocused(false);
+              }
+              setTouched((touch: any) => ({ ...touch, therapy: true }));
+              dropdownItemClicked.current = false;
+            }, 120);
+          }}
+          onChangeText={(text: string) => {
+            setTherapySearch(text);
+            setSelectedTherapy(null);
+          }}
+          onSubmitEditing={() => {
+            if (filteredTherapies.length > 0) {
+              const t = filteredTherapies[0];
               setSelectedTherapy(t.id);
               setTherapySearch(t.name);
               setTherapyInputFocused(false);
-              setTouched((touch: any) => ({ ...touch, therapy: true }));
-            }}
+            }
+          }}
+        />
+        {selectedTherapy && (
+          <TouchableOpacity
+            onPress={() => { setSelectedTherapy(null); setTherapySearch(''); setTherapyInputFocused(true); }}
+            style={styles.clearButton}
           >
-            <Text style={[styles.dropdownItemText, selectedTherapy === t.id && styles.dropdownItemTextSelected]}>{t.name}</Text>
+            <Text style={styles.clearButtonText}>×</Text>
           </TouchableOpacity>
-        ))}
+        )}
+        {(therapySearch.length > 0 && !selectedTherapy && therapyInputFocused) && (
+          <View style={styles.dropdownList} pointerEvents="box-none">
+            <ScrollView pointerEvents="auto" keyboardShouldPersistTaps="handled">
+              {filteredTherapies.length === 0 ? (
+                <Text style={styles.noResult}>No therapies found</Text>
+              ) : filteredTherapies.map(t => (
+                <Pressable
+                  key={t.id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    dropdownItemClicked.current = true;
+                    setSelectedTherapy(t.id);
+                    setTherapySearch(t.name);
+                    setTherapyInputFocused(false);
+                    setTouched((touch: any) => ({ ...touch, therapy: true }));
+                  }}
+                  // @ts-ignore - onMouseDown is for React Native Web only
+                  onMouseDown={(e) => {
+                    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                    dropdownItemClicked.current = true;
+                    setSelectedTherapy(t.id);
+                    setTherapySearch(t.name);
+                    setTherapyInputFocused(false);
+                    setTouched((touch: any) => ({ ...touch, therapy: true }));
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  accessible={true}
+                  accessibilityLabel={`Select therapy ${t.name}`}
+                >
+                  <Text style={{ color: selectedTherapy === t.id ? '#1a73e8' : '#222' }}>{t.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+        {!selectedTherapy && touched && (
+          <Text style={styles.errorText}>Please select a therapy.</Text>
+        )}
       </View>
-    )}
-  </View>
-  {!selectedTherapy && touched && (
-    <Text style={styles.errorText}>Please select a therapy.</Text>
-  )}
-</View>
+    </View>
   );
 };
 
@@ -119,11 +142,11 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     position: 'relative',
-    marginBottom: 12,
+    marginBottom: 24, // enough space for dropdown overlay
     width: '100%',
     maxWidth: '100%',
-    zIndex: 10000,
-    // overflow removed for dropdown visibility
+    boxSizing: 'border-box',
+    // no zIndex needed unless sibling stacking issues
   },
   input: {
     width: '100%',
@@ -147,27 +170,23 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 18,
   },
-  dropdown: {
+  dropdownList: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 48, // fixed px for web/mobile compatibility
-    zIndex: 10000, // maximum for visibility
-    backgroundColor: '#fff', // fully opaque for contrast
-    opacity: 1,
-    borderWidth: 3,
-    borderColor: '#1976d2',
-    borderRadius: 10,
+    top: 48, // adjust to match your input height
+    zIndex: 9999,
+    borderRadius: 8,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: '#d6dbe6',
+    backgroundColor: '#fff',
+    marginBottom: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 20, // for Android
-    maxHeight: 260,
-    paddingVertical: 6,
-    marginTop: 2,
-    overflow: 'hidden',
-    overflowY: 'auto', // for web scroll
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 8, // for Android
   },
   dropdownItem: {
     padding: 12,

@@ -14,6 +14,7 @@ interface GenericTimePickerProps {
   maxMinute?: number;
   style?: any;
   inputStyle?: any;
+  testID?: string;
 }
 
 const windowHeight = Dimensions.get('window').height;
@@ -30,6 +31,7 @@ const GenericTimePicker: React.FC<GenericTimePickerProps> = ({
   maxMinute = 59,
   style,
   inputStyle,
+  testID,
 }) => {
   const hourScrollRef = React.useRef<ScrollView>(null);
   const minuteScrollRef = React.useRef<ScrollView>(null);
@@ -131,11 +133,12 @@ const GenericTimePicker: React.FC<GenericTimePickerProps> = ({
 
   return (
     <View style={[styles.timePickerContainer, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TouchableOpacity
         style={styles.timeField}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.8}
+        testID={testID}
       >
         <Text style={[styles.timeText, !tempHour || !tempMinute ? styles.placeholder : undefined]}>{displayText}</Text>
       </TouchableOpacity>

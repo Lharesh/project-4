@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authReducer, clinicReducer, configReducer, setupReducer } from '@/features/clinicConfig';
 
 import appointmentsReducer from '@/features/appointments/appointmentsSlice';
-import { therapistsReducer } from '@/features/therapists';
+import clientsReducer from '@/features/clients/clientsSlice';
 
 import { reportsReducer } from '@/features/financial';
 import inventoryReducer from '@/features/inventory/inventorySlice';
@@ -25,7 +25,7 @@ export const store = configureStore({
     clinic: clinicReducer,
     config: configReducer,
     appointments: appointmentsReducer,
-    clients: therapistsReducer,
+    clients: clientsReducer,
     setup: setupReducer,
     reports: persistedReportsReducer,
     inventory: inventoryReducer,
@@ -39,8 +39,7 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 
-// RootState type for typed selectors
+// Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
-
 export type AppDispatch = typeof store.dispatch;
 

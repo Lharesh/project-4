@@ -15,19 +15,21 @@ export function CountryCodePicker({ value, onChange }: { value: string; onChange
 
   return (
     <View>
-      <TouchableOpacity
-        style={styles.picker}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.code}>{value}</Text>
-      </TouchableOpacity>
-      <Modal
-          visible={modalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
-          testID="Modal"
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={styles.picker}
+          onPress={() => setModalVisible(true)}
         >
+          <Text style={styles.code}>{value}</Text>
+        </TouchableOpacity>
+      </View>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+        testID="Modal"
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <FlatList
@@ -56,6 +58,12 @@ export function CountryCodePicker({ value, onChange }: { value: string; onChange
 import { COLORS } from '../../../constants/theme';
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+  },
   picker: {
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -63,7 +71,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.vata[500],
     borderRadius: 8,
     backgroundColor: '#fafbfc',
-    marginRight: 6,
     minWidth: 54,
     alignItems: 'center',
   },

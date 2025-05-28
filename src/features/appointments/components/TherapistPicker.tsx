@@ -1,12 +1,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { filterTherapistsByGender } from '../helpers/rulesEngine';
+import type { Therapist } from '../helpers/availabilityUtils';
 
-interface Therapist {
-  id: string;
-  name: string;
-  gender: string;
-  availability: Record<string, string[]>;
-}
 
 interface TherapistPickerProps {
   therapists: Therapist[];
@@ -18,7 +14,7 @@ interface TherapistPickerProps {
   setShowAllTherapists: (b: boolean) => void;
   therapistInputFocused: boolean;
   setTherapistInputFocused: (b: boolean) => void;
-  patientGender: string | null;
+  patientGender?: string;
   touched: boolean;
   setTouched: (t: any) => void;
 }
@@ -37,20 +33,15 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
   touched,
   setTouched,
 }) => {
-  console.log('[TherapistPicker] therapists prop:', therapists);
 
   // Defensive: always treat selectedTherapists as array
   const safeSelectedTherapists = Array.isArray(selectedTherapists) ? selectedTherapists : [];
   // Improved gender + search filter logic
-  let filteredTherapists = therapists;
+  let filteredTherapists = filterTherapistsByGender(therapists, patientGender ?? undefined, !showAllTherapists);
   if (therapistSearch) {
-    filteredTherapists = therapists.filter(t => {
-      const matchesName = t.name.toLowerCase().includes(therapistSearch.toLowerCase());
-      const matchesGender = !patientGender || showAllTherapists || t.gender === patientGender;
-      return matchesName && matchesGender;
-    });
-  } else if (patientGender && !showAllTherapists) {
-    filteredTherapists = therapists.filter(t => t.gender === patientGender);
+    filteredTherapists = filteredTherapists.filter(t =>
+      t.name.toLowerCase().includes(therapistSearch.toLowerCase())
+    );
   }
 
   const toggleTherapist = (id: string) => {
@@ -84,73 +75,75 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
       onBlur={() => { setTimeout(() => setTherapistInputFocused(false), 120); setTouched(true); }}
       onChangeText={text => {
         setTherapistSearch(text);
-        if (text === '') setSelectedTherapists([]);
+        // Do NOT clear selectedTherapists when search is cleared
       }}
       onSubmitEditing={() => {
         if (filteredTherapists.length > 0) {
           const t = filteredTherapists[0];
           toggleTherapist(t.id);
           setTherapistSearch('');
-          setTherapistInputFocused(false);
-        }
-      }}
-    />
-    {safeSelectedTherapists.length > 0 && (
-      <TouchableOpacity
-        onPress={() => { setSelectedTherapists([]); setTherapistSearch(''); setTherapistInputFocused(true); }}
-        style={styles.clearButton}
-      >
-        <Text style={styles.clearButtonText}>×</Text>
-      </TouchableOpacity>
-    )}
-    {therapistInputFocused && therapistSearch.length > 0 && (
-      <View style={styles.dropdown}>
-        {filteredTherapists.length === 0 ? (
-          <Text style={styles.noResult}>No therapists found</Text>
-        ) : filteredTherapists.map(t => (
-          <TouchableOpacity
-            key={t.id}
-            style={[styles.dropdownItem, safeSelectedTherapists.includes(t.id) && styles.dropdownItemSelected]}
-            onPress={() => {
               toggleTherapist(t.id);
-              setTouched(true);
               setTherapistSearch('');
               setTherapistInputFocused(false);
-            }}
+            }
+          }}
+        />
+        {safeSelectedTherapists.length > 0 && (
+          <TouchableOpacity
+            onPress={() => { setSelectedTherapists([]); setTherapistSearch(''); setTherapistInputFocused(true); }}
+            style={styles.clearButton}
           >
-            <Text style={[styles.dropdownItemText, safeSelectedTherapists.includes(t.id) && styles.dropdownItemTextSelected]}>{t.name}</Text>
-            <Text style={styles.availabilityText}>
-              {Object.keys(t.availability).slice(0, 2).map(day => `${day} (${(t.availability as Record<string, string[]>)[day]?.join(', ') || ''})`).join('; ')}
-            </Text>
+            <Text style={styles.clearButtonText}>×</Text>
           </TouchableOpacity>
-        ))}
+        )}
       </View>
-    )}
-  </View>
-  {/* Therapist avatars horizontal scroll */}
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarRow} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
-    {filteredTherapists.map(t => {
-      const selected = safeSelectedTherapists.includes(t.id);
-      // Use initials for avatar
-      const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
-      return (
-        <TouchableOpacity
-          key={t.id}
-          onPress={() => { toggleTherapist(t.id); setTouched(true); }}
-          style={[styles.avatarTouchable, selected && styles.avatarSelected]}
-        >
-          <View style={[styles.avatarCircle, selected && styles.avatarCircleSelected]}>
-            <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>{initials}</Text>
-          </View>
-          <Text style={styles.avatarName} numberOfLines={1}>{t.name.split(' ')[0]}</Text>
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
-  {selectedTherapists.length === 0 && touched && (
-    <Text style={styles.errorText}>Please select at least one therapist.</Text>
-  )}
-</View>
+      {therapistInputFocused && therapistSearch.length > 0 && (
+        <View style={styles.dropdown}>
+          {filteredTherapists.length === 0 ? (
+            <Text style={styles.noResult}>No therapists found</Text>
+          ) : filteredTherapists.map(t => (
+            <TouchableOpacity
+              key={t.id}
+              style={[styles.dropdownItem, safeSelectedTherapists.includes(t.id) && styles.dropdownItemSelected]}
+              onPress={() => {
+                toggleTherapist(t.id);
+                setTouched(true);
+                setTherapistSearch('');
+                setTherapistInputFocused(false);
+              }}
+            >
+              <Text style={[styles.dropdownItemText, safeSelectedTherapists.includes(t.id) && styles.dropdownItemTextSelected]}>{t.name}</Text>
+              <Text style={styles.availabilityText}>
+                {Object.keys(t.availability).slice(0, 2).map(day => `${day} (${(t.availability as Record<string, string[]>)[day]?.join(', ') || ''})`).join('; ')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      {!(therapistInputFocused && therapistSearch.length > 0) && quickPickTherapists.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarRow} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+          {quickPickTherapists.map(t => {
+            const initials = t.name.split(' ').map(w => w[0]).join('').toUpperCase();
+            const selected = safeSelectedTherapists.includes(t.id);
+            return (
+              <TouchableOpacity
+                key={t.id}
+                onPress={() => { toggleTherapist(t.id); setTouched(true); }}
+                style={[styles.avatarTouchable, selected && styles.avatarSelected]}
+              >
+                <View style={[styles.avatarCircle, selected && styles.avatarCircleSelected]}>
+                  <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>{initials}</Text>
+                </View>
+                <Text style={styles.avatarName} numberOfLines={1}>{t.name.split(' ')[0]}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+      {safeSelectedTherapists.length === 0 && touched && (
+        <Text style={styles.errorText}>Please select at least one therapist.</Text>
+      )}
+    </View>
   );
 };
 
@@ -333,4 +326,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TherapistPicker;
+export { TherapistPicker };

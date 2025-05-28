@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Platform } from 'react-native';
-import { RoomMatrix, MatrixCell } from '../modal/buildScheduleMatrix';
-
-interface Therapist { id: string; name: string; gender: string; availability: Record<string, string[]>; }
+import { RoomMatrix } from '../modal/buildScheduleMatrix';
 
 interface SelectedSlot {
-  roomNumber: string;
+  id: string;
   slot: string;
 }
 
@@ -16,7 +14,7 @@ interface ScheduleMatrixProps {
   selectedTherapists: string[];
   selectedSlot?: SelectedSlot;
   recommendedSlots?: SelectedSlot[];
-  onSlotSelect?: (roomNumber: string, slot: string, date: string) => void;
+  onSlotSelect?: (roomId: string, slot: string, date: string) => void;
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -67,7 +65,7 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             <FlatList
               data={matrix}
               horizontal
-              keyExtractor={room => room.roomNumber}
+              keyExtractor={room => room.id}
               showsHorizontalScrollIndicator={true}
               renderItem={({ item: room, index: roomIdx }) => (
                 <View>
@@ -80,29 +78,32 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                     data={room.slots}
                     keyExtractor={slotObj => slotObj.slot}
                     renderItem={({ item: slotObj, index: slotIdx }) => {
-                      const isAvailable = !slotObj.isBooked && !isCellConflict(room.roomNumber, slotObj.slot) && room.slots[slotIdx].isRoomAvailable;
+                      const isAvailable = !slotObj.isBooked && !isCellConflict(room.id, slotObj.slot) && room.slots[slotIdx].isRoomAvailable;
                       return (
                         <TouchableOpacity
-                          key={room.roomNumber + '-' + slotObj.slot}
+                          key={room.id + '-' + slotObj.slot}
                           style={[
                             styles.tableCell,
                             isAvailable ? styles.cellAvailable : (!room.slots[slotIdx].isRoomAvailable ? styles.cellNA : styles.cellUnavailable)
                           ]}
                           disabled={!isAvailable}
-                          onPress={() => handleCellTap(room.roomNumber, slotObj.slot)}
+                          onPress={() => handleCellTap(room.id, slotObj.slot)}
                           activeOpacity={0.8}
                         >
                           <View style={styles.cellContentCenter}>
-                            {isCellConflict(room.roomNumber, slotObj.slot) && (
+                            {isCellConflict(room.id, slotObj.slot) && (
                               <Text style={styles.conflictText}>Conflict</Text>
                             )}
-                            {!isCellConflict(room.roomNumber, slotObj.slot) && slotObj.isBooked && (
-                              <View style={styles.badgeBooked}><Text style={styles.badgeBookedText}>Booked</Text></View>
-                            )}
-                            {!isCellConflict(room.roomNumber, slotObj.slot) && !slotObj.isBooked && room.slots[slotIdx].isRoomAvailable && (
+                            {/* Always show Booked label if slot is booked and not in conflict */}
+{!isCellConflict(room.id, slotObj.slot) && slotObj.isBooked && (
+  <View style={styles.badgeBooked}>
+    <Text style={styles.badgeBookedText}>Booked</Text>
+  </View>
+)}
+                            {!isCellConflict(room.id, slotObj.slot) && !slotObj.isBooked && room.slots[slotIdx].isRoomAvailable && (
                               <Text style={styles.availableText}>Available</Text>
                             )}
-                            {!isCellConflict(room.roomNumber, slotObj.slot) && !slotObj.isBooked && !room.slots[slotIdx].isRoomAvailable && (
+                            {!isCellConflict(room.id, slotObj.slot) && !slotObj.isBooked && !room.slots[slotIdx].isRoomAvailable && (
                               <Text style={styles.naText}>N/A</Text>
                             )}
                             {slotObj.booking && (
@@ -113,8 +114,8 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                 {slotObj.booking.therapistName && (
                                   <View style={styles.avatarTherapist}><Text style={styles.avatarText}>{slotObj.booking.therapistName[0]}</Text></View>
                                 )}
-                                {slotObj.booking.tab === 'Therapy' && slotObj.booking.duration && (
-                                  <Text style={styles.therapyDuration}>({slotObj.booking.duration} days)</Text>
+                                {slotObj.booking.tab === 'Therapy' && slotObj.booking.recurringDays > 1 && (
+                                  <Text style={styles.therapyDuration}>({slotObj.booking.recurringDays} days)</Text>
                                 )}
                                 {slotObj.booking.tab !== 'Therapy' && slotObj.booking.duration && (
                                   <Text style={styles.therapyDuration}>({slotObj.booking.duration} minutes)</Text>

@@ -11,29 +11,29 @@ export const DOCTORS = [
 ];
 // Mock: List of therapies
 export const THERAPIES = [
-  { id: 't1', name: 'Abhyanga', slotDuration: 60 },
-  { id: 't2', name: 'Elakizhi', slotDuration: 60 },
-  { id: 't3', name: 'Podikizhi', slotDuration: 60 },
-  { id: 't4', name: 'Navarakizhi', slotDuration: 60 },
-  { id: 't5', name: 'Shirodhara', slotDuration: 60 },
-  { id: 't6', name: 'Udvartana', slotDuration: 60 },
-  { id: 't7', name: 'Nasya', slotDuration: 60 },
-  { id: 't8', name: 'Kati Basti', slotDuration: 60 },
-  { id: 't9', name: 'Panchakarma', slotDuration: 60 },
-  { id: 't10', name: 'Pizhichil', slotDuration: 60 },
-  { id: 't11', name: 'Nasya', slotDuration: 60 },
-  { id: 't12', name: 'Karna purana', slotDuration: 60 },
-  { id: 't13', name: 'Akshi Tarpanam', slotDuration: 60 },
+  { id: 't1', name: 'Abhyanga', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic full body massage' },
+  { id: 't2', name: 'Elakizhi', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't3', name: 'Podikizhi', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't4', name: 'Navarakizhi', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't5', name: 'Shirodhara', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't6', name: 'Udvartana', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't7', name: 'Nasya', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't8', name: 'Kati Basti', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't9', name: 'Panchakarma', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't10', name: 'Pizhichil', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't11', name: 'Nasya', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't12', name: 'Karna purana', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
+  { id: 't13', name: 'Akshi Tarpanam', slotDuration: 60, price: 100, description: 'Traditional Ayurvedic treatment' },
 ];
 
 // Mock: List of rooms
 export const ROOMS = [
-    { roomNumber: '101', name: 'Room 101' },
-    { roomNumber: '102', name: 'Room 102' },
-    { roomNumber: '103', name: 'Room 103' },
-    { roomNumber: 'r1', name: 'Room 1 (Therapy)' },
-    { roomNumber: 'r2', name: 'Room 2 (Therapy)' },
-    { roomNumber: 'r3', name: 'Room 3 (Therapy)' },
+    { id: '101', name: 'Room 101' },
+    { id: '102', name: 'Room 102' },
+    { id: '103', name: 'Room 103' },
+    { id: 'r1', name: 'Room 1 (Therapy)' },
+    { id: 'r2', name: 'Room 2 (Therapy)' },
+    { id: 'r3', name: 'Room 3 (Therapy)' },
   ];
   
   // Mock: List of patients
@@ -140,7 +140,7 @@ export const THERAPISTS: Therapist[] = [
       id: 'b1',
       date: '2025-05-20',
       slot: '07:00',
-      roomNumber: 'room1',
+      roomId: 'room1',
       therapistIds: ['t1'] ,
       clientId: 'c1',
     },
@@ -148,7 +148,7 @@ export const THERAPISTS: Therapist[] = [
       id: 'b2',
       date: '2025-05-21',
       slot: '09:00',
-      roomNumber: 'room2',
+      roomId: 'room2',
       therapistIds: ['t2'] ,
       clientId: 'c2',
     },

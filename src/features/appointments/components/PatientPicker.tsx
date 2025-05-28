@@ -9,115 +9,89 @@ interface Patient {
 
 interface PatientPickerProps {
   patients: Patient[];
-  selectedPatient: string | null;
-  setSelectedPatient: (id: string | null) => void;
-  patientSearch: string;
-  setPatientSearch: (s: string) => void;
-  patientInputFocused: boolean;
-  setPatientInputFocused: (b: boolean) => void;
-  setPatientGender: (g: 'male' | 'female') => void;
-  touched: any;
-  setTouched: (t: any) => void;
+  value: string | null;
+  onChange: (id: string | null) => void;
+  setPatientGender?: (g: 'male' | 'female') => void;
+  touched?: boolean;
 }
 
 const PatientPicker: React.FC<PatientPickerProps> = ({
   patients,
-  selectedPatient,
-  setSelectedPatient,
-  patientSearch,
-  setPatientSearch,
-  patientInputFocused,
-  setPatientInputFocused,
+  value,
+  onChange,
   setPatientGender,
   touched,
-  setTouched,
 }) => {
-  // Keep patientSearch in sync with selectedPatient
-  useEffect(() => {
-    if (!patientInputFocused && selectedPatient) {
-      const found = patients.find(p => p.id === selectedPatient);
-      if (found && patientSearch !== found.name) {
-        setPatientSearch(found.name);
-      }
-    }
-    if (!selectedPatient && !patientInputFocused && patientSearch !== '') {
-      setPatientSearch('');
-    }
-  }, [selectedPatient, patientInputFocused, patients]);
-  // Keep patientSearch in sync with selectedPatient
-  useEffect(() => {
-    if (!patientInputFocused && selectedPatient) {
-      const found = patients.find(p => p.id === selectedPatient);
-      if (found && patientSearch !== found.name) {
-        setPatientSearch(found.name);
-      }
-    }
-    if (!selectedPatient && !patientInputFocused && patientSearch !== '') {
-      setPatientSearch('');
-    }
-  }, [selectedPatient, patientInputFocused, patients]);
+  const [search, setSearch] = useState('');
+  const [inputFocused, setInputFocused] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [multipleFound, setMultipleFound] = useState(false);
 
-  const [internalFocus, setInternalFocus] = useState(false);
-  const filteredPatients = patients.filter((p: Patient) => p.name.toLowerCase().includes(patientSearch.toLowerCase()));
-  console.log('PatientPicker patients:', patients);
+  const filteredPatients = patients.filter((p: Patient) =>
+    p.name.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
+
+
+  // Keep search in sync with value
+  useEffect(() => {
+    if (!inputFocused && value) {
+      const found = patients.find(p => p.id === value);
+      if (found && search !== found.name) {
+        setSearch(found.name);
+      }
+    }
+    if (!value && !inputFocused && search !== '') {
+      setSearch('');
+    }
+  }, [value, inputFocused, patients]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Patient</Text>
       <View style={styles.inputWrapper}>
         <TextInput
-          style={[styles.input, patientInputFocused && styles.inputFocused]}
-          placeholder="Search or select patient..."
-          value={patientInputFocused ? patientSearch : (selectedPatient ? (patients.find(p => p.id === selectedPatient)?.name || '') : '')}
-          onFocus={() => setPatientInputFocused(true)}
-          onBlur={() => {
-            setTimeout(() => setPatientInputFocused(false), 120);
-            setTouched((t: any) => ({ ...t, patient: true }));
-          }}
+          style={[styles.input, { flex: 1, paddingRight: 36 }]}
+          placeholder="Search client by name"
+          value={search}
           onChangeText={text => {
-            setPatientSearch(text);
-            setSelectedPatient(null);
+            setSearch(text);
+            onChange(null);
+            setNotFound(false);
+            setMultipleFound(false);
           }}
-          onSubmitEditing={() => {
-            if (filteredPatients.length > 0) {
-              const p = filteredPatients[0];
-              setSelectedPatient(p.id);
-              setPatientSearch(p.name);
-              setPatientGender(p.gender as 'male' | 'female');
-              setPatientInputFocused(false);
-            }
-          }}
+          editable={!value}
         />
-        {selectedPatient && (
+        {value && (
           <TouchableOpacity
-            onPress={() => { setSelectedPatient(null); setPatientSearch(''); setPatientInputFocused(true); }}
+            onPress={() => { onChange(null); setSearch(''); setInputFocused(true); }}
             style={styles.clearButton}
           >
             <Text style={styles.clearButtonText}>×</Text>
           </TouchableOpacity>
         )}
-        {patientInputFocused && !selectedPatient && patientSearch.length > 0 && (
-          <View style={styles.dropdown}>
+        {search.length > 0 && !value && (
+          <View style={styles.dropdownList}>
+
             {filteredPatients.length === 0 ? (
               <Text style={styles.noResult}>No patients found</Text>
             ) : filteredPatients.map(p => (
               <TouchableOpacity
                 key={p.id}
-                style={[styles.dropdownItem, selectedPatient === p.id && styles.dropdownItemSelected]}
+                style={styles.dropdownItem}
                 onPress={() => {
-                  setSelectedPatient(p.id);
-                  setPatientSearch(p.name);
-                  setPatientGender(p.gender as 'male' | 'female');
-                  setPatientInputFocused(false);
+                  onChange(p.id);
+                  setSearch(p.name);
+                  if (setPatientGender) setPatientGender(p.gender as 'male' | 'female');
                 }}
               >
-                <Text style={[styles.dropdownItemText, selectedPatient === p.id && styles.dropdownItemTextSelected]}>{p.name}</Text>
+                <Text style={{ color: value === p.id ? '#1a73e8' : '#222' }}>{p.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
       </View>
-      {!selectedPatient && touched && (
+      {!value && touched && (
         <Text style={styles.errorText}>Please select a patient.</Text>
       )}
     </View>
@@ -139,12 +113,11 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     position: 'relative',
-    marginBottom: 12,
+    marginBottom: 8, // match DoctorAppointments
     width: '100%',
     maxWidth: '100%',
     boxSizing: 'border-box',
-    zIndex: 10000,
-    // overflow removed for dropdown visibility
+    // no zIndex needed unless sibling stacking issues
   },
   input: {
     width: '100%',
@@ -162,41 +135,34 @@ const styles = StyleSheet.create({
   clearButton: {
     position: 'absolute',
     right: 12,
-    top: 12,
+    top: '50%',
+    transform: [{ translateY: -12 }], // vertical center assuming 24px height
     zIndex: 2,
     padding: 2,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   clearButtonText: {
     color: '#888',
     fontSize: 18,
     fontWeight: 'bold',
   },
-  dropdown: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 48, // fixed px for web/mobile compatibility
-    zIndex: 10000, // maximum for visibility
-    backgroundColor: '#fff', // fully opaque for contrast
-    opacity: 1,
-    borderColor: '#1976d2',
-    borderWidth: 3,
-    borderRadius: 10,
-    maxHeight: 240,
-    marginTop: 2,
-    overflow: 'hidden',
-    overflowY: 'auto', // for web scroll
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 20, // for Android
+  dropdownList: {
+    borderRadius: 8,
+    marginBottom: 8,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: '#d6dbe6',
+    backgroundColor: '#fff',
   },
   noResult: {
     padding: 14,
     color: '#888',
   },
   dropdownItem: {
-    padding: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     backgroundColor: '#fff',

@@ -2,110 +2,38 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import DoctorAppointments from './DoctorAppointments';
 import TherapyAppointments from './TherapyAppointments';
-import { PATIENTS, MOCK_TIMES, DOCTORS } from '../mock/scheduleMatrixMock';
-
-export interface Client {
-  id: string;
-  name: string;
-  mobile: string; // primary phone number, required
-}
-
-
-const NON_WORKING_DAYS = [0, 6]; // Sunday, Saturday
-const CONSULT_TYPES = ['Initial', 'Follow Up', 'Online', 'Walk-in'];
+import { Client } from '@/features/clients/clientsSlice';
 
 interface NewAppointmentModalProps {
   visible: boolean;
+  clients: Client[];
+  therapists: any[];
+  rooms: any[];
+  clinicTimings: any;
   onClose: () => void;
-  onCreate: (appointment: any) => void;
+  onCreate?: (appointmentOrArr: any) => void;
+  appointments: any[];
+  therapies?: any[];
+  enforceGenderMatch: boolean;
 }
 
-const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onClose, onCreate }) => {
+
+const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clients, therapists, rooms, clinicTimings, onClose, onCreate, appointments, therapies, enforceGenderMatch }) => {
+
+  // Unified onCreate handler for both Doctor and Therapy
+  const handleCreate = (appointmentOrArr: any) => {
+    // Only call onCreate, do not dispatch here
+    if (onCreate) onCreate(appointmentOrArr);
+    if (onClose) onClose();
+  };
+
   const [tab, setTab] = useState<'Doctor' | 'Therapy'>('Doctor');
-  const [doctor, setDoctor] = useState(DOCTORS[0].id);
-  const [clientSearch, setClientSearch] = useState('');
-  const [selectedClient, setSelectedClient] = useState<string | null>(null);
-  const [clientMobile, setClientMobile] = useState('');
-  const [clientMobileTouched, setClientMobileTouched] = useState(false);
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState(MOCK_TIMES[0]);
-  const [consultation, setConsultation] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
 
-  const filteredClients = PATIENTS.filter((p: { id: string; name: string; gender: string; mobile: string }) => p.name.toLowerCase().includes(clientSearch.toLowerCase()));
 
-  const toggleConsultation = (type: string) => {
-    setConsultation(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
-  };
 
-  const isNonWorkingDay = (d: string) => {
-    // Mock: treat Saturday and Sunday as non-working
-    const day = new Date(d).getDay();
-    return NON_WORKING_DAYS.includes(day);
-  };
-
-  const [clientTouched, setClientTouched] = useState(false);
-  const [dateTouched, setDateTouched] = useState(false);
-  const [timeTouched, setTimeTouched] = useState(false);
-
-  const handleCreate = () => {
-    let valid = true;
-    if (!selectedClient) {
-      setClientTouched(true);
-      valid = false;
-    }
-    if (!date) {
-      setDateTouched(true);
-      valid = false;
-    }
-    if (!time) {
-      setTimeTouched(true);
-      valid = false;
-    }
-    if (!/^\d{10,}$/.test(clientMobile)) {
-      setClientMobileTouched(true);
-      valid = false;
-    }
-    if (!valid) return;
-    // Find client and doctor objects
-    const clientObj = PATIENTS.find(c => c.id === selectedClient);
-    const doctorObj = DOCTORS.find(d => d.id === doctor);
-    // Use consultation or default
-    const consultationArr = consultation.length > 0 ? consultation : ['Consultation'];
-    const consultationId = consultationArr[0]?.toLowerCase().replace(/\s+/g, '-') || 'consultation';
-    const consultationName = consultationArr[0] || 'Consultation';
-    const duration = 15;
-    const roomNumber = '101'; // Can be randomized or set
-    let therapistIds: string[] = [];
-    let therapistNames: string[] = [];
-    if (tab === 'Therapy') {
-      // For demo, select first 2 therapists (mock, since therapist selection UI is not present)
-      therapistIds = ['therapist1', 'therapist2'];
-      therapistNames = ['Dr. Gupta', 'Dr. Patel'];
-    }
-    onCreate({
-      id: Date.now().toString(),
-      clientId: clientObj?.id || selectedClient,
-      clientName: clientObj?.name || '',
-      clientMobile: clientMobile,
-      doctorId: doctorObj?.id || '',
-      doctorName: doctorObj?.name || '',
-      therapistIds,
-      therapistNames,
-      treatmentId: 'treatment1',
-      treatmentName: consultationName,
-      consultationId,
-      consultationName,
-      duration,
-      roomNumber,
-      date,
-      time,
-      status: 'pending',
-      notes,
-      tab,
-    });
-    onClose();
-  };
+  // Filter appointments by tab
+  const doctorAppointments = (appointments ?? []).filter(app => app.tab === 'Doctor');
+  const therapyAppointments = (appointments ?? []).filter(app => app.tab === 'Therapy');
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -125,10 +53,30 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, onCl
                 <Text style={[styles.tabLabel, tab === 'Therapy' && styles.tabLabelActive]}>Therapy</Text>
               </TouchableOpacity>
             </View>
+
+
+            {/* ... the appointments should only be passed to the component via props from Redux */}
+
             {tab === 'Doctor' ? (
-              <DoctorAppointments onClose={onClose} onCreate={onCreate} />
+              <DoctorAppointments
+                clients={clients}
+                onClose={onClose}
+                onCreate={handleCreate}
+                appointments={doctorAppointments}
+              />
             ) : (
-              <TherapyAppointments onClose={onClose} onCreate={onCreate} />
+              <TherapyAppointments
+                visible={visible}
+                onClose={onClose}
+                onCreate={handleCreate}
+                clients={clients}
+                therapists={therapists}
+                rooms={rooms}
+                clinicTimings={clinicTimings}
+                appointments={therapyAppointments}
+                therapies={therapies || []}
+                enforceGenderMatch={enforceGenderMatch}
+              />
             )}
           </View>
         </View>

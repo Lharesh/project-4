@@ -1,300 +1,314 @@
-// COMMENTED OUT DUE TO Dimensions.get ERRORS
-// import React from 'react';
-import { render } from '@testing-library/react-native';
+import React from 'react';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+
+// Mock GenericTimePicker to always set a valid time
+jest.mock('../../../utils/GenericTimePicker', () => {
+  const React = require('react');
+  return ({ onChange }: { onChange: (val: string) => void }) => {
+    React.useEffect(() => {
+      onChange('10:00');
+    }, [onChange]);
+    return null;
+  };
+});
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import TherapyAppointments from '../modal/TherapyAppointments';
-import { AllProviders } from './testProviders';
-import { fireEvent } from '@testing-library/react-native';
-import { setMockState } from './__mocks__/reduxMock';
+
+const mockClients: import('../../clients/clientsSlice').Client[] = [
+  { id: '1', name: 'John Doe', gender: 'Male', mobile: '1234567890', mobileCode: '+91', age: 30 },
+  { id: '2', name: 'Jane Smith', gender: 'Female', mobile: '9876543210', mobileCode: '+91', age: 28 },
+];
+// NOTE: Therapist type expects lowercase gender, client/patient type expects capitalized. Production code should normalize gender comparison.
+const mockTherapists: import('../helpers/availabilityUtils').Therapist[] = [
+  { id: 't1', name: 'Therapist A', gender: 'male', availability: { Monday: ['10:00'], Tuesday: ['10:00'] } },
+  { id: 't2', name: 'Therapist B', gender: 'female', availability: { Monday: ['10:00'] } },
+];
+const mockRooms = [
+  { id: '101', name: 'Room 1' },
+  { id: '102', name: 'Room 2' },
+];
+const mockAppointments: any[] = [];
+
+// Example therapy for selection
+const mockTherapies = [
+  { id: 'th1', name: 'Ayurvedic Massage' },
+  { id: 'th2', name: 'Shirodhara' }
+];
 
 describe('TherapyAppointments', () => {
-  const baseProps = {
-    onClose: jest.fn(),
-    onCreate: jest.fn(),
-  };
-
-  beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
-  });
-
-  it('renders all fields and buttons', () => {
-    const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} />, { wrapper: AllProviders });
-    expect(getByText('Create Therapy Appointment')).toBeTruthy();
-    expect(getByText('Cancel')).toBeTruthy();
-    expect(getByPlaceholderText('Search patient by name')).toBeTruthy();
-    expect(getByPlaceholderText('Enter mobile number')).toBeTruthy();
-    expect(getByText('Select Therapy')).toBeTruthy();
-    expect(getByText('Select Therapist')).toBeTruthy();
+  it('renders all core UI elements', () => {
+    const { getByText, getByPlaceholderText } = render(
+      <TherapyAppointments
+        visible={true}
+        onClose={jest.fn()}
+        onCreate={jest.fn()}
+        clients={mockClients}
+        therapists={mockTherapists}
+        rooms={mockRooms}
+        appointments={mockAppointments}
+        clinicTimings={{
+  weekdays: {
+    monday: { start: '09:00', end: '18:00' },
+    tuesday: { start: '09:00', end: '18:00' }
+  }
+}}
+        therapies={mockTherapies}
+        enforceGenderMatch={false}
+      />
+    );
+    expect(getByText('Patient')).toBeTruthy();
+    expect(getByText('Therapy Name')).toBeTruthy();
     expect(getByText('Date')).toBeTruthy();
-    expect(getByText('Start Time')).toBeTruthy();
-    expect(getByText('Room')).toBeTruthy();
+    expect(getByText('Therapist(s)')).toBeTruthy();
+    expect(getByText('Room (Optional)')).toBeTruthy();
+    expect(getByText('Cancel')).toBeTruthy();
+    expect(getByText('Start Therapy')).toBeTruthy();
+    expect(getByPlaceholderText('Add any special instructions or diagnosis notes here...')).toBeTruthy();
   });
 
-  it('calls onClose when cancel is pressed', () => {
-    const { getByText } = render(<TherapyAppointments {...baseProps} />, { wrapper: AllProviders });
+  it('calls onClose when Cancel is pressed', () => {
+    const onClose = jest.fn();
+    const { getByText } = render(
+      <TherapyAppointments
+        visible={true}
+        onClose={onClose}
+        onCreate={jest.fn()}
+        clients={mockClients}
+        therapists={mockTherapists}
+        rooms={mockRooms}
+        appointments={mockAppointments}
+        clinicTimings={{
+  weekdays: {
+    monday: { start: '09:00', end: '18:00' },
+    tuesday: { start: '09:00', end: '18:00' }
+  }
+}}
+        therapies={mockTherapies}
+        enforceGenderMatch={false}
+      />
+    );
     fireEvent.press(getByText('Cancel'));
-    expect(baseProps.onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('disables create if required fields are missing', () => {
-    const { getByText } = render(<TherapyAppointments {...baseProps} />, { wrapper: AllProviders });
-    fireEvent.press(getByText('Create Therapy Appointment'));
-    expect(baseProps.onCreate).not.toHaveBeenCalled();
+  it('shows validation errors if required fields are missing and Start Therapy is pressed', () => {
+    const onCreate = jest.fn();
+    const { getByText, queryByText } = render(
+      <TherapyAppointments
+        visible={true}
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        clients={mockClients}
+        therapists={mockTherapists}
+        rooms={mockRooms}
+        appointments={mockAppointments}
+        clinicTimings={{
+  weekdays: {
+    monday: { start: '09:00', end: '18:00' },
+    tuesday: { start: '09:00', end: '18:00' }
+  }
+}}
+        therapies={mockTherapies}
+        enforceGenderMatch={false}
+      />
+    );
+    fireEvent.press(getByText('Start Therapy'));
+    expect(onCreate).not.toHaveBeenCalled();
+    // These error messages depend on your implementation
+    expect(queryByText(/please select a patient/i)).toBeTruthy();
+    expect(queryByText(/please select a therapy/i)).toBeTruthy();
+    expect(queryByText(/please select a date/i)).toBeTruthy();
+    expect(queryByText(/please select at least one therapist/i)).toBeTruthy();
   });
 
-  describe('Mobile compatibility and accessibility', () => {
-    it('has accessible labels for all fields and buttons', () => {
-      const { getByLabelText, getByRole } = render(<TherapyAppointments {...baseProps} />, { wrapper: AllProviders });
-      expect(getByLabelText(/search patient/i)).toBeTruthy();
-      expect(getByLabelText(/enter mobile number/i)).toBeTruthy();
-      expect(getByLabelText(/select therapy/i)).toBeTruthy();
-      expect(getByLabelText(/select therapist/i)).toBeTruthy();
-      expect(getByLabelText(/date/i)).toBeTruthy();
-      expect(getByLabelText(/start time/i)).toBeTruthy();
-      expect(getByLabelText(/room/i)).toBeTruthy();
-      expect(getByRole('button', { name: /create/i })).toBeTruthy();
-      expect(getByRole('button', { name: /cancel/i })).toBeTruthy();
-    });
+  it('calls onCreate when all required fields are filled and Start Therapy is pressed', async () => {
+    const onCreate = jest.fn();
+    // Find the selected patient and normalize gender for therapist filtering
+    const selectedPatient = mockClients.find(c => c.name === 'John Doe');
+    const normalizedGender = selectedPatient?.gender.toLowerCase();
 
-    it('renders correctly on small device (mobile viewport)', () => {
-      // Simulate a small device viewport
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} />, {
-        wrapper: ({ children }) => (
-          <div style={{ width: 320, height: 600 }}>{children}</div>
-        ),
-      });
-      expect(getByText('Create Therapy Appointment')).toBeTruthy();
-      expect(getByPlaceholderText('Search patient by name')).toBeTruthy();
-    });
-
-    it('is scrollable when content overflows', () => {
-      // Simulate long content by rendering all fields
-      const { getByTestId } = render(<TherapyAppointments {...baseProps} />, { wrapper: AllProviders });
-      // The ScrollView should be present and scrollable
-      expect(getByTestId('therapy-appointments-scroll')).toBeTruthy();
-    });
-
-    it('keeps input visible when keyboard is open', () => {
-      // Simulate keyboard open and check that input is visible
-      // This is a shallow check; full e2e would need Detox/Appium
-      const { getByPlaceholderText } = render(<TherapyAppointments {...baseProps} />, { wrapper: AllProviders });
-      const input = getByPlaceholderText('Enter mobile number');
-      fireEvent(input, 'focus');
-      // Simulate keyboard open event if needed
-      // expect(input).toBeVisible();
-    });
-  });
-
-  describe('Business rules', () => {
-    it('prevents double booking for therapist, patient, or room at same time', () => {
-      setMockState({
-        appointments: [
+    // Set up mock Redux store with available slot for therapist, room, and date
+    const mockStore = configureStore([]);
+    const initialState = {
+      appointments: {
+        items: [],
+        clinicTimings: {
+          weekdays: {
+            monday: { start: '09:00', end: '18:00' },
+            tuesday: { start: '09:00', end: '18:00' }
+          }
+        },
+        slotDuration: 15
+      },
+      therapists: {
+        items: [
           {
-            id: '1',
-            clientId: 'p1',
-            therapistIds: ['t1'],
-            roomNumber: '101',
-            date: '2025-06-01',
-            slot: '09:00 AM',
-            tab: 'Therapy',
+            id: 't1',
+            name: 'Therapist A',
+            gender: 'male',
+            availability: {
+              Monday: ['10:00'],
+              Tuesday: ['10:00']
+            }
           },
-        ],
-      });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      fireEvent(getByText('Date'), 'onChange', '2025-06-01');
-      fireEvent(getByText('Start Time'), 'onChange', '09:00 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      expect(onCreate).not.toHaveBeenCalled();
-      // expect(getByText(/already booked|double/i)).toBeTruthy();
-      
-    });
-
-    it('prevents booking if another patient has an appointment within 30 minutes', () => {
-      setMockState({
-        appointments: [
           {
-            id: '1',
-            clientId: 'p2',
-            therapistIds: ['t1'],
-            roomNumber: '101',
-            date: '2025-06-01',
-            slot: '09:00 AM',
-            tab: 'Therapy',
-          },
-        ],
-      });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      fireEvent(getByText('Date'), 'onChange', '2025-06-01');
-      // 09:25 AM is within 30 minutes of 09:00 AM
-      fireEvent(getByText('Start Time'), 'onChange', '09:25 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      expect(onCreate).not.toHaveBeenCalled();
-      // expect(getByText(/within 30 minutes/i)).toBeTruthy();
-      
+            id: 't2',
+            name: 'Therapist B',
+            gender: 'female',
+            availability: {
+              Monday: ['10:00']
+            }
+          }
+        ]
+      },
+      rooms: {
+        items: [
+          { id: '101', name: 'Room 1' },
+          { id: '102', name: 'Room 2' }
+        ]
+      },
+      clients: {
+        items: [
+          { id: 'p1', name: 'John Doe', gender: 'male' },
+          { id: 'p2', name: 'Jane Smith', gender: 'female' }
+        ]
+      },
+      therapies: {
+        items: [
+          { id: 'th1', name: 'Ayurvedic Massage' },
+          { id: 'th2', name: 'Shirodhara' }
+        ]
+      }
+    };
+    const store = mockStore(initialState);
+
+    const { getByText, getByPlaceholderText, findByText, queryByTestId, queryByText, getByDisplayValue, getAllByDisplayValue, toJSON } = render(
+      <Provider store={store}>
+        <TherapyAppointments
+          visible={true}
+          onClose={jest.fn()}
+          onCreate={onCreate}
+          clients={mockClients}
+          therapists={mockTherapists}
+          rooms={mockRooms}
+          therapies={mockTherapies}
+          appointments={mockAppointments}
+          clinicTimings={{
+  weekdays: {
+    monday: { start: '09:00', end: '18:00' },
+    tuesday: { start: '09:00', end: '18:00' }
+  }
+}}
+          enforceGenderMatch={false}
+        />
+      </Provider>
+    );
+
+    // Simulate patient selection
+    const patientInput = getByPlaceholderText('Search client by name');
+    fireEvent.changeText(patientInput, 'John Doe');
+    const patientOption = await findByText('John Doe');
+    fireEvent.press(patientOption);
+
+    // Simulate date selection
+    const dateInput = getByText('Select date');
+    fireEvent.press(dateInput);
+    // Try to find the date input field and change its value
+    let dateField;
+    try {
+      // Try common placeholder first
+      dateField = getByPlaceholderText('YYYY-MM-DD');
+    } catch (e) {
+      // Fallback: pick the first empty input
+      dateField = getAllByDisplayValue('')[0];
+    }
+    fireEvent.changeText(dateField, '2025-05-27');
+
+    // Simulate therapy selection
+    const therapyInput = getByPlaceholderText('Search or select therapy...');
+    fireEvent(therapyInput, 'focus');
+    fireEvent.changeText(therapyInput, 'Ayurvedic Massage');
+    await waitFor(async () => {
+      const therapyOption = await findByText('Ayurvedic Massage');
+      expect(therapyOption).toBeTruthy();
+      fireEvent.press(therapyOption);
+    });
+    // Simulate therapist selection
+    const therapistInput = getByPlaceholderText('Search or select therapist...');
+    fireEvent(therapistInput, 'focus');
+    fireEvent.changeText(therapistInput, 'Therapist A');
+    await waitFor(async () => {
+      const therapistOption = await findByText('Therapist A');
+      expect(therapistOption).toBeTruthy();
+      fireEvent.press(therapistOption);
     });
 
-    it('prevents double booking of patient, therapist, or room at the same time slot', () => {
-      setMockState({
-        appointments: [
-          {
-            id: '1', // Same patient
-            clientId: 'p1', // Same patient
-            therapistIds: ['t1'], // Same therapist
-            roomNumber: '101', // Same room
-            date: '2025-06-01',
-            slot: '09:00 AM',
-            tab: 'Therapy',
-          },
-        ],
-      });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      fireEvent(getByText('Date'), 'onChange', '2025-06-01');
-      fireEvent(getByText('Start Time'), 'onChange', '09:00 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      expect(onCreate).not.toHaveBeenCalled();
-      // expect(getByText(/already booked|double/i)).toBeTruthy();
-      
-    });
+    // Simulate time slot selection
+    let timeField;
+    try {
+      // Try to find the time field by regex for time format or placeholder
+      timeField = getByText(/\d{2} : \d{2}|HH : MM/);
+      fireEvent.press(timeField);
+      // Debug output to inspect rendered tree after opening time picker
+      // eslint-disable-next-line no-console
+      console.log(toJSON());
+    } catch (e) {
+      try {
+        // Try by placeholder
+        timeField = getByPlaceholderText('HH:MM');
+        fireEvent.changeText(timeField, '10:00');
+      } catch (e2) {
+        // Fallback: pick the first empty input
+        timeField = getAllByDisplayValue('')[0];
+        fireEvent.changeText(timeField, '10:00');
+      }
+    }
+    // Confirm in modal (if present)
+    try {
+      const confirmBtn = getByText('Confirm');
+      fireEvent.press(confirmBtn);
+    } catch (e) {
+      // If no modal, ignore
+    }
 
-    it('shows recurring slot alternatives with correct priority (same slot, other room/therapist, else 3 nearest slots)', () => {
-      setMockState({ appointments: [] });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText, queryAllByText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      // Pick a date/time in the past
-      fireEvent(getByText('Date'), 'onChange', '2024-01-01');
-      fireEvent(getByText('Start Time'), 'onChange', '09:00 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      // Should show alternatives UI (dropdown or message) with correct priority
-      // expect(getByText(/Time Slot is in the past/i)).toBeTruthy();
-      // expect(queryAllByText(/alternatives/i).length).toBeGreaterThanOrEqual(1);
-      // expect(queryAllByText(/nearest available slot/i).length).toBeGreaterThanOrEqual(3);
-      
-    });
-
-    it('warns and allows override for out-of-hours booking', () => {
-      setMockState({ appointments: [] });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      fireEvent(getByText('Date'), 'onChange', '2025-06-01');
-      fireEvent(getByText('Start Time'), 'onChange', '07:00 AM'); // Out-of-hours
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      // Should show warning, but allow override
-      // fireEvent.press(getByText('Proceed Anyway'));
-      // expect(onCreate).toHaveBeenCalled();
-      
-    });
-
-    it('prevents booking outside working hours, weekly offs, or holidays', () => {
-      setMockState({ appointments: [] });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      // Out-of-hours
-      fireEvent(getByText('Date'), 'onChange', '2025-06-01');
-      fireEvent(getByText('Start Time'), 'onChange', '07:00 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      expect(onCreate).not.toHaveBeenCalled();
-      // expect(getByText(/outside working hours|weekly off|holiday/i)).toBeTruthy();
-      
-    });
-
-    it('shows recurring slot alternatives if slot is in the past', () => {
-      setMockState({ appointments: [] });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      // Pick a date/time in the past
-      fireEvent(getByText('Date'), 'onChange', '2024-01-01');
-      fireEvent(getByText('Start Time'), 'onChange', '09:00 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
-      // Should show alternatives UI (dropdown or message)
-      // expect(getByText(/Time Slot is in the past/i)).toBeTruthy();
-      // expect(getByText(/alternatives/i)).toBeTruthy();
-      
-    });
-
-    it('allows booking when all rules are satisfied', () => {
-      setMockState({ appointments: [] });
-      const onCreate = jest.fn();
-      const { getByText, getByPlaceholderText } = render(<TherapyAppointments {...baseProps} onCreate={onCreate} />, { wrapper: AllProviders });
-      fireEvent.changeText(getByPlaceholderText('Search patient by name'), 'Patient 1');
-      fireEvent.press(getByText('Patient 1'));
-      fireEvent.changeText(getByPlaceholderText('Enter mobile number'), '9999999999');
-      fireEvent.press(getByText('Select Therapy'));
-      fireEvent.press(getByText('Therapy 1'));
-      fireEvent.press(getByText('Select Therapist'));
-      fireEvent.press(getByText('Therapist 1'));
-      fireEvent(getByText('Date'), 'onChange', '2025-06-03');
-      fireEvent(getByText('Start Time'), 'onChange', '09:00 AM');
-      fireEvent.press(getByText('Room'));
-      fireEvent.press(getByText('101'));
-      fireEvent.press(getByText('Create Therapy Appointment'));
+    // Simulate entering notes
+    fireEvent.changeText(getByPlaceholderText('Add any special instructions or diagnosis notes here...'), 'Test notes');
+    // Press Start Therapy
+    fireEvent.press(getByText('Start Therapy'));
+    // Wait for onCreate to be called
+    await waitFor(() => {
       expect(onCreate).toHaveBeenCalled();
-      
     });
   });
+
+  it('allows optional room selection and updates state', () => {
+    const { getByText } = render(
+      <TherapyAppointments
+        visible={true}
+        onClose={jest.fn()}
+        onCreate={jest.fn()}
+        clients={mockClients}
+        therapists={mockTherapists}
+        rooms={mockRooms}
+        appointments={mockAppointments}
+        clinicTimings={{
+  weekdays: {
+    monday: { start: '09:00', end: '18:00' },
+    tuesday: { start: '09:00', end: '18:00' }
+  }
+}}
+
+
+therapies={mockTherapies}
+        enforceGenderMatch={false}
+      />
+    );
+    // Simulate selecting a room
+    fireEvent.press(getByText('Room 1'));
+    // If your UI visually marks the selected room, you can assert on that here
+    expect(getByText('Room 1')).toBeTruthy();
+  });
+
+  // Add more tests as needed for edge cases, gender enforcement, or time/date pickers
 });

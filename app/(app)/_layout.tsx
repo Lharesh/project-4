@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   TouchableOpacity,
   View,
@@ -11,7 +12,6 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchClinic } from 'app/(admin)/clinics/clinicSlice';
 import { fetchConfig } from '@/features/clinicConfig/configSlice';
 import { COLORS } from '@/constants/theme';
-import { Settings } from 'lucide-react-native';
 import Card from '@/components/ui/Card';
 import { ROLE_TABS } from '@/constants/roleConfig';
 
@@ -54,8 +54,9 @@ export default function AppLayout() {
 
   return (
     <>
+
       {adminTabs.length > 0 && showAdminMenu && (
-        <View style={styles.adminMenuOverlay}>
+        <View style={[styles.adminMenuOverlay, { position: 'absolute', top: 60, right: 10, zIndex: 9999 }]}> {/* Adjust top/right as needed */}
           <TouchableOpacity
             style={styles.adminMenuBackdrop}
             onPress={() => setShowAdminMenu(false)}
@@ -78,16 +79,13 @@ export default function AppLayout() {
           </Card>
         </View>
       )}
-
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: COLORS.vata[600],
           tabBarInactiveTintColor: COLORS.neutral[400],
           tabBarStyle: {
             borderTopWidth: 1,
-            borderTopColor: COLORS.neutral[200],
-            height: 60,
-            paddingBottom: 10,
+            backgroundColor: '#FFD600',
             paddingTop: 10,
           },
           tabBarLabelStyle: {
@@ -102,7 +100,7 @@ export default function AppLayout() {
             name={`${tab.name}/index`} // ✅ Match the folder structure exactly
             options={{
               title: tab.title, // sets the tab title correctly
-              tabBarIcon: ({ color, size }) =>
+              tabBarIcon: ({ color, size }: { color: string; size: number }) =>
                 React.createElement(tab.icon, { color, size }),
             }}
           />

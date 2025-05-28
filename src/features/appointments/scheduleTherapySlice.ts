@@ -17,6 +17,16 @@ export interface Booking {
   id: string;
   date: string;
   slot: string;
+  time?: string;
+  roomId: string;
+  therapistIds: string[];
+  clientId: string;
+}
+
+export interface Booking {
+  id: string;
+  date: string;
+  slot: string;
   roomId: string;
   therapistIds: string[];
   clientId: string;

@@ -9,6 +9,20 @@ const TEXT_LIGHT = '#fff';
 const ACCENT = VATA;
 
 const styles = StyleSheet.create({
+  mobileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    gap: 8,
+  },
+  codePickerWrapper: {
+    marginRight: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
     padding: 18,
@@ -31,6 +45,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d6dbe6',
     marginBottom: 8,
+    alignItems: 'center',
   },
   pickerWrapper: {
     borderWidth: 1,
@@ -42,6 +57,9 @@ const styles = StyleSheet.create({
   picker: {
     height: 44,
     width: '100%',
+    fontSize: 16,
+    color: TEXT_DARK,
+    backgroundColor: TEXT_LIGHT,
   },
   dropdownList: {
     borderRadius: 8,
@@ -101,6 +119,26 @@ const styles = StyleSheet.create({
     color: TEXT_LIGHT,
     fontWeight: '700',
     fontSize: 17,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    marginBottom: 6,
+    textAlign: 'left',
+    fontWeight: '500',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    marginTop: 18,
+    gap: 12,
+  },
+  consultationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 12,
+    marginBottom: 8,
+    flexWrap: 'nowrap',
   },
 });
 

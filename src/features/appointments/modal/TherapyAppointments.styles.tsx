@@ -9,18 +9,76 @@ const TEXT_LIGHT = '#fff';
 const ACCENT = VATA;
 
 const styles = StyleSheet.create({
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    position: 'relative',
+  },
+  inputFlex: {
+    flex: 1,
+    paddingRight: 36,
+  },
+  inputClearIcon: {
+    position: 'absolute',
+    right: 8,
+    top: 0,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    display: 'flex',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 13,
+    marginBottom: 4,
+    textAlign: 'left',
+    fontWeight: '500',
+  },
+  durationScrollContent: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationText: {
+    color: '#222',
+    fontSize: 15,
+  },
+  durationTextActive: {
+    color: TEXT_LIGHT,
+    fontWeight: '700',
+  },
+  durationInput: {
+    width: 70,
+    marginLeft: 8,
+  },
   // Section spacing helpers
   section: {
-    marginBottom: 16,
+    marginBottom: 10, // reduced for compactness
   },
   sectionBottom: {
-    marginBottom: 24,
+    marginBottom: 10, // reduced for compactness
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    gap: 8,
+  },
+  dateText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#222',
+    fontWeight: '500',
   },
   sectionDivider: {
-    marginVertical: 18,
+    marginVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#e6e6ef',
   },
+
   container: {
     flex: 1,
     paddingHorizontal: 18,
@@ -37,16 +95,16 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   input: {
-    height: 44,
-    paddingHorizontal: 10,
-    fontSize: 16,
-    color: TEXT_DARK,
-    backgroundColor: TEXT_LIGHT,
-    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d6dbe6',
-    marginBottom: 16,
+    borderColor: '#6C8CBF', // matches COLORS.vata[500]
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 4,
+    backgroundColor: '#fff',
+    color: TEXT_DARK,
     width: '100%',
+    minHeight: 44,
   },
   dropdownList: {
     borderRadius: 8,
@@ -276,7 +334,68 @@ const styles = StyleSheet.create({
   startBtnText: {
     color: TEXT_LIGHT,
     fontWeight: '700',
+    fontSize: 16,
+  },
+  // --- Schedule Matrix Collapsible ---
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    backgroundColor: '#f3f6fa',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  collapsibleHeaderText: {
+    fontWeight: '700',
     fontSize: 17,
+    color: '#222',
+  },
+  // --- Therapists Quick Pick ---
+  therapistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  therapistChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#e3eafc',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#c8d6f7',
+  },
+  therapistChipSelected: {
+    backgroundColor: '#1a73e8',
+    borderColor: '#1a73e8',
+  },
+  therapistChipText: {
+    color: '#1a73e8',
+    fontWeight: '500',
+    fontSize: 15,
+  },
+  therapistChipTextSelected: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  therapistShowAllBtn: {
+    marginLeft: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#f3f6fa',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#c8d6f7',
+  },
+  therapistShowAllBtnActive: {
+    backgroundColor: '#1a73e8',
+    borderColor: '#1a73e8',
+  },
+  therapistShowAllBtnText: {
+    color: '#1a73e8',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
 

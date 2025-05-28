@@ -16,5 +16,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
-  ]
+, "src/features/inventory/__tests__/InventoryTable.test.tsx.disabled", "src/features/appointments/__tests__/DoctorAppointments.test.tsx.disabled", "src/features/appointments/__tests__/TherapyAppointments.test.tsx.disabled", "src/features/appointments/__tests__/DoctorAppointments.test.tsx.bac"  ]
 }

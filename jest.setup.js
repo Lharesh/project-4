@@ -1,11 +1,45 @@
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
-  RN.Dimensions = {
-    get: jest.fn().mockReturnValue({ width: 320, height: 640 }),
+  const Dimensions = {
+    get: jest.fn((dim) => {
+      if (dim === 'window' || dim === 'screen') return { width: 375, height: 667 };
+      return { width: 375, height: 667 };
+    }),
+    set: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
   };
-  return RN;
+  const Platform = RN.Platform || { OS: 'ios', select: () => null };
+  return {
+    ...RN,
+    Dimensions,
+    Platform,
+    default: {
+      ...RN,
+      Dimensions,
+      Platform,
+    },
+  };
 });
 // Jest setup for React Native Testing Library and common native modules
+
+// FINAL PATCH: Ensure Dimensions.get is always available on all references
+try {
+  const rn = require('react-native');
+  if (!rn.Dimensions || !rn.Dimensions.get) {
+    rn.Dimensions = {
+      get: jest.fn((dim) => {
+        if (dim === 'window' || dim === 'screen') return { width: 375, height: 667 };
+        return { width: 375, height: 667 };
+      }),
+      set: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+  }
+} catch (e) {
+  // ignore
+}
 
 import 'react-native-gesture-handler/jestSetup';
 
@@ -53,10 +87,13 @@ jest.mock('lucide-react-native', () => {
   });
 });
 // [REINTRODUCE MOCK 5] Testing with @react-native-picker/picker mock added
-jest.mock('@react-native-picker/picker', () => ({
-  Picker: ({ children }) => children,
-  Item: () => null,
-}));
+jest.mock('@react-native-picker/picker', () => {
+  const React = require('react');
+  const Picker = ({ children, ...props }) => React.createElement('View', props, children);
+  Picker.Item = (props) => React.createElement('View', props, null);
+  return { __esModule: true, Picker };
+});
+
 // [REINTRODUCE MOCK 6] Testing with react-native-vector-icons mock added
 jest.mock('react-native-vector-icons', () => ({
   default: () => null,

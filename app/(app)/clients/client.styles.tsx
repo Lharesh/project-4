@@ -1,7 +1,37 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { COLORS } from '@/constants/theme';
 
 export const clientStyles = StyleSheet.create({
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    // Responsive padding for web
+    ...(Platform.OS === 'web'
+      ? { padding: 32 }
+      : { padding: 10 }),
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    boxSizing: 'border-box',
+    alignSelf: 'center',
+    // Responsive shadow
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+          elevation: 5,
+        }),
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral[50],
@@ -44,21 +74,25 @@ export const clientStyles = StyleSheet.create({
   },
   formField: {
     marginBottom: 18,
+    width: '100%',
   },
   label: {
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.neutral[900],
     marginBottom: 4,
+    fontFamily: 'System',
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.neutral[200],
+    borderColor: COLORS.vata[500],
     borderRadius: 8,
-    padding: 10,
-    fontSize: 15,
-    color: COLORS.neutral[900],
-    backgroundColor: '#fafbfc',
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 4,
+    backgroundColor: '#fff',
+    flex: 1,
+    minWidth: 0,
   },
   inputError: {
     borderColor: COLORS.error,
@@ -75,17 +109,51 @@ export const clientStyles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
+  mobileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  codePickerWrapper: {
+    flex: 0,
+    marginRight: 24,
+  },
   modalButtonRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 16,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalFieldLeft: {
+    marginLeft: 15,
+  },
+  modalFieldRight: {
+    marginRight: 15,
   },
   modalButton: {
-    marginLeft: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
+    minWidth: 110,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginVertical: 4,
     borderRadius: 8,
     backgroundColor: COLORS.vata[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: COLORS.vata[500],
+    minWidth: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    textAlign: 'center',
+    color: COLORS.vata[500],
+    fontWeight: '600',
+    fontSize: 15,
   },
   modalButtonText: {
     color: '#fff',

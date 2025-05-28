@@ -137,11 +137,20 @@ const appointmentsSlice = createSlice({
   initialState,
   reducers: {
     addAppointment: (state, action: PayloadAction<Appointment>) => {
-      console.log('[appointmentsSlice] addAppointment called with', action.payload.id);
-      state.appointments.unshift(action.payload);
+      // Prevent duplicate by id
+      const exists = state.appointments.some(a => a.id === action.payload.id);
+      if (!exists) {
+        state.appointments.unshift(action.payload);
+      }
     },
     addAppointments: (state, action: PayloadAction<Appointment[]>) => {
-      action.payload.forEach(appt => state.appointments.unshift(appt));
+      const existingIds = new Set(state.appointments.map(a => a.id));
+      action.payload.forEach(appt => {
+        if (!existingIds.has(appt.id)) {
+          state.appointments.unshift(appt);
+          existingIds.add(appt.id);
+        }
+      });
     },
     setAppointments: (state, action: PayloadAction<Appointment[]>) => {
       state.appointments = action.payload;
