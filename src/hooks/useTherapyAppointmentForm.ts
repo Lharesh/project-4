@@ -5,6 +5,8 @@ interface UseTherapyAppointmentFormProps {
 }
 
 type UseTherapyAppointmentFormReturn = {
+  clientGender?: string;
+  setClientGender?: React.Dispatch<React.SetStateAction<string | undefined>>;
   // Validation
   touched: {
     patient: boolean;
@@ -91,6 +93,7 @@ export function useTherapyAppointmentForm({ initialDate = '2025-05-20' }: UseThe
 
   // Patient
   const [patientSearch, setPatientSearch] = useState('');
+  const [clientGender, setClientGender] = useState<string | undefined>(undefined);
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [patientGender, setPatientGender] = useState<'male' | 'female' | null>(null);
   const [patientInputFocused, setPatientInputFocused] = useState(false);
@@ -141,5 +144,7 @@ export function useTherapyAppointmentForm({ initialDate = '2025-05-20' }: UseThe
     selectedRoom, setSelectedRoom,
     // Notes
     notes, setNotes,
+    // Gender
+    clientGender, setClientGender,
   };
 }

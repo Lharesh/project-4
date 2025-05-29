@@ -11,7 +11,7 @@ interface PatientPickerProps {
   patients: Patient[];
   value: string | null;
   onChange: (id: string | null) => void;
-  setPatientGender?: (g: 'male' | 'female') => void;
+  setClientGender?: (g: 'male' | 'female') => void;
   touched?: boolean;
 }
 
@@ -19,7 +19,7 @@ const PatientPicker: React.FC<PatientPickerProps> = ({
   patients,
   value,
   onChange,
-  setPatientGender,
+  setClientGender,
   touched,
 }) => {
   const [search, setSearch] = useState('');
@@ -82,7 +82,7 @@ const PatientPicker: React.FC<PatientPickerProps> = ({
                 onPress={() => {
                   onChange(p.id);
                   setSearch(p.name);
-                  if (setPatientGender) setPatientGender(p.gender as 'male' | 'female');
+                  if (setClientGender) setClientGender(p.gender as 'male' | 'female');
                 }}
               >
                 <Text style={{ color: value === p.id ? '#1a73e8' : '#222' }}>{p.name}</Text>

@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
+    // flex: 1 removed to allow ScrollView to size correctly
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 48, // extra space for action buttons

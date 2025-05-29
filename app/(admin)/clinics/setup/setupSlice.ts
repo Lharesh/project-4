@@ -85,10 +85,11 @@ const MOCK_TEMPLATES: WhatsAppTemplate[] = [
 ];
 
 // Mock rooms
+// Combined mock rooms from appointments (if not already present)
 export const ROOMS_MOCK: Room[] = [
-  { id: 'r1', name: 'Vata', type: 'therapy', isActive: true },
-  { id: 'r2', name: 'Pitta', type: 'therapy', isActive: true },
-  { id: 'r3', name: 'Kapha', type: 'therapy', isActive: true },
+  { id: 'r1', name: 'Vata (Therapy)', type: 'therapy', isActive: true },
+  { id: 'r2', name: 'Pitta (Therapy)', type: 'therapy', isActive: true },
+  { id: 'r3', name: 'Kapha (Therapy)', type: 'therapy', isActive: true },
 ];
 
 // Mock: Clinic timings (7:00-13:00, 15:00-18:00, Monday off)

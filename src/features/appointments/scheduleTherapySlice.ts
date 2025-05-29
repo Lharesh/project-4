@@ -144,4 +144,7 @@ export const selectTherapyBookings = (state: RootState) =>
       clientId: a.clientId,
     }));
 
-export default scheduleTherapySlice.reducer;
+// DEPRECATED: All logic moved to setupSlice and selectors.
+// This file is retained only for legacy reducer compatibility.
+const emptyReducer = (state = {}) => state;
+export default emptyReducer;

@@ -1,3 +1,6 @@
+// DO NOT use Redux selectors or dispatch in this file.
+// All data and callbacks must be passed as props from the parent (index.tsx).
+// This is a strict project rule for appointments.
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import DoctorAppointments from './DoctorAppointments';

@@ -1,3 +1,6 @@
+// DO NOT use Redux selectors or dispatch in this file.
+// All data and callbacks must be passed as props from the parent (TherapyAppointments).
+// This is a strict project rule for appointments.
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 

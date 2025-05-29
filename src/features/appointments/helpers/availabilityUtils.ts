@@ -149,11 +149,12 @@ function slotToDate(date: string, slot: string): Date {
  * @returns True if the bookings overlap, false otherwise
  */
 function doesBookingOverlap(
-  booking: { date: string, slot: string, duration?: number },
+  booking: { date: string, slot: string, duration?: number, therapistIds?: string[] },
   testDate: string,
   testSlot: string,
   testDuration: number
 ): boolean {
+  const overlapResult = (() => {
   if (booking.date !== testDate) return false;
   const durA = booking.duration ?? 60;
   const durB = testDuration;
@@ -161,7 +162,13 @@ function doesBookingOverlap(
   const endA = new Date(startA.getTime() + durA * 60000);
   const startB = slotToDate(testDate, testSlot);
   const endB = new Date(startB.getTime() + durB * 60000);
-  return doTimeRangesOverlap(startA, endA, startB, endB);
+  // Only return true if the time ranges strictly overlap (not if they just touch)
+  // [startA, endA) and [startB, endB) overlap if startA < endB && startB < endA
+  // If endA === startB or endB === startA, this returns false (adjacent slots are allowed)
+  const result = (startA < endB && startB < endA);
+  return result;
+})();
+  return overlapResult;
 }
 
 export function isTherapistAvailable(
@@ -238,11 +245,14 @@ export function isPatientAvailable(
   appointments: Booking[],
   slotDuration: number = 60
 ): boolean {
-  return !appointments.some(
-    (apt) =>
-      apt.clientId === patientId &&
-      doesBookingOverlap(apt, date, slot, slotDuration)
-  );
+  
+  const result = !appointments.some((apt) => {
+    const isSamePatient = apt.clientId === patientId;
+    const isSameDate = apt.date === date;
+    const overlap = doesBookingOverlap(apt, date, slot, slotDuration);
+    return isSamePatient && isSameDate && overlap;
+  });
+  return result;
 }
 
 export function getAvailableTherapists(
@@ -254,13 +264,13 @@ export function getAvailableTherapists(
   enforceGenderMatch: boolean,
   availability?: { [therapistId: string]: { [date: string]: string[] } }
 ): Therapist[] {
-  // Use centralized gender filtering utility
   const genderMatchedTherapists = filterTherapistsByGender(allTherapists, patientGender, enforceGenderMatch);
-  return genderMatchedTherapists.filter(
+  const availableTherapists = genderMatchedTherapists.filter(
     (t) =>
       t &&
       isTherapistAvailable(t, date, slot, appointments, availability)
   );
+  return availableTherapists;
 }
 
 export function getAvailableRooms(

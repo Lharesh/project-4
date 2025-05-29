@@ -91,29 +91,20 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
                 <Text style={styles.noResult}>No therapies found</Text>
               ) : filteredTherapies.map(t => (
                 <Pressable
-                  key={t.id}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    dropdownItemClicked.current = true;
-                    setSelectedTherapy(t.id);
-                    setTherapySearch(t.name);
-                    setTherapyInputFocused(false);
-                    setTouched((touch: any) => ({ ...touch, therapy: true }));
-                  }}
-                  // @ts-ignore - onMouseDown is for React Native Web only
-                  onMouseDown={(e) => {
-                    if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                    dropdownItemClicked.current = true;
-                    setSelectedTherapy(t.id);
-                    setTherapySearch(t.name);
-                    setTherapyInputFocused(false);
-                    setTouched((touch: any) => ({ ...touch, therapy: true }));
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  accessible={true}
-                  accessibilityLabel={`Select therapy ${t.name}`}
-                >
+  key={t.id}
+  style={styles.dropdownItem}
+  onPress={() => {
+    dropdownItemClicked.current = true;
+    setSelectedTherapy(t.id);
+    setTherapySearch(t.name);
+    setTherapyInputFocused(false);
+    setTouched((touch: any) => ({ ...touch, therapy: true }));
+  }}
+  tabIndex={0}
+  role="button"
+  accessible={true}
+  accessibilityLabel={`Select therapy ${t.name}`}
+>
                   <Text style={{ color: selectedTherapy === t.id ? '#1a73e8' : '#222' }}>{t.name}</Text>
                 </Pressable>
               ))}

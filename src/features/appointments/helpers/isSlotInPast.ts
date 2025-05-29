@@ -4,5 +4,5 @@ export function isSlotInPast(dateStr: string, timeStr: string, now: Date): boole
   const [slotHour, slotMinute] = timeStr.split(':').map(Number);
   const slotDateTime = new Date(dateStr);
   slotDateTime.setHours(slotHour, slotMinute, 0, 0);
-  return slotDateTime <= now;
+  return slotDateTime < now;
 }

@@ -1,3 +1,6 @@
+// DO NOT use Redux selectors or dispatch in this file.
+// All data and callbacks must be passed as props from the parent (NewAppointmentModal).
+// This is a strict project rule for appointments.
 import React from 'react';
 import { useTherapyAppointmentForm } from '../../../hooks/useTherapyAppointmentForm';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -6,6 +9,7 @@ import styles from './TherapyAppointments.styles';
 import { GenericDatePicker } from '../../../utils/GenericDatePicker';
 import GenericTimePicker from '../../../utils/GenericTimePicker';
 import ScheduleMatrix from '../components/ScheduleMatrix';
+import { generateRoomSlots } from '../helpers/roomSlotTimeline';
 
 import PatientPicker from '../components/PatientPicker';
 import TherapyPicker from '../components/TherapyPicker';
@@ -13,8 +17,7 @@ import { TherapistPicker } from '../components/TherapistPicker';
 import { getRecurringConflicts } from '../helpers/conflictCalculations';
 import { getRecurringSlotAlternatives } from '../helpers/recurringSlotAlternatives';
 import { isPatientAvailable } from '../helpers/availabilityUtils';
-import { addDays } from '../helpers/dateHelpers';
-import { format } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import type { Client } from '@/features/clients/clientsSlice';
 import { buildScheduleMatrix } from './buildScheduleMatrix';
 import { getBookingOptions, filterTherapistsByGender } from '../helpers/rulesEngine';
@@ -55,7 +58,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ visible, onCl
   const {
     touched, setTouched, submitAttempted, setSubmitAttempted,
     selectedDate, setSelectedDate,
-    selectedPatient, setSelectedPatient, patientGender, setPatientGender,
+    selectedPatient, setSelectedPatient, clientGender, setClientGender,
     selectedTherapy, setSelectedTherapy,
     selectedTherapists, setSelectedTherapists,
     startDate, setStartDate, timeSlot, setTimeSlot, showTimePicker, setShowTimePicker,
@@ -66,14 +69,27 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = ({ visible, onCl
 
 // Centralized gender filtering logic
 const filteredTherapists = React.useMemo(() => {
-  if (!patientGender) return therapists;
-  return filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
-}, [therapists, patientGender, enforceGenderMatch]);
+  if (!clientGender) return therapists;
+  return filterTherapistsByGender(therapists, clientGender, enforceGenderMatch);
+}, [therapists, clientGender, enforceGenderMatch]);
   const [replacementSlots, setReplacementSlots] = React.useState<Record<string, string>>({});
 
-// Map therapists and rooms with all required variables from props
+// Memoize appointments, therapists, and rooms to ensure stable references for useMemo dependencies
+  const stableAppointments = React.useMemo(() => appointments, [appointments]);
+  const stableTherapists = React.useMemo(() => therapists, [therapists]);
+  const stableRooms = React.useMemo(() => rooms, [rooms]);
+
+  // Matrix date state, controlled by the date slider above the matrix
+  const [matrixDate, setMatrixDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
+
+  // Map therapists and rooms with all required variables from props
   const date = startDate;
-  const slotDuration = 15; // or get from config/clinicTimings
+  // Dynamically determine slotDuration from selected therapy
+  const selectedTherapyObj = React.useMemo(() => {
+    return therapies?.find((t: any) => t.id === selectedTherapy) || null;
+  }, [therapies, selectedTherapy]);
+  // Default slot duration is 60 minutes until a therapy is selected
+  const slotDuration = selectedTherapyObj ? selectedTherapyObj.duration : 60;
   const therapistsWithAvailability = addDynamicAvailability({
     entities: therapists,
     entityType: 'therapist',
@@ -91,6 +107,9 @@ const filteredTherapists = React.useMemo(() => {
     slotDuration,
   });
 
+  // --- Generate slot matrix for UI ---
+  // Always use therapistsWithAvailability to ensure correct dynamic slot availability
+
   // State hooks at the top
   const [showAlternatives, setShowAlternatives] = React.useState(false);
   // Only declare recommendedSlots state ONCE at the top
@@ -101,21 +120,49 @@ const filteredTherapists = React.useMemo(() => {
     const today = new Date();
     return today.toISOString().slice(0, 10);
   });
-  // Always rebuild matrix when appointments or scheduleDate change
-  const matrix = React.useMemo(() => {
-    return buildScheduleMatrix(scheduleDate, appointments || [], rooms, therapists, clinicTimings);
-  }, [scheduleDate, appointments, rooms, therapists, clinicTimings]);
 
-  // Log matrix after it is built
+
+  // Build the schedule matrix using only stable dependencies
+  const matrix = React.useMemo(() => {
+    if (!matrixDate) return [];
+    return buildScheduleMatrix(
+      matrixDate,
+      stableAppointments,
+      stableRooms,
+      stableTherapists,
+      clinicTimings,
+      enforceGenderMatch,
+      clientGender ?? undefined,
+      selectedTherapyObj?.duration || 60,
+      clients // Pass as patients argument
+    );
+  }, [matrixDate, stableAppointments, stableRooms, stableTherapists, clinicTimings, enforceGenderMatch, clientGender, selectedTherapyObj, clients]);
+
   React.useEffect(() => {
+    console.log('[DEBUG][ScheduleMatrix][PROPS]', {
+      matrix: JSON.stringify(matrix),
+      matrixDate,
+      appointments: JSON.stringify(stableAppointments)
+    });
+  }, [matrix, matrixDate, stableAppointments]);
+
+  React.useEffect(() => {
+    if (Array.isArray(matrix)) {
+      matrix.forEach(room => {
+      });
+    }
   }, [matrix]);
+
+  // NOTE: Removed empty useEffect that depended on 'matrix'.
+  // Always use stable dependencies in useMemo/useEffect and never call setState in the render body to avoid infinite loops.
 
   // Compute recurring slot alternatives and reasons
   const getRecurringSlotInfo = React.useCallback(() => {
     // Prevent if no patient selected
     if (!startDate || !selectedRoom || !selectedPatient || !selectedTherapists) return {};
     const date = startDate;
-    const slotDuration = 15; // or get from config/clinicTimings
+    // Use dynamic slotDuration for recurring slot alternatives as well
+    const slotDuration = selectedTherapyObj?.duration || 60;
     const therapistsWithAvailability = addDynamicAvailability({
       entities: therapists,
       entityType: 'therapist',
@@ -202,20 +249,21 @@ const filteredTherapists = React.useMemo(() => {
   // Memoize recurringConflicts
   const isRecurring = (customMode && Number(customDuration) > 1) || (!customMode && duration && [3, 7, 14, 21].includes(duration));
   const recurringConflicts = React.useMemo(() => {
-    if (selectedTherapists.length > 0 && startDate && timeSlot && isRecurring) {
-      const days = customMode ? Number(customDuration) : (duration ?? 1);
-      const conflicts = getRecurringConflicts(
-        appointments,
-        startDate,
-        days,
-        timeSlot,
-        selectedTherapists,
-        addDays
-      );
-      return conflicts;
-    }
-    return [];
-  }, [appointments, startDate, timeSlot, selectedTherapists, customMode, customDuration, duration, isRecurring]);
+  if (selectedTherapists.length > 0 && startDate && timeSlot && isRecurring) {
+    const days = customMode ? Number(customDuration) : (duration ?? 1);
+    const dateAdd = (dateStr: string, n: number) => format(addDays(parseISO(dateStr), n), 'yyyy-MM-dd');
+    const conflicts = getRecurringConflicts(
+      appointments,
+      startDate,
+      days,
+      timeSlot,
+      selectedTherapists,
+      dateAdd
+    );
+    return conflicts;
+  }
+  return [];
+}, [appointments, startDate, timeSlot, selectedTherapists, customMode, customDuration, duration, isRecurring]);
 
   // Validation logic 
   const isValid = () => {
@@ -250,18 +298,18 @@ const filteredTherapists = React.useMemo(() => {
       enforceGenderMatch
     });
     for (let i = 0; i < daysToBook; i++) {
-      const dateVal = addDays(startDate, i);
-      // Use replacement slot if present
-      const slot = replacementSlots[dateVal] || timeSlot;
-      if (!slot) return false;
-      if (isSlotInPast(dateVal, slot, now)) return false;
-      const bookingOptionsInput = {
-        enforceGenderMatch,
-        patientId,
-        selectedTherapists,
-        selectedRoom: roomId,
-        date: format(new Date(dateVal), 'yyyy-MM-dd'),
-        slot,
+  const dateVal = format(addDays(parseISO(startDate), i), 'yyyy-MM-dd');
+  // Use replacement slot if present
+  const slot = replacementSlots[dateVal] || timeSlot;
+  if (!slot) return false;
+  if (isSlotInPast(dateVal, slot, now)) return false;
+  const bookingOptionsInput = {
+    enforceGenderMatch,
+    patientId,
+    selectedTherapists,
+    selectedRoom: roomId,
+    date: dateVal,
+    slot,
         appointments,
         allTherapists: therapists,
         allRooms: rooms,
@@ -355,9 +403,7 @@ const filteredTherapists = React.useMemo(() => {
   const DURATION_PRESETS = [1, 3, 7, 14, 21];
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Duration Picker UI */}
+    <ScrollView contentContainerStyle={[styles.container, { flexGrow: 1, paddingBottom: 40 }]} keyboardShouldPersistTaps="handled">
         <View style={{ marginVertical: 12 }}>
           <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>Duration (days)</Text>
           <View style={{ flexDirection: 'row', marginBottom: 8 }}>
@@ -411,58 +457,45 @@ const filteredTherapists = React.useMemo(() => {
             <Text style={{ fontSize: 18, marginLeft: 'auto' }}>{showSchedule ? '▲' : '▼'}</Text>
           </TouchableOpacity>
           {showSchedule && (
-            <View style={{ backgroundColor: '#fff', borderRadius: 10, marginTop: 8, boxShadow: '0 2px 8px #0001', padding: 8 }}>
-              {/* Date Scroller Header */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10, gap: 16 }}>
-                {/* Left Arrow */}
-                <TouchableOpacity
-                  onPress={() => setScheduleDate(date => {
-                    const d = new Date(date);
-                    d.setDate(d.getDate() - 1);
-                    return d.toISOString().slice(0, 10);
-                  })}
-                  style={{ padding: 8, borderRadius: 20, backgroundColor: '#f3f4f6' }}
-                >
-                  <Text style={{ fontSize: 20 }}>{'◀'}</Text>
-                </TouchableOpacity>
-                {/* Date Display */}
-                <Text style={{ fontWeight: '600', fontSize: 16, minWidth: 110, textAlign: 'center' }}>{scheduleDate}</Text>
-                {/* Right Arrow */}
-                <TouchableOpacity
-                  onPress={() => setScheduleDate(date => {
-                    const d = new Date(date);
-                    d.setDate(d.getDate() + 1);
-                    return d.toISOString().slice(0, 10);
-                  })}
-                  style={{ padding: 8, borderRadius: 20, backgroundColor: '#f3f4f6' }}
-                >
-                  <Text style={{ fontSize: 20 }}>{'▶'}</Text>
-                </TouchableOpacity>
-              </View>
-              {/* ScheduleMatrix inserted below */}
-              <ScheduleMatrix
-                matrix={matrix}
-                conflicts={recurringConflicts}
-                selectedDate={scheduleDate}
-                selectedTherapists={selectedTherapists}
-                onSlotSelect={(roomNumber: string, slot: string, date: string) => {
-                  setSelectedRoom(roomNumber);
-                  setTimeSlot(slot);
-                  setStartDate(date);
-                }}
-              />
-            </View>
-          )}
+  <View style={{ backgroundColor: '#fff', borderRadius: 10, marginTop: 8, padding: 8 }}>
+    {/* Date navigation for matrix - use matrixDate as the single source of truth */}
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+      <TouchableOpacity onPress={() => setMatrixDate(format(addDays(parseISO(matrixDate), -1), 'yyyy-MM-dd'))}>
+        <Text style={{ fontSize: 28 }}>‹</Text>
+      </TouchableOpacity>
+      <Text style={{ fontSize: 18, fontWeight: 'bold', marginHorizontal: 16 }}>{matrixDate}</Text>
+      <TouchableOpacity onPress={() => setMatrixDate(format(addDays(parseISO(matrixDate), 1), 'yyyy-MM-dd'))}>
+        <Text style={{ fontSize: 28 }}>›</Text>
+      </TouchableOpacity>
+    </View>
+    {matrix && matrix.length > 0 ? (
+      <ScheduleMatrix
+        matrix={matrix}
+        conflicts={[]}
+        selectedDate={matrixDate}
+        selectedTherapists={selectedTherapists}
+        onSlotSelect={(roomId, slot, date) => {
+          setSelectedRoom(roomId);
+          setTimeSlot(slot);
+          setMatrixDate(date);
+        }}
+        therapists={therapists}
+      />
+    ) : (
+      <Text style={{ color: '#888', textAlign: 'center', marginTop: 20 }}>
+        No schedule available for this date.
+      </Text>
+    )}
+  </View>
+)}
         </View>
-        {/* --- End Therapy Room Schedule --- */}
-
         {/* Patient Picker - placed at the top, outside nested Views */}
         <View style={[styles.section, { marginBottom: 16 }]} pointerEvents="box-none">
           <PatientPicker
             patients={clients}
             value={selectedPatient}
             onChange={setSelectedPatient}
-            setPatientGender={setPatientGender}
+            setClientGender={setClientGender}
             touched={touched.patient || submitAttempted}
           />
         </View>
@@ -503,7 +536,7 @@ const filteredTherapists = React.useMemo(() => {
             setShowAllTherapists={setShowAllTherapists}
             therapistInputFocused={therapistInputFocused}
             setTherapistInputFocused={setTherapistInputFocused}
-            patientGender={patientGender ?? undefined}
+            clientGender={clientGender ?? undefined}
             touched={touched.therapists || submitAttempted}
             setTouched={setTouched}
           />
@@ -623,8 +656,7 @@ const filteredTherapists = React.useMemo(() => {
 
 
         </View>
-      </ScrollView>
-    </View>
+    </ScrollView>
   );
 }
 export default TherapyAppointments;

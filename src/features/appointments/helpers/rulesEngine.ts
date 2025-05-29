@@ -10,7 +10,8 @@ export function filterTherapistsByGender(
   patientGender: string | undefined,
   enforceGenderMatch: boolean
 ): Therapist[] {
-  if (!enforceGenderMatch) return therapists;
+  // If gender match is not enforced or patient gender is not set, return all therapists
+  if (!enforceGenderMatch || !patientGender) return therapists;
   // Normalize both genders to lowercase for robust comparison
   const normalizedGender = patientGender?.toLowerCase();
   return therapists.filter(t => t.gender.toLowerCase() === normalizedGender);

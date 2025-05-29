@@ -17,6 +17,12 @@ export const selectDoctors = createSelector(
   (staff) => staff.filter((member: any) => member.role === 'doctor')
 );
 
+// Select therapists from staff
+export const selectTherapists = createSelector(
+  [selectStaff],
+  (staff) => staff.filter((member: any) => member.role === 'therapist')
+);
+
 // Appointments selectors
 export const selectAppointments = (state: any) => state.appointments?.appointments || [];
 

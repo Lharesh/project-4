@@ -14,7 +14,7 @@ interface TherapistPickerProps {
   setShowAllTherapists: (b: boolean) => void;
   therapistInputFocused: boolean;
   setTherapistInputFocused: (b: boolean) => void;
-  patientGender?: string;
+  clientGender?: string;
   touched: boolean;
   setTouched: (t: any) => void;
 }
@@ -29,7 +29,7 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
   setShowAllTherapists,
   therapistInputFocused,
   setTherapistInputFocused,
-  patientGender,
+  clientGender,
   touched,
   setTouched,
 }) => {
@@ -37,7 +37,7 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
   // Defensive: always treat selectedTherapists as array
   const safeSelectedTherapists = Array.isArray(selectedTherapists) ? selectedTherapists : [];
   // Improved gender + search filter logic
-  let filteredTherapists = filterTherapistsByGender(therapists, patientGender ?? undefined, !showAllTherapists);
+  let filteredTherapists = filterTherapistsByGender(therapists, clientGender ?? undefined, !showAllTherapists);
   if (therapistSearch) {
     filteredTherapists = filteredTherapists.filter(t =>
       t.name.toLowerCase().includes(therapistSearch.toLowerCase())
