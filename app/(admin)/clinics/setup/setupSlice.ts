@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-
 export interface ClinicTimings {
   weekdays: {
     [key: string]: {
@@ -379,7 +378,20 @@ const setupSlice = createSlice({
 
 // Selectors
 import type { RootState } from '@/redux/store';
-export const selectTherapists = (state: RootState) => state.setup.staff.filter(s => s.role === 'therapist');
+import { createSelector } from 'reselect';
+export const selectStaff = (state: RootState) => state.setup.staff || [];
+export const selectTherapists = createSelector(
+  [selectStaff],
+  (staff) => staff.filter(s => s.role === 'therapist')
+)
+export const selectDoctors = createSelector(
+  [selectStaff],
+  (staff) => staff.filter(s => s.role === 'doctor')
+)
+export const selectAdmins = createSelector(
+  [selectStaff],
+  (staff) => staff.filter(s => s.role === 'admin')
+)
 export const selectRooms = (state: RootState) => state.setup.rooms;
 // Selector to get clinic timings from Redux state
 export const selectClinicTimings = (state: any) => state.setup?.timings || CLINIC_TIMINGS;

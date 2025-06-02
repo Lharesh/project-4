@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { TemplateFormCard } from '@/components/ui/TemplateFormCard';
 import { Toast } from '@/components/ui/Toast';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { MessageSquare, Plus, Variable } from 'lucide-react-native';
 
 export default function WhatsAppTemplatesScreen() {

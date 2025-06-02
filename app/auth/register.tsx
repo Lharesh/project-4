@@ -15,7 +15,7 @@ import { register } from './authSlice';
 import { TextInput } from '@/components/ui/TextInput';
 import Button from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 
 export default function RegisterScreen() {
   const dispatch = useAppDispatch();

@@ -14,6 +14,7 @@ import { colors, spacing, typography } from '@/theme';
 import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, Plus, Phone, Mail } from 'lucide-react-native';
 import NewAppointmentModal from '@/features/appointments/modal/NewAppointmentModal';
+import { useAppointmentModalParams } from './_useNavigationParams';
 import { selectEnforceGenderMatch } from '@/features/clinicConfig/configSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { useDispatch } from 'react-redux';
@@ -31,6 +32,9 @@ function AppointmentsScreen() {
   const clinicTimings = useAppSelector(selectClinicTimings);
   const dispatch = useDispatch();
   const [showModal, setShowModal] = useState(false);
+
+  // Get navigation params for modal auto-open and client info
+  const { initialClientId, initialClientName, initialClientPhone, autoOpenDrawer } = useAppointmentModalParams();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tab, setTab] = useState<'Doctor' | 'Therapy'>('Doctor'); // Show Doctor by default
 
@@ -67,34 +71,41 @@ function AppointmentsScreen() {
   const { completed, cancelled, pending } = getStatusCounts();
 
 
+  // Auto-open modal if navigation params dictate
+  useEffect(() => {
+    if (autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) {
+      setShowModal(true);
+    }
+  }, [autoOpenDrawer, initialClientId, initialClientName, initialClientPhone]);
+
   return (
     <SafeAreaView style={[styles.safeArea, { flex: 1 }]} edges={['bottom', 'left', 'right']}>
-       <View style={{ flex: 1, position: 'relative' }}>
+      <View style={{ flex: 1, position: 'relative' }}>
         {/* Date Slider and Status Hashes */}
         <View style={styles.dateBarRow}>
-        <TouchableOpacity onPress={handlePreviousDay} style={styles.dateNavButton}>
-          <ChevronLeft size={24} color={colors.grayDark} />
-        </TouchableOpacity>
-        <View style={styles.dateBarBlock}>
-          <Text style={styles.dateBarText}>{format(selectedDate, 'EEE, MMM d')}</Text>
-          <Text style={styles.dateBarSubtext}>{format(selectedDate, 'yyyy')}</Text>
+          <TouchableOpacity onPress={handlePreviousDay} style={styles.dateNavButton}>
+            <ChevronLeft size={24} color={colors.grayDark} />
+          </TouchableOpacity>
+          <View style={styles.dateBarBlock}>
+            <Text style={styles.dateBarText}>{format(selectedDate, 'EEE, MMM d')}</Text>
+            <Text style={styles.dateBarSubtext}>{format(selectedDate, 'yyyy')}</Text>
+          </View>
+          <TouchableOpacity onPress={handleNextDay} style={styles.dateNavButton}>
+            <ChevronRight size={24} color={colors.grayDark} />
+          </TouchableOpacity>
+          <View style={styles.statusCounts}>
+            <Text style={[styles.statusBadge, { backgroundColor: colors.kapha.background, color: colors.kapha.primary }]}>#{completed}</Text>
+            <Text style={[styles.statusBadge, { backgroundColor: colors.pitta.background, color: colors.pitta.primary }]}>#{cancelled}</Text>
+            <Text style={[styles.statusBadge, { backgroundColor: colors.vata.background, color: colors.vata.primary }]}>#{pending}</Text>
+          </View>
         </View>
-        <TouchableOpacity onPress={handleNextDay} style={styles.dateNavButton}>
-          <ChevronRight size={24} color={colors.grayDark} />
-        </TouchableOpacity>
-        <View style={styles.statusCounts}>
-          <Text style={[styles.statusBadge, { backgroundColor: colors.kapha.background, color: colors.kapha.primary }]}>#{completed}</Text>
-          <Text style={[styles.statusBadge, { backgroundColor: colors.pitta.background, color: colors.pitta.primary }]}>#{cancelled}</Text>
-          <Text style={[styles.statusBadge, { backgroundColor: colors.vata.background, color: colors.vata.primary }]}>#{pending}</Text>
-        </View>
-      </View>
         {/* Appointment List */}
         {/* Debug log for appointment dates and filter is now above return to fix lint errors */}
         <ScrollView style={{ flex: 1 }}>
           {appointments
             .filter(a => a.date === selectedKey)
             .map(appt => (
-              <AppointmentCard key={appt.id} appointment={appt} />
+              <AppointmentCard key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`} appointment={appt} />
             ))}
           {appointments.filter(a => a.date === selectedKey).length === 0 && (
             <Text style={{ textAlign: 'center', marginTop: 32, color: '#888' }}>
@@ -124,6 +135,10 @@ function AppointmentsScreen() {
           appointments={appointments}
           therapies={therapies}
           enforceGenderMatch={enforceGenderMatch}
+          autoOpenDrawer={autoOpenDrawer}
+          initialClientId={initialClientId}
+          initialClientName={initialClientName}
+          initialClientPhone={initialClientPhone}
         />
       </View>
     </SafeAreaView>

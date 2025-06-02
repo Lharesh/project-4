@@ -11,7 +11,7 @@ import { Tabs, router, useSegments } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchClinic } from 'app/(admin)/clinics/clinicSlice';
 import { fetchConfig } from '@/features/clinicConfig/configSlice';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import Card from '@/components/ui/Card';
 import { ROLE_TABS } from '@/constants/roleConfig';
 

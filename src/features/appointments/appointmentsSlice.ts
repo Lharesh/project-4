@@ -31,6 +31,8 @@ export interface Appointment {
   totalDays?: number;
   /** Current day index for therapy session (Therapy only) */
   dayIndex?: number;
+  /** ISO string timestamp for when the appointment was created */
+  createdAt?: string;
 }
 
 
@@ -161,6 +163,29 @@ const appointmentsSlice = createSlice({
     clearAppointmentsError: (state) => {
       state.error = null;
     },
+    cancelAppointment: (state, action: PayloadAction<string>) => {
+      // Find by id and set status to 'cancelled'
+      const idx = state.appointments.findIndex(a => a.id === action.payload);
+      if (idx !== -1) {
+        state.appointments[idx].status = 'cancelled';
+      }
+    },
+    completeAppointment: (state, action: PayloadAction<string>) => {
+      // Find by id and set status to 'completed'
+      const idx = state.appointments.findIndex(a => a.id === action.payload);
+      if (idx !== -1) {
+        state.appointments[idx].status = 'completed';
+      }
+    },
+    rescheduleAppointment: (state, action: PayloadAction<{ appointmentId: string, newAppointment: Appointment }>) => {
+      // Cancel old appointment
+      const idx = state.appointments.findIndex(a => a.id === action.payload.appointmentId);
+      if (idx !== -1) {
+        state.appointments[idx].status = 'cancelled';
+      }
+      // Add new scheduled appointment
+      state.appointments.unshift(action.payload.newAppointment);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -185,6 +210,13 @@ const appointmentsSlice = createSlice({
 });
 
 
-export const { addAppointment, addAppointments, setAppointments, clearAppointments, clearAppointmentsError } = appointmentsSlice.actions;
+export const { addAppointment, addAppointments, setAppointments, clearAppointments, clearAppointmentsError, cancelAppointment, completeAppointment, rescheduleAppointment } = appointmentsSlice.actions;
+
+// Selectors
+export const selectAppointmentById = (state: RootState, id: string) =>
+  state.appointments.appointments.find(a => a.id === id);
+
+export const selectAppointmentsByStatus = (state: RootState, status: string) =>
+  state.appointments.appointments.filter(a => a.status === status);
 
 export default appointmentsSlice.reducer;

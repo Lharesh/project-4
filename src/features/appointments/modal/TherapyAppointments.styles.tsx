@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { COLORS } from '@/theme/constants/theme';
 
 const VATA = '#6C8CBF';
 const PITTA = '#E3A857';
@@ -53,10 +54,10 @@ const styles = StyleSheet.create({
   },
   // Section spacing helpers
   section: {
-    marginBottom: 10, // reduced for compactness
+    marginBottom: 4, // much more compact
   },
   sectionBottom: {
-    marginBottom: 10, // reduced for compactness
+    marginBottom: 4, // much more compact
   },
   dateRow: {
     flexDirection: 'row',
@@ -74,17 +75,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   sectionDivider: {
-    marginVertical: 10,
-    borderBottomWidth: 1,
+    marginVertical: 6,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e6e6ef',
   },
 
   container: {
-    // flex: 1 removed to allow ScrollView to size correctly
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 48, // extra space for action buttons
-    backgroundColor: BASE_BG,
+   // flex: 1, removed to allow ScrollView to size correctly
+    paddingHorizontal: 0,
+    paddingTop: 6,
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
   },
   label: {
     fontSize: 15,
@@ -279,29 +280,29 @@ const styles = StyleSheet.create({
     borderColor: PITTA,
   },
   schedulePreview: {
-    minHeight: 50,
-    backgroundColor: '#f3f6fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
+    minHeight: 36,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 6,
+    marginBottom: 6,
     marginTop: 2,
   },
   // Alternatives section at the bottom
   alternativesSection: {
-    marginTop: 24,
-    marginBottom: 16,
-    padding: 14,
-    backgroundColor: '#f7f8fa',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e6e6ef',
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   summaryBox: {
     minHeight: 40,
-    backgroundColor: '#f3f6fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 18,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 6,
+    marginBottom: 8,
     marginTop: 2,
   },
   actionsRow: {
@@ -396,6 +397,214 @@ const styles = StyleSheet.create({
     color: '#1a73e8',
     fontWeight: '600',
     fontSize: 15,
+  },
+  drawerBackdrop: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 99,
+  },
+  drawerKeyboardAvoid: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    zIndex: 100,
+    width: '100%',
+    alignSelf: 'center',
+    maxWidth: 420,
+    overflow: 'hidden',
+  },
+  drawerContainer: {
+    backgroundColor: COLORS.neutral[50],
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+    minHeight: 340,
+    width: '100%',
+  },
+  drawerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+    color: COLORS.neutral[900],
+    letterSpacing: 0.5,
+  },
+  patientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  patientName: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#222',
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  phoneText: {
+    fontSize: 15,
+    color: '#555',
+  },
+  dsection: {
+    marginBottom: 16,
+  },
+  dlabel: {
+    fontWeight: '600',
+    marginBottom: 4,
+    color: COLORS.neutral[700],
+  },
+  therapyInputWrap: {
+    position: 'relative',
+  },
+  therapyInput: {
+    borderWidth: 1,
+    borderColor: COLORS.neutral[300],
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
+    backgroundColor: COLORS.neutral[50],
+  },
+  therapyDropdown: {
+    position: 'absolute',
+    top: 44,
+    left: 0,
+    width: 260,
+    backgroundColor: COLORS.neutral[100],
+    borderWidth: 1,
+    borderColor: COLORS.neutral[300],
+    borderRadius: 10,
+    maxHeight: 120,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.09,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    paddingVertical: 4,
+    zIndex: 200,
+  },
+  dropdownOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral[200],
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dateTimeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 18,
+  },
+  dateTimeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222',
+  },
+  ddurationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  durationBtn: {
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 6,
+  },
+  durationBtnActive: {
+    backgroundColor: '#0097a7',
+  },
+  durationBtnInactive: {
+    backgroundColor: '#eee',
+  },
+  durationBtnText: {
+    fontWeight: '600',
+  },
+  durationBtnTextActive: {
+    color: '#fff',
+  },
+  durationBtnTextInactive: {
+    color: '#222',
+  },
+  durationCustomInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 6,
+    width: 60,
+    fontSize: 15,
+    marginLeft: 8,
+  },
+  therapistsRow: {
+    marginBottom: 16,
+    maxHeight: 40,
+  },
+  therapistBtn: {
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 6,
+  },
+  therapistBtnActive: {
+    backgroundColor: '#0097a7',
+  },
+  therapistBtnInactive: {
+    backgroundColor: '#eee',
+  },
+  therapistBtnText: {
+    fontWeight: '600',
+  },
+  therapistBtnTextActive: {
+    color: '#fff',
+  },
+  therapistBtnTextInactive: {
+    color: '#222',
+  },
+  notesSection: {
+    marginBottom: 16,
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 15,
+    backgroundColor: '#fafbfc',
+    minHeight: 48,
+    textAlignVertical: 'top',
+  },
+  dactionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  closeBtn: {
+    padding: 12,
+    marginRight: 8,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+  },
+  closeBtnText: {
+    color: '#888',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  createBtn: {
+    padding: 12,
+    backgroundColor: '#0097a7',
+    borderRadius: 8,
+  },
+  createBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
 

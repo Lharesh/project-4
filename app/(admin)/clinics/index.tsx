@@ -9,7 +9,7 @@ import { DashboardSection } from './components/DashboardSection';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { ClinicForm } from './components/ClinicForm';
 import { LogoUploader } from './components/LogoUploader';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import {
   Clock,
   Users,

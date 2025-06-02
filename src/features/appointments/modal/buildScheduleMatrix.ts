@@ -65,7 +65,7 @@ export function buildScheduleMatrix(
   slotDuration?: number,
   clients: any[] = [] // Add clients as argument
 ): RoomMatrix[] {
-  console.log('[buildScheduleMatrix][INPUT]', {date, appointments, rooms, therapists, clinicTimings, enforceGenderMatch, clientGender, slotDuration});
+
   const matrix = rooms.map(room => {
     let slots = generateRoomSlots({
       room,

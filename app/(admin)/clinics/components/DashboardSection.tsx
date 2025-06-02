@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 
 interface DashboardSectionProps {
   title: string;

@@ -123,7 +123,7 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
       {!(therapistInputFocused && therapistSearch.length > 0) && quickPickTherapists.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarRow} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
           {quickPickTherapists.map(t => {
-            const initials = t.name.split(' ').map(w => w[0]).join('').toUpperCase();
+            const initials = (t.name ?? '').split(' ').map(w => w[0]).join('').toUpperCase();
             const selected = safeSelectedTherapists.includes(t.id);
             return (
               <TouchableOpacity
@@ -134,7 +134,7 @@ const TherapistPicker: React.FC<TherapistPickerProps> = ({
                 <View style={[styles.avatarCircle, selected && styles.avatarCircleSelected]}>
                   <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>{initials}</Text>
                 </View>
-                <Text style={styles.avatarName} numberOfLines={1}>{t.name.split(' ')[0]}</Text>
+                <Text style={styles.avatarName} numberOfLines={1}>{(t.name ?? '').split(' ')[0]}</Text>
               </TouchableOpacity>
             );
           })}

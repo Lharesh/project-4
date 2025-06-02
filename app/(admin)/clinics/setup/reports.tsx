@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card';
 import { Picker } from '@/components/ui/Picker';
 import { ReportTable } from '@/components/ui/ReportTable';
 import { Toast } from '@/components/ui/Toast';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { Download, FileText, RefreshCw } from 'lucide-react-native';
 import Button from '@/components/ui/Button';
 import { ReportType, TimeRangeOption } from '@/components/ui/types';

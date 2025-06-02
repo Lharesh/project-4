@@ -22,6 +22,7 @@ type RoomSlot = {
   therapistAvailable: boolean;
   availableTherapists: any[]; // Replace 'any' with 'Therapist[]' if defined
   booking: any;
+  slotId: string; // Unique slot identifier for navigation/context
 };
 
 export function generateRoomSlots({
@@ -87,7 +88,7 @@ export function generateRoomSlots({
   const end = normalizeSlot(clinicTimings.end);
   const now = new Date();
   const todayStr = format(now, 'yyyy-MM-dd');
-  const currentTimeStr = now.toTimeString().slice(0,5); // 'HH:mm'
+  const currentTimeStr = now.toTimeString().slice(0, 5); // 'HH:mm'
 
   // --- Build slot grid, merging standard and booking times ---
   // 1. Collect standard slot times
@@ -103,7 +104,7 @@ export function generateRoomSlots({
   const allTimes = Array.from(new Set([...standardTimes, ...bookingTimes])).sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
 
   // 4. Build slot grid sequentially, always advancing by previous slot's end
-  let slotGrid: {start: string, end: string, booking: any, duration: number}[] = [];
+  let slotGrid: { start: string, end: string, booking: any, duration: number }[] = [];
   let slotStart = current;
   while (timeToMinutes(slotStart) < timeToMinutes(end)) {
     // If slotStart is in a break, skip to break end
@@ -155,9 +156,25 @@ export function generateRoomSlots({
     slotGrid.push({ start: slotStart, end: nextSlotEnd, booking: null, duration: timeToMinutes(nextSlotEnd) - timeToMinutes(slotStart) });
     slotStart = nextSlotEnd;
   }
-  // Use slotGrid for all further logic
-  const allSlots = slotGrid;
 
+  // Realign slot grid for cancelled/rescheduled slots in the future
+  const realignedSlotGrid = [];
+  let lastSlotEnd = current;
+  for (const slot of slotGrid) {
+    if (slot.booking && (slot.booking.status === 'Cancelled' || slot.booking.status === 'Rescheduled') && date >= todayStr) {
+      // Realign slot grid to contiguous 60-min slots until next break, scheduled slot, or clinic end
+      while (timeToMinutes(lastSlotEnd) < timeToMinutes(slot.start)) {
+        const nextSlotEnd = addMinutesToTime(lastSlotEnd, slotDuration);
+        realignedSlotGrid.push({ start: lastSlotEnd, end: nextSlotEnd, booking: null, duration: timeToMinutes(nextSlotEnd) - timeToMinutes(lastSlotEnd) });
+        lastSlotEnd = nextSlotEnd;
+      }
+    }
+    realignedSlotGrid.push(slot);
+    lastSlotEnd = slot.end;
+  }
+
+  // Use realigned slot grid for all further logic
+  const allSlots = realignedSlotGrid;
 
   // 4. Build RoomSlot objects
   const slots: RoomSlot[] = [];
@@ -165,16 +182,26 @@ export function generateRoomSlots({
   for (const slot of allSlots) {
     const isBreak = isBreakHour(slot.start, clinicTimings);
     let isPast = false;
-    if (date === todayStr && timeToMinutes(slot.end) <= timeToMinutes(currentTimeStr) && !slot.booking) {
-      isPast = true;
-    }
+    let slotStatus: 'Scheduled' | 'Not Available' | 'Available' | 'Break' | 'Cancelled' | 'Rescheduled' | 'Completed' | 'Pending' = 'Available';
     // Find actual booking for this slot (if any)
     let slotBooking = slot.booking;
     if (!slotBooking) {
       slotBooking = roomBookings.find(b => normalizeSlot(b.slot) === slot.start);
     }
     // --- ENRICH slotBooking with patientId, patientName and patientPhone if missing ---
-    if (slotBooking) {
+    if (isBreak) {
+      slotStatus = 'Break';
+    } else if (slotBooking) {
+      // Check for booking status
+      if (slotBooking.status === 'Cancelled') {
+        slotStatus = 'Cancelled';
+      } else if (slotBooking.status === 'Completed') {
+        slotStatus = 'Completed';
+      } else if (slotBooking.status === 'Rescheduled') {
+        slotStatus = 'Rescheduled'; // for legacy support, but normally should not be set directly
+      } else {
+        slotStatus = 'Scheduled';
+      }
       // Only add if not present
       if (!slotBooking.patientId && slotBooking.clientId) slotBooking.patientId = slotBooking.clientId;
       if (!slotBooking.patientName || !slotBooking.patientPhone) {
@@ -185,7 +212,16 @@ export function generateRoomSlots({
           if (!slotBooking.patientPhone && patientObj.mobile) slotBooking.patientPhone = patientObj.mobile;
         }
       }
+    } else if ((date < todayStr) || (date === todayStr && timeToMinutes(slot.end) <= timeToMinutes(currentTimeStr))) {
+      // Past and not booked (for today and any previous day)
+      slotStatus = 'Not Available';
+      isPast = true;
     }
+    // After status is determined, if slot is Scheduled and current time >= slot.start, set to Pending (unless already Cancelled, Completed, or Rescheduled)
+    if (slotStatus === 'Scheduled' && ((date < todayStr) || (date === todayStr && timeToMinutes(slot.start) <= timeToMinutes(currentTimeStr)))) {
+      slotStatus = 'Pending';
+    }
+
     // --- Fix therapist availability: exclude therapists booked elsewhere for this slot ---
     // Find all therapistIds booked for this date in any slot that overlaps with the current slot
     const slotStartMins = timeToMinutes(slot.start);
@@ -226,14 +262,14 @@ export function generateRoomSlots({
       therapistAvailable: availableTherapists.length > 0,
       availableTherapists,
       booking: slotBooking,
+      // Add a unique slotId for navigation/context
+      slotId: `${room.id}_${date}_${slot.start}_${slot.end}`,
     });
-    summary.push({start: slot.start, end: slot.end, status, isBreak, hasBooking: !!slotBooking});
+    summary.push({ start: slot.start, end: slot.end, status, isBreak, hasBooking: !!slotBooking });
   }
-  // Log only a summary
-  console.log('[generateRoomSlots] Summary for room:', room.id, 'date:', date, summary);
   // Map 'notAvailable' status to 'therapistUnavailable' for compatibility with MatrixCell
   return slots.map(slot => ({
     ...slot,
     status: slot.status === 'notAvailable' ? 'therapistUnavailable' : slot.status
-  }));
-}
+  }))
+};

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -14,14 +15,46 @@ import { Client } from '@/features/clients/clientsSlice';
 
 
 
+import type { StaffMember } from '../../../../app/(admin)/clinics/setup/setupSlice';
+
 interface DoctorAppointmentsProps {
+  initialClientId?: string;
+  initialClientName?: string;
+  initialClientPhone?: string;
+  onSlotCreate?: () => void;
+  onCancel?: (appointment: any) => void;
+  onReschedule?: (appointment: any, newAppointment: any) => void;
+  onComplete?: (appointment: any) => void;
   clients: Client[];
   onClose: () => void;
   onCreate: (appointment: any) => void;
   appointments: any[];
+  therapists: StaffMember[];
+  therapies?: any[];
 }
 
-const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appointments, onClose, onCreate }) => {
+const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
+  onCancel, onReschedule, onComplete, clients, appointments, onClose, onCreate, therapists, therapies,
+  initialClientId, initialClientName, initialClientPhone
+}) => {
+  const router = useRouter();
+  // Patient selection state
+  const [selectedClient, setSelectedClient] = React.useState<{ id?: string; name?: string; phone?: string }>({
+    id: initialClientId,
+    name: initialClientName,
+    phone: initialClientPhone,
+  });
+
+  React.useEffect(() => {
+    if (initialClientId || initialClientName || initialClientPhone) {
+      setSelectedClient({
+        id: initialClientId,
+        name: initialClientName,
+        phone: initialClientPhone,
+      });
+    }
+  }, [initialClientId, initialClientName, initialClientPhone]);
+
   // Debug print: log the full Redux state
   // eslint-disable-next-line no-console
   //console.log('DEBUG Redux state:', useSelector((s) => s));
@@ -30,13 +63,10 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
   // Fetch doctors, doctor availability, and clients from Redux
   const doctors = useSelector(selectDoctors);
   const doctorAvailability = useSelector(selectDoctorAvailability);
-  
   const clientsList = useSelector(selectClients);
   const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
   const [doctor, setDoctor] = useState(doctors.length > 0 ? doctors[0].id : '');
-  const [clientSearch, setClientSearch] = useState('');
-  const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [clientMobile, setClientMobile] = useState('');
   const [clientMobileCode, setClientMobileCode] = useState('+91');
   const [clientMobileTouched, setClientMobileTouched] = useState(false);
@@ -52,9 +82,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
   const CONSULT_TYPES = ['New', 'Follow-up'];
   const MODE_OPTIONS = ['Walk-in', 'Online'];
 
-  
-  const filteredClients = clients.filter((p: Client) => p.name.toLowerCase().includes(clientSearch.toLowerCase()));
-
   const toggleConsultation = (type: string) => {
     setConsultation(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
@@ -63,10 +90,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
     setSubmitAttempted(true);
     setError(null);
     let valid = true;
-    // Debug print: show doctor, selectedClient, date, time, clientMobile
-    // eslint-disable-next-line no-console
-    console.log('DEBUG handleCreate: doctor', doctor, 'selectedClient', selectedClient, 'date', date, 'time', time, 'clientMobile', clientMobile);
-
     if (!selectedClient) {
       setClientTouched(true);
       valid = false;
@@ -95,11 +118,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
       doctorAvailability,
       now: new Date(),
     });
-    // eslint-disable-next-line no-console
-    console.log('DEBUG bookingResult:', bookingResult);
     if (!bookingResult.available) {
-      // eslint-disable-next-line no-console
-      console.log('DEBUG setError:', bookingResult.reason || 'Slot unavailable.');
       setError(bookingResult.reason || 'Slot unavailable.');
       // Optionally, show alternatives to the user
       // bookingResult.alternatives contains up to 5 next available slots
@@ -150,52 +169,25 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
           label="Doctor"
           items={doctors.length > 0 ? doctors.map((d: any) => ({ label: d.name, value: d.id })) : [{ label: 'No doctors available', value: '' }]}
           selectedValue={doctor}
-          onValueChange={doctors.length > 0 ? setDoctor : () => {}}
+          onValueChange={doctors.length > 0 ? setDoctor : () => { }}
         >
         </CustomPicker>
       </View>
-      <Text style={styles.label}>Client</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
-        <TextInput
-          style={[styles.input, { flex: 1, paddingRight: 36 }]}
-          placeholder="Search client by name"
-          value={clientSearch}
-          onChangeText={setClientSearch}
-          editable={!selectedClient}
-          testID="client-search"
-        />
-        {selectedClient ? (
-          <View style={{ position: 'absolute', right: 8, top: 0, height: 44, justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
-            <TouchableOpacity
-              onPress={() => { setSelectedClient(null); setClientSearch(''); setClientMobile(''); }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <MaterialIcons name="close" size={22} color="#888" />
-            </TouchableOpacity>
-          </View>
-        ) : null}
-      </View>
-      {clientSearch.length > 0 && !selectedClient && (
-        <View style={styles.dropdownList}>
-          {filteredClients.map((c: Client) => (
-            <TouchableOpacity
-              key={c.id}
-              style={styles.dropdownItem}
-              onPress={() => {
-                setSelectedClient(c.id);
-                setClientSearch(c.name);
-                setClientMobile(c.mobile);
-              }}
-              testID={`client-select-${c.id}`}
-            >
-              <Text style={{ color: selectedClient === c.id ? '#1a73e8' : '#222' }}>{c.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {!selectedClient && (clientTouched) && (
-        <Text style={{ color: 'red', marginBottom: 6 }}>Please select a client</Text>
+      <Text style={styles.label}>Patient</Text>
+      <TouchableOpacity
+        style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, backgroundColor: '#fafbfc', marginBottom: 8, paddingHorizontal: 10 }}
+        onPress={() => router.push({ pathname: '/clients', params: { selectMode: 1 } })}
+        testID="patient-picker"
+      >
+        {selectedClient?.name ? (
+          <Text style={[styles.input, { flex: 1 }]}>{selectedClient.name}</Text>
+        ) : (
+          <Text style={[styles.input, { color: '#888', flex: 1 }]}>Select Patient</Text>
+        )}
+        <MaterialIcons name="add" size={22} color="#1a73e8" style={{ marginLeft: 6 }} />
+      </TouchableOpacity>
+      {(submitAttempted && !selectedClient) && (
+        <Text style={styles.errorText}>Please select a patient</Text>
       )}
 
       <Text style={styles.label}>Client Mobile</Text>
@@ -234,12 +226,12 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
       )}
 
       <GenericTimePicker
-  label="Start Time"
-  value={time}
-  onChange={val => { setTime(val); setTimeTouched(true); }}
-  style={{ marginBottom: 8 }}
-  testID="time-picker"
-/>
+        label="Start Time"
+        value={time}
+        onChange={val => { setTime(val); setTimeTouched(true); }}
+        style={{ marginBottom: 8 }}
+        testID="time-picker"
+      />
       {timeTouched && !time && (
         <Text style={{ color: 'red', marginBottom: 6 }}>Select a time</Text>
       )}
@@ -278,7 +270,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ clients, appoin
         multiline
       />
 
-      
+
       {/* Show doctor error only after submit is attempted */}
       {submitAttempted && doctors.length === 0 && (
         <Text style={{ color: 'red', marginBottom: 8 }}>

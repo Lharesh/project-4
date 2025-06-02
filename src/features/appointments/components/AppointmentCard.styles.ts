@@ -1,0 +1,83 @@
+import { StyleSheet } from 'react-native';
+
+const styles = StyleSheet.create({
+  cardRow: {
+    flexDirection: 'row',
+    width: '100%',
+  },
+  cardCol: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  cardCell: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    minHeight: 24,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+  rowCellContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  card: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    minHeight: 90,
+  },
+  timeIcon: {
+    marginRight: 4,
+  },
+  timeText: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#1a2233',
+    marginRight: 8,
+  },
+  personIcon: {
+    marginRight: 4,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+  },
+  patientName: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: '#1a2233',
+  },
+  phoneIcon: {
+    marginRight: 4,
+  },
+  phoneText: {
+    fontSize: 14,
+    color: '#1a2233',
+  },
+  statusBadge: {
+    backgroundColor: '#e3f0fa',
+    color: '#4d6b99',
+    fontWeight: 'bold',
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    overflow: 'hidden',
+    textAlign: 'left',
+    minWidth: 70,
+  },
+  menuButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    alignSelf: 'flex-end',
+    marginBottom: 2,
+  },
+  therapists: {
+    fontSize: 13,
+    color: '#6c757d',
+    marginTop: 2,
+  },
+});
+
+export default styles;

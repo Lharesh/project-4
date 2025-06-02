@@ -7,6 +7,7 @@ import { createSelector } from 'reselect';
 
 // Setup selectors
 export const selectStaff = (state: any) => state.setup?.staff || [];
+// In your selectors file
 export const selectDoctorAvailability = createSelector(
   [(state: any) => state.setup?.doctorAvailability],
   (doctorAvailability) => doctorAvailability || {}

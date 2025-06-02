@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
 import { Picker } from '@/components/ui/Picker';
 import { Toast } from '@/components/ui/Toast';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { Mail, Phone, Stethoscope, CreditCard as Edit2, Trash2, Plus } from 'lucide-react-native';
 
 const ROLE_OPTIONS = [
@@ -23,6 +23,7 @@ interface StaffFormData {
   name: string;
   email: string;
   phone: string;
+  gender: 'Male' | 'Female' | 'Other';
   role: 'doctor' | 'therapist' | 'admin' | 'receptionist';
   specialization?: string;
 }
@@ -36,6 +37,7 @@ export default function StaffManagementScreen() {
   const [formData, setFormData] = useState<StaffFormData>({
     name: '',
     email: '',
+    gender: 'Male',
     phone: '',
     role: 'doctor',
     specialization: '',
@@ -79,6 +81,7 @@ export default function StaffManagementScreen() {
       if (editingId === 'new') {
         await dispatch(addStaffMember({
           ...formData,
+          gender: formData.gender ?? '',
           isActive: true,
         })).unwrap();
         setToastMessage('Staff member added successfully');
@@ -96,6 +99,7 @@ export default function StaffManagementScreen() {
       setFormData({
         name: '',
         email: '',
+        gender: 'Male',
         phone: '',
         role: 'doctor',
         specialization: '',
@@ -124,8 +128,9 @@ export default function StaffManagementScreen() {
     setEditingId(member.id);
     setFormData({
       name: member.name,
-      email: member.email,
-      phone: member.phone,
+      email: member.email || '',
+      gender: member.gender || 'Male',
+      phone: member.phone || '',
       role: member.role,
       specialization: member.specialization || '',
     });
@@ -142,6 +147,7 @@ export default function StaffManagementScreen() {
           setFormData({
             name: '',
             email: '',
+            gender: 'Male',
             phone: '',
             role: 'doctor',
             specialization: '',

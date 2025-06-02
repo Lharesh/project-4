@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { TextInput } from '@/components/ui/TextInput';
 import Button from '@/components/ui/Button';
 import { Building2, Mail, Phone, MapPin } from 'lucide-react-native';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 
 interface ClinicFormProps {
   name: string;

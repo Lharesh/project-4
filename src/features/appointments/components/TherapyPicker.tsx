@@ -33,21 +33,18 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
   const dropdownItemClicked = React.useRef(false);
   // Keep therapySearch in sync with selectedTherapy
   React.useEffect(() => {
+    // Only sync search with selectedTherapy if not focused (prevents overwrite while typing)
     if (!therapyInputFocused && selectedTherapy) {
       const found = therapies.find(t => t.id === selectedTherapy);
       if (found && therapySearch !== found.name) {
         setTherapySearch(found.name);
       }
     }
-    if (!selectedTherapy && !therapyInputFocused && therapySearch !== '') {
-      setTherapySearch('');
-    }
   }, [selectedTherapy, therapyInputFocused, therapies]);
-  console.log('TherapyPicker therapies:', therapies);
   const filteredTherapies = therapies.filter((t: Therapy) => t.name.toLowerCase().includes(therapySearch.toLowerCase()));
   return (
     <View style={styles.container}>
-  <Text style={styles.label}>Therapy Name</Text>
+  <Text style={styles.label}></Text>
   <View style={styles.inputWrapper}>
     <TextInput
       style={[styles.input, therapyInputFocused && styles.inputFocused]}
@@ -65,7 +62,10 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
           }}
           onChangeText={(text: string) => {
             setTherapySearch(text);
-            setSelectedTherapy(null);
+            // Only clear selectedTherapy if the text doesn't match the current selected therapy name
+            if (selectedTherapy && therapies.find(t => t.id === selectedTherapy)?.name !== text) {
+              setSelectedTherapy(null);
+            }
           }}
           onSubmitEditing={() => {
             if (filteredTherapies.length > 0) {
@@ -75,6 +75,9 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
               setTherapyInputFocused(false);
             }
           }}
+          autoCorrect={false}
+          autoCapitalize="none"
+          returnKeyType="done"
         />
         {selectedTherapy && (
           <TouchableOpacity
@@ -91,21 +94,20 @@ const TherapyPicker: React.FC<TherapyPickerProps> = ({
                 <Text style={styles.noResult}>No therapies found</Text>
               ) : filteredTherapies.map(t => (
                 <Pressable
-  key={t.id}
-  style={styles.dropdownItem}
-  onPress={() => {
-    dropdownItemClicked.current = true;
-    setSelectedTherapy(t.id);
-    setTherapySearch(t.name);
-    setTherapyInputFocused(false);
-    setTouched((touch: any) => ({ ...touch, therapy: true }));
-  }}
-  tabIndex={0}
-  role="button"
-  accessible={true}
-  accessibilityLabel={`Select therapy ${t.name}`}
->
-                  <Text style={{ color: selectedTherapy === t.id ? '#1a73e8' : '#222' }}>{t.name}</Text>
+                  key={t.id}
+                  onPress={() => {
+                    setSelectedTherapy(t.id);
+                    setTherapySearch(t.name);
+                    setTherapyInputFocused(false);
+                    setTouched((touch: any) => ({ ...touch, therapy: true }));
+                  }}
+                  style={{ paddingVertical: 14, paddingHorizontal: 18 }}
+                  tabIndex={0}
+                  role="button"
+                  accessible={true}
+                  accessibilityLabel={`Select therapy ${t.name}`}
+                >
+                  <Text style={{ color: selectedTherapy === t.id ? '#1a73e8' : '#222', fontSize: 18 }}>{t.name}</Text>
                 </Pressable>
               ))}
             </ScrollView>

@@ -35,29 +35,29 @@ export interface BookingOption {
 export interface GetBookingOptionsInput {
   date: string;
   slot: string;
-  patientId: string;
+  clientId: string;
   selectedTherapists?: string[];
   selectedRoom?: string;
   appointments: Booking[];
   allTherapists: Therapist[];
   allRooms: Room[];
-  patients: Patient[];
+  clients: Patient[];
   now?: Date;
   maxAlternatives?: number;
 }
 
 // --- Integrated double-booking check ---
-function canBookTherapyAppointment({ appointments, date, slot, roomId, therapistIds, patientId, slotDuration = 60 }: {
+function canBookTherapyAppointment({ appointments, date, slot, roomId, therapistIds, clientId, slotDuration = 60 }: {
   appointments: Booking[],
   date: string,
   slot: string,
   roomId: string,
   therapistIds: string[],
-  patientId: string,
+  clientId: string,
   slotDuration?: number
 }): { available: boolean; reason: string | null } {
   // 1. Patient overlap check
-  if (!isPatientAvailable(patientId, date, slot, appointments, slotDuration)) {
+  if (!isPatientAvailable(clientId, date, slot, appointments, slotDuration)) {
     return { available: false, reason: 'Patient already has an appointment at this time' };
   }
   // 2. Therapist overlap check
@@ -77,39 +77,25 @@ function canBookTherapyAppointment({ appointments, date, slot, roomId, therapist
 export function getBookingOptions({
   date,
   slot,
-  patientId,
+  clientId,
   selectedTherapists = [],
   selectedRoom = '',
   appointments,
   allTherapists,
   allRooms,
-  patients,
+  clients,
   now = new Date(),
   maxAlternatives = 5,
   enforceGenderMatch = true
 }: GetBookingOptionsInput & { enforceGenderMatch: boolean }): BookingOption[] {
-  // DEBUG LOG: Input parameters
-  console.log('[DEBUG][getBookingOptions][INPUT]', {
-    date,
-    slot,
-    patientId,
-    selectedTherapists,
-    selectedRoom,
-    appointments,
-    allTherapists,
-    allRooms,
-    patients,
-    now,
-    maxAlternatives,
-    enforceGenderMatch
-  });
+ 
   // Fallback guards for arrays
-  patients = Array.isArray(patients) ? patients : [];
+  clients = Array.isArray(clients) ? clients : [];
   allTherapists = Array.isArray(allTherapists) ? allTherapists : [];
   allRooms = Array.isArray(allRooms) ? allRooms : [];
 
   // Find patient gender
-  const patient = patients.find(p => p.id === patientId);
+  const patient = clients.find(p => p.id === clientId);
   const patientGender = patient ? patient.gender : undefined;
 
 
@@ -201,7 +187,7 @@ export function getBookingOptions({
     slot,
     roomId: selectedRoom,
     therapistIds: availableTherapists.map((t: Therapist) => t.id),
-    patientId
+    clientId
   });
 
   // Helper: get future slot alternatives

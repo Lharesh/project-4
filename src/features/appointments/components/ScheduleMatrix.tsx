@@ -32,6 +32,8 @@ interface ScheduleMatrixProps {
   recommendedSlots?: SelectedSlot[];
   onSlotSelect?: (roomId: string, slot: string, date: string) => void;
   therapists: any[];
+  onCreateSlot?: (slotInfo: { roomId: string; date: string; startTime: string; endTime: string; duration: number }) => void;
+  highlightedSlot?: { slotStart: string; slotRoom: string };
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -42,8 +44,10 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   recommendedSlots,
   onSlotSelect,
   therapists,
+  onCreateSlot,
+  highlightedSlot,
 }) => {
-  console.log('[ScheduleMatrix][RENDER] matrix:', matrix);
+
 
   function handleCellTap(roomNumber: string, slot: string) {
     if (typeof onSlotSelect === 'function') {
@@ -69,31 +73,41 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                 else if (!!slotObj.booking) status = 'booked';
                 else if (!slotObj.therapistAvailable) status = 'therapistUnavailable';
                 // else available
+                const isHighlighted = highlightedSlot && room.id === highlightedSlot.slotRoom && slotObj.start === highlightedSlot.slotStart;
                 return (
-                  <IntelligentSlot
-                    key={room.id + '-' + slotObj.start}
-                    startTime={slotObj.start}
-                    endTime={slotObj.end}
-                    duration={slotObj.booking?.duration || 60}
-                    patientId={status === 'booked' ? slotObj.booking?.patientId : undefined}
-                    patientName={slotObj.booking?.patientName}
-                    patientPhone={slotObj.booking?.patientPhone}
-                    therapyName={slotObj.booking?.therapyName}
-                    treatmentDay={slotObj.booking?.treatmentDay}
-                    totalTreatmentDays={slotObj.booking?.totalTreatmentDays}
-                    availableTherapists={
-                      status === 'booked'
-                        ? (slotObj.booking?.therapists || (slotObj.booking?.therapistIds ? slotObj.booking.therapistIds.map((id: string) => therapists.find((t: any) => t.id === id)).filter(Boolean) : []) )
-                        : status === 'available'
-                          ? slotObj.availableTherapists
-                          : []
-                    }
-                    status={status}
-                    onBook={status === 'available' ? () => handleCellTap(room.id, slotObj.start) : undefined}
-                    onReschedule={status === 'booked' ? () => {/* implement reschedule logic */ } : undefined}
-                    onCancel={status === 'booked' ? () => {/* implement cancel logic */ } : undefined}
-                    onConfirmVisit={status === 'booked' ? () => {/* implement confirm logic */ } : undefined}
-                  />
+                  <View key={room.id + '-' + slotObj.start} style={isHighlighted ? { borderColor: '#1976d2', borderWidth: 2, backgroundColor: '#e3f0fa', borderRadius: 12 } : undefined}>
+                    <IntelligentSlot
+                      startTime={slotObj.start}
+                      endTime={slotObj.end}
+                      duration={slotObj.booking?.duration || 60}
+                      patientId={status === 'booked' ? (slotObj.booking?.patientId || '') : ''}
+                      patientName={slotObj.booking?.patientName || ''}
+                      patientPhone={slotObj.booking?.patientPhone || ''}
+                      therapyName={slotObj.booking?.therapyName || ''}
+                      treatmentDay={slotObj.booking?.treatmentDay}
+                      availableTherapists={
+                        status === 'booked'
+                          ? (slotObj.booking?.therapists || (slotObj.booking?.therapistIds ? slotObj.booking.therapistIds.map((id: string) => therapists.find((t: any) => t.id === id)).filter(Boolean) : []) )
+                          : status === 'available'
+                            ? slotObj.availableTherapists
+                            : []
+                      }
+                      status={status}
+                      onBook={status === 'available' ? () => handleCellTap(room.id, slotObj.start) : undefined}
+                      onReschedule={status === 'booked' ? () => {/* implement reschedule logic */ } : undefined}
+                      onCancel={status === 'booked' ? () => {/* implement cancel logic */ } : undefined}
+                      onConfirmVisit={status === 'booked' ? () => {/* implement confirm logic */ } : undefined}
+                      onCreate={status === 'available' && typeof onCreateSlot === 'function' ? () => onCreateSlot({
+                        roomId: room.id,
+                        date: selectedDate,
+                        startTime: slotObj.start,
+                        endTime: slotObj.end,
+                        duration: slotObj.booking?.duration || 60
+                      }) : undefined}
+                      roomId={room.id}
+                      date={selectedDate}
+                    />
+                  </View>
                 );
               })}
             </View>

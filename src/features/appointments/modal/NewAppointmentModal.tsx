@@ -18,10 +18,14 @@ interface NewAppointmentModalProps {
   appointments: any[];
   therapies?: any[];
   enforceGenderMatch: boolean;
+  initialClientId?: string;
+  initialClientName?: string;
+  initialClientPhone?: string;
+  autoOpenDrawer?: boolean;
 }
 
 
-const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clients, therapists, rooms, clinicTimings, onClose, onCreate, appointments, therapies, enforceGenderMatch }) => {
+const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clients, therapists, rooms, clinicTimings, onClose, onCreate, appointments, therapies, enforceGenderMatch, initialClientId, initialClientName, initialClientPhone, autoOpenDrawer }) => {
 
   // Unified onCreate handler for both Doctor and Therapy
   const handleCreate = (appointmentOrArr: any) => {
@@ -30,9 +34,16 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clie
     if (onClose) onClose();
   };
 
-  const [tab, setTab] = useState<'Doctor' | 'Therapy'>('Doctor');
+  // Set Therapy as default tab if autoOpenDrawer and client info are present
+  const defaultTab = (autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) ? 'Therapy' : 'Doctor';
+  const [tab, setTab] = useState<'Doctor' | 'Therapy'>(defaultTab);
 
-
+  // If modal becomes visible with autoOpenDrawer and client info, switch to Therapy tab
+  React.useEffect(() => {
+    if (visible && autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) {
+      setTab('Therapy');
+    }
+  }, [visible, autoOpenDrawer, initialClientId, initialClientName, initialClientPhone]);
 
   // Filter appointments by tab
   const doctorAppointments = (appointments ?? []).filter(app => app.tab === 'Doctor');
@@ -65,6 +76,7 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clie
                 clients={clients}
                 onClose={onClose}
                 onCreate={handleCreate}
+                therapists={therapists}
                 appointments={doctorAppointments}
               />
             ) : (
@@ -79,6 +91,10 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clie
                 appointments={therapyAppointments}
                 therapies={therapies || []}
                 enforceGenderMatch={enforceGenderMatch}
+                autoOpenDrawer={autoOpenDrawer}
+                initialClientId={initialClientId}
+                initialClientName={initialClientName}
+                initialClientPhone={initialClientPhone}
               />
             )}
           </View>

@@ -4,7 +4,29 @@ export function addDays(dateStr: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-import { addMinutes, format } from 'date-fns';
+import { addMinutes, format, parseISO } from 'date-fns';
+
+/**
+ * Robust date formatting utility. Returns fallback if dateValue is invalid.
+ */
+export function safeFormatDate(dateValue: string | Date | undefined, fallback = '--', fmt = 'yyyy-MM-dd') {
+  if (!dateValue) return fallback;
+  let d: Date;
+  if (typeof dateValue === 'string') {
+    // Try parsing as ISO, fallback to Date constructor
+    d = parseISO(dateValue);
+    if (isNaN(d.getTime())) d = new Date(dateValue);
+  } else {
+    d = dateValue;
+  }
+  if (isNaN(d.getTime())) return fallback;
+  try {
+    return format(d, fmt);
+  } catch {
+    return fallback;
+  }
+}
+
 
 /**
  * Generate all slot times for a given date, clinic timings, and slot duration (in minutes).

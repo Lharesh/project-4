@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Camera, Upload } from 'lucide-react-native';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 
 interface LogoUploaderProps {
   logo?: string;

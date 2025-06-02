@@ -234,10 +234,10 @@ export function getRecurringSlotAlternatives({
   selectedTherapists,
   appointments,
   selectedRoom,
-  patientId,
+  clientId,
   allTherapists,
   allRooms,
-  patients,
+  clients,
   now = new Date(),
   enforceGenderMatch = true,
 }: {
@@ -247,10 +247,10 @@ export function getRecurringSlotAlternatives({
   selectedTherapists?: string[];
   appointments: any[];
   selectedRoom?: string;
-  patientId: string;
+  clientId: string;
   allTherapists: any[];
   allRooms: any[];
-  patients: any[];
+  clients: any[];
   now?: Date;
   enforceGenderMatch?: boolean;
 }): Array<{
@@ -263,8 +263,8 @@ export function getRecurringSlotAlternatives({
   if (!startDate || typeof startDate !== 'string') throw new Error('Missing or invalid startDate');
   if (!requestedSlot || typeof requestedSlot !== 'string') throw new Error('Missing or invalid requestedSlot');
   if (!Array.isArray(appointments)) throw new Error('Missing or invalid appointments array');
-  if (!patientId || typeof patientId !== 'string') throw new Error('Missing or invalid patientId');
-  if (!Array.isArray(patients) || patients.length === 0) throw new Error('Missing or invalid patients array');
+  if (!clientId || typeof clientId !== 'string') throw new Error('Missing or invalid clientId');
+  if (!Array.isArray(clients) || clients.length === 0) throw new Error('Missing or invalid clients array');
   if (typeof days !== 'number' || days < 1) throw new Error('Missing or invalid days');
   if (!(now instanceof Date)) throw new Error('Missing or invalid now (should be Date object)');
   const results: Array<{ date: string; available: boolean; reason: string | null; alternatives: { slot: string; roomId: string }[] }> = [];
@@ -275,7 +275,7 @@ export function getRecurringSlotAlternatives({
     }
     return results;
   }
-  const patient = patients.find((p: any) => p.id === patientId);
+  const patient = clients.find((p: any) => p.id === clientId);
   const patientGender = patient?.gender;
   const daysToBook = days;
   for (let i = 0; i < daysToBook; i++) {
@@ -305,7 +305,7 @@ export function getRecurringSlotAlternatives({
       continue;
     }
     // 1a. Patient double-booking (overlap) check
-    const patientAvailable = isPatientAvailable(patientId, dateVal, requestedSlot, appointments, slotDuration);
+    const patientAvailable = isPatientAvailable(clientId, dateVal, requestedSlot, appointments, slotDuration);
     if (!patientAvailable) {
       reason = 'Patient already has an appointment at this time';
       available = false;

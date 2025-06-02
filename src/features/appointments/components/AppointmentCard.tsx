@@ -1,104 +1,140 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Linking, Modal, Pressable, ActionSheetIOS, Platform } from 'react-native';
 import Card from '@/components/ui/Card';
-import { Clock, Phone } from 'lucide-react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Appointment as AppointmentBase } from '@/features/appointments/appointmentsSlice';
+import styles from './AppointmentCard.styles';
 
 type Appointment = AppointmentBase & { roomName?: string };
 
-import type { ViewStyle } from 'react-native';
-let styles: any = {};
-try {
-  styles = require('./index').default || require('./index');
-} catch (e) {
-  styles = {
-    card: {borderRadius: 12, backgroundColor: '#fff', marginBottom: 8, padding: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2},
-    timeText: {fontSize: 15, marginLeft: 8, fontWeight: 'bold'},
-    doctorName: {fontSize: 14, fontWeight: '600', color: '#4d6b99'},
-    statusLabel: {borderRadius: 8, fontWeight: 'bold'},
-    therapistNames: {fontSize: 13, color: '#4d6b99'},
-  };
-}
-const COLORS = {
+
+const CARD_COLORS = {
   vata: { 600: '#6C8CBF', 700: '#4d6b99', 100: '#e3f0fa' },
   kapha: { 100: '#e6f4ea', 700: '#388e3c' },
   pitta: { 100: '#ffe8d2', 700: '#e65100' },
   neutral: { 900: '#1a2233', 700: '#6c757d', 500: '#adb5bd', 400: '#ced4da' },
 };
 
+function ordinalDay(n?: number) {
+  if (!n) return '';
+  const s = ["th", "st", "nd", "rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+
 export function AppointmentCard({ appointment }: { appointment: Appointment }) {
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  // ActionSheet for iOS, Modal for Android
+  const openMenu = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({
+        options: ['Cancel', 'Reschedule', 'Record Completion', 'Close'],
+        cancelButtonIndex: 3,
+        destructiveButtonIndex: 0,
+      }, (buttonIndex) => {
+        // TODO: Implement actions
+      });
+    } else {
+      setMenuVisible(true);
+    }
+  };
+
   return (
-    <Card style={[(styles.card || {borderRadius: 12, backgroundColor: '#fff', marginBottom: 8, padding: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2}), { paddingVertical: 8, paddingHorizontal: 10, marginBottom: 8 }]}> 
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 }}>
-        {/* Left column: Time, Patient, Contact, Treatment, Room, Duration, Notes */}
-        <View style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-start' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Clock size={16} color={COLORS.vata[600]} />
-            <Text style={[(styles.timeText || {fontSize: 15, marginLeft: 8, fontWeight: 'bold'}), { color: COLORS.vata[600], fontWeight: 'bold' }]}>{appointment.time}</Text>
+    <>
+      <Card style={styles.card}>
+        <View style={styles.cardRow}>
+          <View style={[styles.cardCol, { alignItems: 'flex-start' }]}> 
+            {/* Row 1: Slot Start time */}
+            <View style={styles.cardCell}>
+              <View style={styles.rowCellContent}>
+                <MaterialIcons name="schedule" size={18} color={CARD_COLORS.vata[600]} style={styles.timeIcon} />
+                <Text style={styles.timeText}>{appointment.time}</Text>
+              </View>
+            </View>
+            {/* Row 2: Treatment Duration */}
+            <View style={styles.cardCell}>
+              <View style={styles.rowCellContent}>
+                <MaterialIcons name="healing" size={18} color={CARD_COLORS.vata[600]} style={styles.timeIcon} />
+                <Text style={styles.timeText}>{appointment.totalDays ? `${appointment.totalDays} days` : '--'}</Text>
+              </View>
+            </View>
+            {/* Row 3: Therapists (first half) */}
+            <View style={styles.cardCell}>
+              {Array.isArray(appointment.therapistNames) && appointment.therapistNames.length > 0 ? (
+                <Text style={styles.therapists} numberOfLines={1} ellipsizeMode="tail">
+                  {appointment.therapistNames.slice(0, Math.ceil(appointment.therapistNames.length / 2)).join(', ')}
+                </Text>
+              ) : null}
+            </View>
           </View>
-          <Text style={{ fontWeight: 'bold', fontSize: 15, color: COLORS.neutral[900], marginTop: 2, marginBottom: 0 }}>
-            {appointment.clientName} {appointment.clientId ? <Text style={{ color: COLORS.neutral[500], fontSize: 13 }}>({appointment.clientId})</Text> : null}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 0, marginBottom: 0 }}>
-            {appointment.clientMobile ? (
-              <TouchableOpacity onPress={() => Linking.openURL(`tel:${appointment.clientMobile}`)}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Phone size={13} color={COLORS.neutral[500]} style={{ marginRight: 4 }} />
-                  <Text style={{ fontSize: 13, color: COLORS.neutral[700], marginRight: 10 }}>{appointment.clientMobile}</Text>
+
+          <View style={[styles.cardCol, { alignItems: 'flex-start' }]}> 
+            {/* Row 1: Patient Name */}
+            <View style={styles.cardCell}>
+              <View style={styles.rowCellContent}>
+                <MaterialIcons name="person" size={16} color={CARD_COLORS.vata[700]} style={styles.personIcon} />
+                <Text style={styles.patientName} numberOfLines={1} ellipsizeMode="tail">{appointment.clientName}</Text>
+              </View>
+            </View>
+            {/* Row 2: Phone */}
+            <View style={styles.cardCell}>
+              {appointment.clientMobile ? (
+                <View style={styles.rowCellContent}>
+                  <MaterialIcons name="phone" size={15} color={CARD_COLORS.neutral[900]} style={styles.phoneIcon} />
+                  <Text style={styles.phoneText}>{appointment.clientMobile}</Text>
                 </View>
-              </TouchableOpacity>
-            ) : null}
+              ) : null}
+            </View>
+            {/* Row 3: Therapists (second half) */}
+            <View style={styles.cardCell}>
+              {Array.isArray(appointment.therapistNames) && appointment.therapistNames.length > 1 ? (
+                <Text style={styles.therapists} numberOfLines={1} ellipsizeMode="tail">
+                  {appointment.therapistNames.slice(Math.ceil(appointment.therapistNames.length / 2)).join(', ')}
+                </Text>
+              ) : null}
+            </View>
           </View>
-          {appointment.tab === 'Therapy' && appointment.dayIndex && appointment.totalDays && appointment.treatmentName ? (
-  <>
-    {appointment.roomNumber ? (
-      <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>Room: {appointment.roomNumber}</Text>
-    ) : null}
-    <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>
-      Duration: {appointment.totalDays} {appointment.totalDays === 1 ? 'day' : 'days'}
-    </Text>
-    <Text style={{ fontSize: 13, color: COLORS.vata[700], fontWeight: '600', marginTop: 0, marginBottom: 0 }}>
-      Day {appointment.dayIndex} of {appointment.totalDays}: {appointment.treatmentName}
-    </Text>
-  </>
-) : (
-  <>
-    <Text style={{ color: COLORS.vata[600], fontWeight: 'normal', fontSize: 13, marginTop: 0, marginBottom: 0 }}>{appointment.treatmentName}</Text>
-    {(appointment.roomName || appointment.roomNumber) ? (
-      <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>Room: {appointment.roomName || appointment.roomNumber}</Text>
-    ) : null}
-    <Text style={{ fontSize: 12, color: COLORS.neutral[500], marginTop: 0, marginBottom: 0 }}>
-      Duration: {appointment.duration} min
-    </Text>
-  </>
-)}
-          {appointment.notes ? <Text style={{ fontSize: 12, color: COLORS.neutral[400], marginTop: 0, marginBottom: 0 }}>Notes: {appointment.notes}</Text> : null}
+
+          <View style={[styles.cardCol, { alignItems: 'flex-end' }]}> 
+            {/* Row 1: Duration */}
+            <View style={styles.cardCell}>
+              <View style={styles.rowCellContent}>
+                <MaterialIcons name="timer" size={18} color={CARD_COLORS.vata[600]} style={styles.timeIcon} />
+                <Text style={styles.timeText}>{appointment.duration} M</Text>
+              </View>
+            </View>
+            {/* Row 2: 3-dots menu */}
+            <View style={styles.cardCell}>
+              <TouchableOpacity onPress={openMenu} style={styles.menuButton} accessibilityLabel="More actions">
+                <MaterialIcons name="more-vert" size={22} color={CARD_COLORS.neutral[700]} />
+              </TouchableOpacity>
+            </View>
+            {/* Row 3: Status badge */}
+            <View style={styles.cardCell}>
+              <View style={styles.rowCellContent}>
+                <Text style={styles.statusBadge}>{appointment.status ? appointment.status.toUpperCase() : ''}</Text>
+              </View>
+            </View>
+          </View>
         </View>
-        {/* Right column: Doctor, Status, Therapist Names */}
-        <View style={{ flex: 1, flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', height: 70 }}>
-          {appointment.doctorName ? (
-            <Text style={[(styles.doctorName || {fontSize: 14, fontWeight: '600', color: COLORS.vata[700]}), { textAlign: 'right', width: '100%', marginBottom: 6 }]}>{appointment.doctorName}</Text>
-          ) : null}
-          <Text style={[(styles.statusLabel || {borderRadius: 8, fontWeight: 'bold'}), {
-            backgroundColor:
-              appointment.status === 'completed' ? COLORS.kapha[100] :
-              appointment.status === 'cancelled' ? COLORS.pitta[100] : COLORS.vata[100],
-            color:
-              appointment.status === 'completed' ? COLORS.kapha[700] :
-              appointment.status === 'cancelled' ? COLORS.pitta[700] : COLORS.vata[700],
-            alignSelf: 'flex-end',
-            fontSize: 12,
-            paddingHorizontal: 8,
-            paddingVertical: 2,
-            marginBottom: 6,
-          }]}> {appointment.status.toUpperCase()} </Text>
-          {appointment.therapistNames && appointment.therapistNames.length > 0 ? (
-            <Text style={[(styles.therapistNames || {fontSize: 13, color: COLORS.vata[700]}), { textAlign: 'right', width: '100%', marginBottom: 6 }]}>{appointment.therapistNames.join(', ')}</Text>
-          ) : null}
-        </View>
-      </View>
-    </Card>
+      </Card>
+      {Platform.OS === 'android' && (
+        <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' }} onPress={() => setMenuVisible(false)}>
+            <View style={{ position: 'absolute', right: 20, top: 40, backgroundColor: '#fff', borderRadius: 8, elevation: 4, minWidth: 160, paddingVertical: 6 }}>
+              {['Cancel', 'Reschedule', 'Record Completion'].map((option, idx) => (
+                <TouchableOpacity key={option} onPress={() => { setMenuVisible(false); /* TODO: Implement actions */ }} style={{ padding: 12 }}>
+                  <Text style={{ fontSize: 15, color: '#222' }}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+    </>
   );
 }
+      
 
 export default AppointmentCard;

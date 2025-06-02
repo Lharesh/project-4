@@ -55,7 +55,7 @@ export function CountryCodePicker({ value, onChange }: { value: string; onChange
   );
 }
 
-import { COLORS } from '../../../constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 
 const styles = StyleSheet.create({
   row: {

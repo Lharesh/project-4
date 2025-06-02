@@ -1,7 +1,17 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 
 export const clientStyles = StyleSheet.create({
+  clientName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  clientId: {
+    fontSize: 12,
+    color: '#888',
+    marginLeft: 10,
+  },
 
   modalOverlay: {
     flex: 1,

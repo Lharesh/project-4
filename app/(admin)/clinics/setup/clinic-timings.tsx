@@ -9,7 +9,7 @@ import { fetchTimings, saveTimings, setDraftTimings } from './setupSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Picker } from '@/components/ui/Picker';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { Toast } from '@/components/ui/Toast';
 
 const STATUS_OPTIONS = [

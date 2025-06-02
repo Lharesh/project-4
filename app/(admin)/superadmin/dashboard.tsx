@@ -4,7 +4,7 @@ import { useAppSelector } from '@/redux/hooks';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {SectionDivider} from '@/components/ui/SectionDivider';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { Bell, Users, Calendar, Package } from 'lucide-react-native';
 
 export default function HomeScreen() {

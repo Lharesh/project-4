@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { colors, spacing, typography } from '../../../theme';
+import { router } from 'expo-router';
 
 export type IntelligentSlotStatus = 'available' | 'booked' | 'break' | 'therapistUnavailable' | 'notAvailable';
 
@@ -21,6 +22,15 @@ interface IntelligentSlotProps {
   onCancel?: () => void;
   onConfirmVisit?: () => void;
   onOverlayPress?: () => void;
+  onCreate?: ((slotInfo: {
+    startTime: string;
+    endTime: string;
+    duration: number;
+    roomId?: string;
+    date?: string;
+  }) => void) | (() => void);
+  roomId?: string;
+  date?: string;
 }
 
 const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
@@ -40,6 +50,9 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
   onCancel,
   onConfirmVisit,
   onOverlayPress,
+  onCreate,
+  roomId,
+  date,
 }) => {
   // Slot color and content logic
   let slotStyle = styles.available;
@@ -48,10 +61,73 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
   let statusLabel = '';
 
   // Overlay icon (top right)
+  // --- Action menu state ---
+  const [menuVisible, setMenuVisible] = React.useState(false);
+
+  const openMenu = () => setMenuVisible(true);
+  const closeMenu = () => setMenuVisible(false);
+
   const overlayIcon = (
-    <TouchableOpacity style={styles.overlayIcon} onPress={onOverlayPress} hitSlop={{top: 8, right: 8, bottom: 8, left: 8}}>
-      <Text style={{fontSize: 18, color: colors.grayDark}}>⋮</Text>
+    <TouchableOpacity style={styles.overlayIcon} onPress={openMenu} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+      <Text style={{ fontSize: 18, color: colors.grayDark }}>⋮</Text>
     </TouchableOpacity>
+  );
+
+  // --- Action menu for slot ---
+  const showCancel = typeof onCancel === 'function';
+  const showReschedule = typeof onReschedule === 'function';
+  const showComplete = typeof onConfirmVisit === 'function';
+  const showCreate = typeof onCreate === 'function';
+
+  const ActionMenu = () => (
+    <Modal
+      visible={menuVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={closeMenu}
+    >
+      <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={closeMenu}>
+        <View style={styles.menuContainer}>
+          {showCreate && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => {
+              closeMenu();
+              // Navigate to /appointments with slot and patient info as params
+
+              router.push({
+                pathname: '/(app)/clients',
+                params: {
+                  slotStart: startTime,
+                  slotEnd: endTime,
+                  slotRoom: roomId,
+                  date: date,
+                  select: 1,
+                }
+              });
+            }}>
+              <Text style={styles.menuItemText}>Create</Text>
+            </TouchableOpacity>
+          )}
+          {showCancel && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); onCancel && onCancel(); }}>
+              <Text style={styles.menuItemText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+          {showReschedule && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); onReschedule && onReschedule(); }}>
+              <Text style={styles.menuItemText}>Reschedule</Text>
+            </TouchableOpacity>
+          )}
+          {showComplete && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); onConfirmVisit && onConfirmVisit(); }}>
+              <Text style={styles.menuItemText}>Mark as Completed</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={[styles.menuItem, { borderTopWidth: 1, borderColor: '#eee' }]} onPress={closeMenu}>
+            <Text style={[styles.menuItemText, { color: '#888' }]}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 
   // Dosha color cycle for avatars
@@ -74,7 +150,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
           </View>
         ) : null}
         {/* Patient Name and Phone always visible, directly below avatar */}
-        <View style={{alignItems: 'center', marginBottom: 2}}>
+        <View style={{ alignItems: 'center', marginBottom: 2 }}>
           <Text style={styles.patientNameSingle} numberOfLines={1} ellipsizeMode="tail">{patientName || 'Unknown Patient'}</Text>
           <Text style={styles.patientPhone}>{patientPhone || 'No phone'}</Text>
         </View>
@@ -148,13 +224,15 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
 
   return (
     <View style={[styles.slot, slotStyle]}>
+      {/* Overlay icon (menu) */}
       {overlayIcon}
+      <ActionMenu />
       <View style={styles.centerContent}>
         {/* Always show time at the top */}
         <Text style={styles.timeText}>{startTime} - {endTime}</Text>
         {/* Avatars for therapists (booked and available) */}
         {availableTherapists && availableTherapists.length > 0 && (
-          <View style={[styles.avatarsRow, { flexWrap: 'wrap' }]}> 
+          <View style={[styles.avatarsRow, { flexWrap: 'wrap' }]}>
             {availableTherapists.map((t, idx) => (
               <View
                 key={t.name + idx}
@@ -386,6 +464,35 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
     fontSize: typography.fontSizeXs,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    minWidth: 200,
+    paddingVertical: 6,
+    paddingHorizontal: 0,
+    alignItems: 'stretch',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.17,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+  },
+  menuItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    alignItems: 'flex-start',
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#1a2233',
+    fontWeight: '600',
   },
 });
 

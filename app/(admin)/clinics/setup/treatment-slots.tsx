@@ -5,7 +5,7 @@ import { fetchTreatmentSlots } from './setupSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { Clock, IndianRupee, Trash2, Plus, CreditCard as Edit2 } from 'lucide-react-native';
 import { Toast } from '@/components/ui/Toast';
 

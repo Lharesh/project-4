@@ -60,7 +60,7 @@ export function getAvailableSlotsForEntity({
   const end = dayTiming.end;
 
   function addMinutes(time: string, mins: number): string {
-    const [h, m] = time.split(':').map(Number);
+    const [h, m] = (time ?? '00:00').split(':').map(Number);
     const dateObj = new Date(0, 0, 0, h, m + mins);
     return dateObj.toTimeString().slice(0, 5);
   }
@@ -81,10 +81,9 @@ export function getAvailableSlotsForEntity({
     current = addMinutes(current, slotDuration);
   }
 
-  // Debug log for slot generation
-  console.log('[getAvailableSlotsForEntity] For date', date, 'entityType', entityType, 'entityId', entityId);
-  console.log('  start:', dayTiming.start, 'end:', dayTiming.end, 'slotDuration:', slotDuration);
-  console.log('  Generated slots:', slots);
+
+
+
 
   // 3. Filter out slots that are already booked for this entity
   const bookedSlots = appointments
@@ -133,7 +132,7 @@ function doTimeRangesOverlap(startA: Date, endA: Date, startB: Date, endB: Date)
  * @returns Date object representing the combined date and time
  */
 function slotToDate(date: string, slot: string): Date {
-  const [h, m] = slot.split(':').map(Number);
+  const [h, m] = (slot ?? '00:00').split(':').map(Number);
   const d = new Date(date);
   d.setHours(h, m, 0, 0);
   return d;
@@ -231,7 +230,7 @@ export function isRoomAvailable(
  * Checks if a patient is available for a given slot, using overlap-aware logic.
  * Prevents double-booking the same patient in overlapping slots.
  * Uses doesBookingOverlap for accurate overlap detection.
- * @param patientId - ID of the patient
+ * @param clientId - ID of the patient
  * @param date - Date string (YYYY-MM-DD)
  * @param slot - Slot string (HH:mm)
  * @param appointments - All appointments
@@ -239,7 +238,7 @@ export function isRoomAvailable(
  * @returns true if available, false if overlapping
  */
 export function isPatientAvailable(
-  patientId: string,
+  clientId: string,
   date: string,
   slot: string,
   appointments: Booking[],
@@ -247,7 +246,7 @@ export function isPatientAvailable(
 ): boolean {
   
   const result = !appointments.some((apt) => {
-    const isSamePatient = apt.clientId === patientId;
+    const isSamePatient = apt.clientId === clientId;
     const isSameDate = apt.date === date;
     const overlap = doesBookingOverlap(apt, date, slot, slotDuration);
     return isSamePatient && isSameDate && overlap;

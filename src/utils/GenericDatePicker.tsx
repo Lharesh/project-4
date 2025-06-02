@@ -85,11 +85,21 @@ export const GenericDatePicker: React.FC<GenericDatePickerProps> = ({
               minimumDate={minDate}
               maximumDate={maxDate}
               onChange={(event, selectedDate?: Date) => {
-                if (event.type === 'set' && selectedDate) {
-                  setShow(false);
-                  onChange(formatDate(selectedDate));
-                } else if (event.type === 'dismissed') {
-                  setShow(false);
+                if (Platform.OS === 'android' || Platform.OS === 'ios') {
+                  if (event.type === 'set' && selectedDate) {
+                    setShow(false);
+                    onChange(formatDate(selectedDate));
+                  } else if (event.type === 'dismissed') {
+                    setShow(false);
+                  }
+                } else {
+                  // Fallback for web or other platforms
+                  if (selectedDate) {
+                    setShow(false);
+                    onChange(formatDate(selectedDate));
+                  } else {
+                    setShow(false);
+                  }
                 }
               }}
             />

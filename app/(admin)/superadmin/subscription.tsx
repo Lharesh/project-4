@@ -11,7 +11,7 @@ import { useAppSelector } from '@/redux/hooks';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {SectionDivider} from '@/components/ui/SectionDivider';
-import { COLORS } from '@/constants/theme';
+import { COLORS } from '@/theme/constants/theme';
 import { ArrowLeft, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 
 export default function SubscriptionScreen() {
