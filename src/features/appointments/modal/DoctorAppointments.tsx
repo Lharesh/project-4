@@ -31,11 +31,14 @@ interface DoctorAppointmentsProps {
   appointments: any[];
   therapists: StaffMember[];
   therapies?: any[];
+  newAppointment?: boolean; // signals intent to clear/reset state for new appointment
 }
+
+import { APPOINTMENT_PARAM_KEYS } from '../constants/paramKeys';
 
 const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
   onCancel, onReschedule, onComplete, clients, appointments, onClose, onCreate, therapists, therapies,
-  initialClientId, initialClientName, initialClientPhone
+  initialClientId, initialClientName, initialClientPhone, newAppointment
 }) => {
   const router = useRouter();
   // Patient selection state
@@ -44,6 +47,27 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
     name: initialClientName,
     phone: initialClientPhone,
   });
+
+  // Reset local state if newAppointment is triggered
+  React.useEffect(() => {
+    if (newAppointment) {
+      setSelectedClient({ id: initialClientId, name: initialClientName, phone: initialClientPhone });
+      setDate('');
+      setTime('09:00 AM');
+      setConsultation([]);
+      setMode('Walk-in');
+      setNotes('');
+      setClientMobile('');
+      setClientMobileCode('+91');
+      setClientMobileTouched(false);
+      setClientTouched(false);
+      setDateTouched(false);
+      setTimeTouched(false);
+      setDoctor(therapists.length > 0 ? therapists[0].id : '');
+      setSubmitAttempted(false);
+      setError(null);
+    }
+  }, [newAppointment, initialClientId, initialClientName, initialClientPhone, therapists]);
 
   React.useEffect(() => {
     if (initialClientId || initialClientName || initialClientPhone) {
@@ -176,7 +200,7 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
       <Text style={styles.label}>Patient</Text>
       <TouchableOpacity
         style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, backgroundColor: '#fafbfc', marginBottom: 8, paddingHorizontal: 10 }}
-        onPress={() => router.push({ pathname: '/clients', params: { selectMode: 1 } })}
+        onPress={() => router.push({ pathname: '/clients', params: { select: 1 } })}
         testID="patient-picker"
       >
         {selectedClient?.name ? (

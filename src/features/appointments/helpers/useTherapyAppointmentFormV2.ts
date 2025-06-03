@@ -11,8 +11,6 @@ export interface TherapyAppointmentFormValues {
   timeSlot: string;
   selectedRoom: string | null;
   duration: number | null;
-  customDuration: string;
-  customMode: boolean;
   notes: string;
 }
 
@@ -61,14 +59,6 @@ export function useTherapyAppointmentFormV2({
     (val: number | null) => form.setValues((v: TherapyAppointmentFormValues) => ({ ...v, duration: val })),
     [form]
   );
-  const setCustomDuration = useCallback(
-    (val: string) => form.setValues((v: TherapyAppointmentFormValues) => ({ ...v, customDuration: val })),
-    [form]
-  );
-  const setCustomMode = useCallback(
-    (val: boolean) => form.setValues((v: TherapyAppointmentFormValues) => ({ ...v, customMode: val })),
-    [form]
-  );
   const setNotes = useCallback(
     (val: string) => form.setValues((v: TherapyAppointmentFormValues) => ({ ...v, notes: val })),
     [form]
@@ -83,8 +73,6 @@ export function useTherapyAppointmentFormV2({
     setTimeSlot,
     setSelectedRoom,
     setDuration,
-    setCustomDuration,
-    setCustomMode,
     setNotes,
   };
 }

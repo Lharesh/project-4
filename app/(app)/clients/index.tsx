@@ -44,13 +44,11 @@ import {
   addClient,
   updateClient,
 } from '@/features/clients/clientsSlice';
+import { APPOINTMENT_PARAM_KEYS } from '@/features/appointments/constants/paramKeys';
 import Card from '@/components/ui/Card';
 import AppTextField from '@/components/ui/AppTextField';
 import FormContainer from '@/components/ui/FormContainer';
 import FormFieldRow from 'src/components/ui/FormFieldRow';
-import { PrefixPicker } from '@/features/clients/components/PrefixPicker';
-import { CountryCodePicker } from '@/features/clients/components/CountryCodePicker';
-import { GenericDatePicker } from 'src/components/ui/GenericDatePicker';
 import { ChevronRight, Phone, Mail, Search, Plus, UserPlus2, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
 import type { Client } from '@/features/clients/types/client';
 
@@ -99,14 +97,16 @@ function ClientsScreen() {
       router.replace({
         pathname: '/(app)/appointments',
         params: {
-          selectedClientId: client.id,
-          selectedClientName: client.name,
-          selectedClientPhone: client.mobile,
-          slotStart: params.slotStart,
-          slotEnd: params.slotEnd,
-          slotRoom: params.slotRoom,
-          date: params.date,
-          openForm: 1,
+          [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id, // <-- match extraction hook
+          clientName: client.name,
+          clientPhone: client.mobile,
+          [APPOINTMENT_PARAM_KEYS.SLOT_START]: params[APPOINTMENT_PARAM_KEYS.SLOT_START],
+          [APPOINTMENT_PARAM_KEYS.SLOT_END]: params[APPOINTMENT_PARAM_KEYS.SLOT_END],
+          [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom, // ensure both supported
+          slotRoom: params.slotRoom, // keep for compatibility
+          [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
+          autoOpenDrawer: 1, // <-- match extraction hook
+          t: Date.now(), // optional, to force navigation refresh
         }
       });
     } else {
@@ -153,7 +153,6 @@ function ClientsScreen() {
     if (!form.mobile || !/^\d{10}$/.test(form.mobile)) errors.mobile = 'Mobile number must be 10 digits';
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Invalid email';
     if (form.height && Number(form.height) <= 0) errors.height = 'Height must be positive';
-    if (form.weight && Number(form.weight) <= 0) errors.weight = 'Weight must be positive';
     return errors;
   };
 
@@ -172,7 +171,8 @@ function ClientsScreen() {
     });
   };
 
-  const handleSubmit = async () => {
+  
+const handleSubmit = async () => {
     const errors = validate();
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -199,7 +199,7 @@ function ClientsScreen() {
 
     try {
       if (form.id && clients.some((c: any) => c.id === form.id)) {
-        console.log('[UI] Dispatching updateClient with:', clientData);
+        console.log('[UI] Dispatching upAPPOINTMENT_PARAM_KEYS.DATEClient with:', clientData);
         // If dob is provided, calculate age; otherwise, use age from form (must be number)
         const age = clientData.dob ? calculateAge(clientData.dob) : (typeof clientData.age === 'number' ? clientData.age : 0);
         dispatch(updateClient({

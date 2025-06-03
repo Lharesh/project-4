@@ -4,6 +4,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Platform, Alert, ScrollView } from 'react-native';
 import IntelligentSlot from './IntelligentSlot';
+import { safeFormatDate } from '../helpers/dateHelpers';
 
 interface SelectedSlot {
   id: string;
@@ -34,6 +35,7 @@ interface ScheduleMatrixProps {
   therapists: any[];
   onCreateSlot?: (slotInfo: { roomId: string; date: string; startTime: string; endTime: string; duration: number }) => void;
   highlightedSlot?: { slotStart: string; slotRoom: string };
+  onCloseModal?: () => void;
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -46,15 +48,15 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   therapists,
   onCreateSlot,
   highlightedSlot,
+  onCloseModal,
 }) => {
-
 
   function handleCellTap(roomNumber: string, slot: string) {
     if (typeof onSlotSelect === 'function') {
       onSlotSelect(roomNumber, slot, selectedDate);
     }
   };
-
+  console.log('[ScheduleMatrix] matrix prop:', matrix);
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Therapy Room Schedule</Text>
@@ -74,13 +76,14 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                 else if (!slotObj.therapistAvailable) status = 'therapistUnavailable';
                 // else available
                 const isHighlighted = highlightedSlot && room.id === highlightedSlot.slotRoom && slotObj.start === highlightedSlot.slotStart;
+                const formattedDate = safeFormatDate(selectedDate,'', 'yyyy-MM-dd');
                 return (
                   <View key={room.id + '-' + slotObj.start} style={isHighlighted ? { borderColor: '#1976d2', borderWidth: 2, backgroundColor: '#e3f0fa', borderRadius: 12 } : undefined}>
                     <IntelligentSlot
                       startTime={slotObj.start}
                       endTime={slotObj.end}
                       duration={slotObj.booking?.duration || 60}
-                      patientId={status === 'booked' ? (slotObj.booking?.patientId || '') : ''}
+                      clientId={status === 'booked' ? (slotObj.booking?.patientId || '') : ''}
                       patientName={slotObj.booking?.patientName || ''}
                       patientPhone={slotObj.booking?.patientPhone || ''}
                       therapyName={slotObj.booking?.therapyName || ''}
@@ -99,13 +102,14 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       onConfirmVisit={status === 'booked' ? () => {/* implement confirm logic */ } : undefined}
                       onCreate={status === 'available' && typeof onCreateSlot === 'function' ? () => onCreateSlot({
                         roomId: room.id,
-                        date: selectedDate,
+                        date: formattedDate,
                         startTime: slotObj.start,
                         endTime: slotObj.end,
                         duration: slotObj.booking?.duration || 60
                       }) : undefined}
                       roomId={room.id}
-                      date={selectedDate}
+                      date={formattedDate}
+                      onCloseModal={onCloseModal}
                     />
                   </View>
                 );

@@ -78,12 +78,14 @@ export function buildScheduleMatrix(
       clientGender,
       clients, // Pass clients array for enrichment
     });
-
+    console.log('[Matrix Room Slots]', room.id, slots.length);
     return {
       id: room.id,
       roomName: room.name || room.id,
       slots,
     };
+    
   });
+  
   return matrix;
 }

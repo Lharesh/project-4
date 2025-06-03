@@ -22,10 +22,15 @@ interface NewAppointmentModalProps {
   initialClientName?: string;
   initialClientPhone?: string;
   autoOpenDrawer?: boolean;
+  newAppointment?: boolean; // signals intent to clear/reset state for new appointment
+  initialSlotStart?: string;
+  initialSlotEnd?: string;
+  initialRoomId?: string;
+  initialDate?: string;
 }
 
 
-const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clients, therapists, rooms, clinicTimings, onClose, onCreate, appointments, therapies, enforceGenderMatch, initialClientId, initialClientName, initialClientPhone, autoOpenDrawer }) => {
+const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clients, therapists, rooms, clinicTimings, onClose, onCreate, appointments, therapies, enforceGenderMatch, initialClientId, initialClientName, initialClientPhone, autoOpenDrawer, newAppointment, initialSlotStart, initialSlotEnd, initialRoomId, initialDate }) => {
 
   // Unified onCreate handler for both Doctor and Therapy
   const handleCreate = (appointmentOrArr: any) => {
@@ -38,12 +43,20 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clie
   const defaultTab = (autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) ? 'Therapy' : 'Doctor';
   const [tab, setTab] = useState<'Doctor' | 'Therapy'>(defaultTab);
 
+  // Reset state if newAppointment is triggered
+  React.useEffect(() => {
+    if (newAppointment) {
+      setTab(defaultTab); // optionally reset other local state here
+      // Could add more resets if needed (e.g., clear forms via refs)
+    }
+  }, [newAppointment, defaultTab]);
+
   // If modal becomes visible with autoOpenDrawer and client info, switch to Therapy tab
   React.useEffect(() => {
-    if (visible && autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) {
+    if (visible && autoOpenDrawer && initialClientId && initialClientName && initialClientPhone && initialSlotStart && initialSlotEnd && initialRoomId && initialDate) {
       setTab('Therapy');
     }
-  }, [visible, autoOpenDrawer, initialClientId, initialClientName, initialClientPhone]);
+  }, [visible, autoOpenDrawer, initialClientId, initialClientName, initialClientPhone, initialSlotStart, initialSlotEnd, initialRoomId, initialDate]);
 
   // Filter appointments by tab
   const doctorAppointments = (appointments ?? []).filter(app => app.tab === 'Doctor');
@@ -78,23 +91,29 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clie
                 onCreate={handleCreate}
                 therapists={therapists}
                 appointments={doctorAppointments}
+                newAppointment={newAppointment} // pass to DoctorAppointments
               />
             ) : (
               <TherapyAppointments
                 visible={visible}
                 onClose={onClose}
                 onCreate={handleCreate}
-                clients={clients}
-                therapists={therapists}
-                rooms={rooms}
-                clinicTimings={clinicTimings}
-                appointments={therapyAppointments}
-                therapies={therapies || []}
+                clients={clients ?? []}
+                therapists={therapists ?? []}
+                rooms={rooms ?? []}
+                clinicTimings={clinicTimings ?? {}}
+                appointments={therapyAppointments ?? []}
+                therapies={therapies ?? []}
                 enforceGenderMatch={enforceGenderMatch}
                 autoOpenDrawer={autoOpenDrawer}
+                newAppointment={newAppointment}
                 initialClientId={initialClientId}
                 initialClientName={initialClientName}
                 initialClientPhone={initialClientPhone}
+                initialSlotStart={initialSlotStart}
+                initialSlotEnd={initialSlotEnd}
+                initialRoomId={initialRoomId}
+                initialDate={initialDate}
               />
             )}
           </View>

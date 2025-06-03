@@ -255,17 +255,23 @@ const TherapyAppointmentDrawer: React.FC<TherapyAppointmentDrawerProps> = (props
               ))}
             </View>
 
-            {/* Therapists */}
+            {/* Therapists Quick Picks */}
             <View style={styles.row}>
-              {therapists.map(t => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={[styles.therapistChip, selectedTherapists.includes(t.id) ? styles.therapistChipActive : null]}
-                  onPress={() => onTherapistToggle(t.id)}
-                >
-                  <Text style={selectedTherapists.includes(t.id) ? styles.therapistChipActiveText : styles.therapistChipText}>{t.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {therapists.length > 0 ? (
+                therapists.map(t => (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={[styles.therapistChip, selectedTherapists.includes(t.id) ? styles.therapistChipActive : null]}
+                    onPress={() => onTherapistToggle(t.id)}
+                  >
+                    <Text style={selectedTherapists.includes(t.id) ? styles.therapistChipActiveText : styles.therapistChipText}>{t.name}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={{ color: '#999', fontStyle: 'italic', marginVertical: 6 }}>
+                  No therapists available for this slot
+                </Text>
+              )}
             </View>
 
             {/* Notes */}

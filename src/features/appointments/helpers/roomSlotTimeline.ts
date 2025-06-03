@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { addMinutesToTime, normalizeSlot } from '../helpers/dateHelpers';
+import { addMinutesToTime, normalizeSlot, safeFormatDate } from '../helpers/dateHelpers';
 import { getAvailableTherapists } from '../helpers/availabilityUtils';
 
 function timeToMinutes(time: string): number {
@@ -87,7 +87,7 @@ export function generateRoomSlots({
   }
   const end = normalizeSlot(clinicTimings.end);
   const now = new Date();
-  const todayStr = format(now, 'yyyy-MM-dd');
+  const todayStr = safeFormatDate(now, 'yyyy-MM-dd');
   const currentTimeStr = now.toTimeString().slice(0, 5); // 'HH:mm'
 
   // --- Build slot grid, merging standard and booking times ---

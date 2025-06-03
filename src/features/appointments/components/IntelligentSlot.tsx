@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { colors, spacing, typography } from '../../../theme';
 import { router } from 'expo-router';
+import { APPOINTMENT_PARAM_KEYS } from '../constants/paramKeys';
 
 export type IntelligentSlotStatus = 'available' | 'booked' | 'break' | 'therapistUnavailable' | 'notAvailable';
 
 interface IntelligentSlotProps {
-  patientId?: string; // Patient ID for avatar
+  clientId?: string & { length: number }; // Patient ID for avatar
   startTime: string;
   endTime: string;
   duration: number;
@@ -31,13 +32,14 @@ interface IntelligentSlotProps {
   }) => void) | (() => void);
   roomId?: string;
   date?: string;
+  onCloseModal?: () => void; // Optional: close parent modal before navigation
 }
 
 const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
   startTime,
   endTime,
   duration,
-  patientId,
+  clientId,
   patientName,
   patientPhone,
   therapyName,
@@ -53,6 +55,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
   onCreate,
   roomId,
   date,
+  onCloseModal,
 }) => {
   // Slot color and content logic
   let slotStyle = styles.available;
@@ -91,18 +94,26 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
           {showCreate && (
             <TouchableOpacity style={styles.menuItem} onPress={() => {
               closeMenu();
-              // Navigate to /appointments with slot and patient info as params
-
-              router.push({
-                pathname: '/(app)/clients',
-                params: {
-                  slotStart: startTime,
-                  slotEnd: endTime,
-                  slotRoom: roomId,
-                  date: date,
-                  select: 1,
-                }
-              });
+              if (typeof onCloseModal === 'function') {
+                onCloseModal();
+              }
+              setTimeout(() => {
+                console.log('Create action slot params:', { startTime, endTime, roomId, date });
+                router.push({
+                  pathname: '/(app)/clients',
+                  params: {
+                    [APPOINTMENT_PARAM_KEYS.SLOT_START]: startTime,
+                    [APPOINTMENT_PARAM_KEYS.SLOT_END]: endTime,
+                    [APPOINTMENT_PARAM_KEYS.ROOM_ID]: roomId,
+                    slotRoom: roomId,
+                    [APPOINTMENT_PARAM_KEYS.DATE]: date,
+                    select: 1, // keep as string for compatibility
+                    new: 1, // signals to open drawer and clear previous client/appointment data
+                    t: Date.now(), // force navigation to be unique
+                  }
+                });
+// 'new: 1' param signals downstream components to open the drawer and reset all client/appointment fields
+              }, 50);
             }}>
               <Text style={styles.menuItemText}>Create</Text>
             </TouchableOpacity>
@@ -144,9 +155,9 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
         {/* Time always at the top */}
         <Text style={styles.timeText}>{startTime} - {endTime}</Text>
         {/* Patient Avatar with ID */}
-        {patientId ? (
+        {clientId ? (
           <View style={styles.avatarPatient}>
-            <Text style={styles.avatarText}>{patientId.length > 2 ? patientId.slice(-2) : patientId}</Text>
+            <Text style={styles.avatarText}>{clientId.length > 2 ? clientId.slice(-2) : clientId}</Text>
           </View>
         ) : null}
         {/* Patient Name and Phone always visible, directly below avatar */}

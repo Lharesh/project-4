@@ -2,7 +2,7 @@
 // All data and callbacks must be passed as props from the parent (NewAppointmentModal).
 // This is a strict project rule for appointments.
 import React from 'react';
-import { useTherapyAppointmentFormV2 } from '@/hooks/useTherapyAppointmentFormV2';
+import { useTherapyAppointmentFormV2 } from '../helpers/useTherapyAppointmentFormV2';
 import * as validationUtils from '@/hooks/validationUtils';
 import { View, Text, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import styles from './TherapyAppointments.styles';
@@ -19,8 +19,6 @@ import type { Therapist } from '../helpers/availabilityUtils';
 import { filterTherapistsByGender, getBookingOptions } from '../helpers/rulesEngine';
 import { addDynamicAvailability } from '../helpers/dynamicAvailability';
 import { useLocalSearchParams } from 'expo-router';
-import { useAppSelector } from '@/redux/hooks';
-import { selectTherapists } from '../../../../app/(admin)/clinics/setup/setupSlice';
 
 interface DrawerForm {
   client: { id: string; name: string; mobile: string };
@@ -44,47 +42,119 @@ interface TherapyAppointmentsProps {
   therapies: any[];
   enforceGenderMatch: boolean;
   autoOpenDrawer?: boolean;
+  newAppointment?: boolean; // signals intent to clear/reset state for new appointment
   initialClientId?: string;
   initialClientName?: string;
   initialClientPhone?: string;
+  initialSlotStart?: string;
+  initialSlotEnd?: string;
+  initialRoomId?: string;
+  initialDate?: string;
 }
 
-const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as TherapyAppointmentsProps) => {
+const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
+  // Support newAppointment prop for resetting state
+  const { newAppointment } = props;
+
   // Destructure all required props at the top
   const {
     visible,
     onClose,
     onCreate,
-    clients,
-    therapists,
-    rooms,
-    clinicTimings,
-    appointments,
-    therapies,
+    clients = [],
+    therapists = [],
+    rooms = [],
+    clinicTimings = {},
+    appointments = [],
+    therapies = [],
     enforceGenderMatch,
     autoOpenDrawer,
+    initialSlotStart = '',
+    initialSlotEnd = '',
+    initialRoomId = '',
     initialClientId = '',
     initialClientName = '',
     initialClientPhone = '',
-  } = props || {};
+    initialDate = '',
+  } = props;
+
+  // Defensive: fallback to empty array if therapists is undefined
+  const safeTherapists = Array.isArray(therapists) ? therapists : [];
+
+  // Defensive: ensure all arrays are always arrays
+  const safeClients = Array.isArray(clients) ? clients : [];
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+  const safeTherapies = Array.isArray(therapies) ? therapies : [];
+
+  // Debug log for all drawerForm initial values
+  console.log('drawerForm init', {
+    initialClientId,
+    initialClientName,
+    initialClientPhone,
+    therapists: safeTherapists,
+  });
 
   // --- Drawer State ---
+  // Only declare these ONCE at the top of the component!
   const [drawerVisible, setDrawerVisible] = React.useState(false);
+
   const [drawerForm, setDrawerForm] = React.useState<DrawerForm>({
     client: {
-      id: initialClientId || '',
-      name: initialClientName || '',
-      mobile: initialClientPhone || ''
+      id: initialClientId,
+      name: initialClientName,
+      mobile: initialClientPhone,
     },
     therapy: '',
     date: '',
     time: '',
     duration: '1d',
-    therapists: (therapists || []).map((t: any) => ({ id: t.id, name: t.name })),
-
+    therapists: safeTherapists.map((t: any) => ({ id: t.id, name: t.name })),
     selectedTherapists: [],
     notes: '',
   });
+
+  // Defensive logs for debugging (optional, comment out if not needed)
+  // console.log('[TherapyAppointments] props:', props);
+  // console.log('[TherapyAppointments] clients:', clients);
+  // console.log('[TherapyAppointments] therapists:', therapists);
+  // console.log('[TherapyAppointments] rooms:', rooms);
+  // console.log('[TherapyAppointments] appointments:', appointments);
+  // console.log('[TherapyAppointments] therapies:', therapies);
+
+  // Only open drawer for newAppointment (IntelligentSlot 'Create') or explicit slot select
+  React.useEffect(() => {
+    if (newAppointment) {
+      setDrawerForm({
+        client: { id: '', name: '', mobile: '' },
+        therapy: '',
+        date: '',
+        time: '',
+        duration: '1d',
+        therapists: (therapists || []).map((t: any) => ({ id: t.id, name: t.name })),
+        selectedTherapists: [],
+        notes: '',
+      });
+      setDrawerVisible(true);
+    }
+  }, [newAppointment, therapists]);
+
+  // Drawer close handler: always clear drawerForm and close drawer
+  const handleDrawerClose = React.useCallback(() => {
+    setDrawerVisible(false);
+    setDrawerForm({
+      client: { id: '', name: '', mobile: '' },
+      therapy: '',
+      date: '',
+      time: '',
+      duration: '1d',
+      therapists: (therapists || []).map((t: any) => ({ id: t.id, name: t.name })),
+      selectedTherapists: [],
+      notes: '',
+    });
+  }, [therapists]);
+
+
 
 
 
@@ -95,70 +165,91 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
 
   // --- Automatically open drawer if autoOpenDrawer and valid client info ---
   // When autoOpenDrawer or client info changes, update drawerForm with client info and sensible defaults
-  React.useEffect(() => {
-    if (
-      autoOpenDrawer &&
-      initialClientId && initialClientName && initialClientPhone
-    ) {
-      setDrawerForm((f) => ({
-        ...f,
-        client: {
-          id: initialClientId,
-          name: initialClientName,
-          mobile: initialClientPhone
-        },
-        // Set sensible defaults if not already set
-        therapy: f.therapy || '',
-        date: f.date || safeFormatDate(new Date(), 'yyyy-MM-dd'),
-        time: f.time || '',
-        duration: f.duration || '1d',
-        therapists: f.therapists && f.therapists.length > 0 ? f.therapists : (therapists || []).map((t: any) => ({ id: t.id, name: t.name })),
 
-        selectedTherapists: f.selectedTherapists || [],
-        notes: f.notes || ''
-      }));
-    }
-  }, [autoOpenDrawer, initialClientId, initialClientName, initialClientPhone, therapists]);
 
   // --- Handler for slot creation (used in ScheduleMatrix) ---
   const handleCreateSlot = (slotInfo: any) => {
-    // Only open drawer in response to IntelligentSlot action
-    setDrawerVisible(true);
-    // Optionally, set drawerForm state here based on slotInfo if needed
-  };
+  // slotInfo should contain clientId, date, slot/time, therapyId, etc.
+  const { clientId, date, time, therapyId } = slotInfo || {};
+  const patient = clients.find(p => p.id === clientId);
+  const patientGender = patient?.gender;
+  let filteredTherapists: any[] = [];
+  if (patientGender && date && time) {
+    const genderMatched = filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
+    filteredTherapists = genderMatched.filter(t => {
+      if (!t || !t.availability || !t.availability[date]) return false;
+      return t.availability[date].includes(time);
+    });
+  } else {
+    filteredTherapists = therapists.map(t => ({ id: t.id, name: t.name }));
+  }
+  setDrawerForm((prev: any) => ({
+    ...prev,
+    client: { id: clientId || '', name: patient?.name || '', mobile: patient?.mobile || '' },
+    date: date || '',
+    time: time || '',
+    therapy: therapyId || '',
+    therapists: filteredTherapists,
+    selectedTherapists: [],
+    notes: '',
+  }));
+  setDrawerVisible(true);
+};
 
   // --- STATE and handlers (existing logic follows here) ---
   // DEBUG: Effect for navigation params (if any)
   const params = useLocalSearchParams();
 
   React.useEffect(() => {
-    // Only open drawer if router params for slot and client are present
-    const slotStart = params.slotStart as string | undefined;
-    const slotEnd = params.slotEnd as string | undefined;
-    const roomId = params.roomId as string | undefined;
-    const date = params.date as string | undefined;
-    const clientId = params.clientId as string | undefined;
-    const clientName = params.clientName as string | undefined;
-    const clientPhone = params.clientPhone as string | undefined;
-    if (slotStart && slotEnd && roomId && date && clientId) {
-      setDrawerForm(prev => ({
-        ...prev,
-        client: {
-          id: clientId,
-          name: clientName || '',
-          mobile: clientPhone || ''
-        },
-        date,
-        time: slotStart,
-        duration: String((Number(slotEnd.split(':')[0]) * 60 + Number(slotEnd.split(':')[1])) - (Number(slotStart.split(':')[0]) * 60 + Number(slotStart.split(':')[1]))),
-        selectedTherapists: [],
-        therapists: [],
-        notes: ''
-      }));
-      setDrawerVisible(true);
-      // Optionally: clear params here if needed (requires router.replace or navigation reset)
+  // Only open drawer if router params for slot and client are present
+  const slotStart = params.slotStart as string | undefined;
+  const slotEnd = params.slotEnd as string | undefined;
+  const roomId = params.roomId as string | undefined;
+  const date = params.date as string | undefined;
+  const clientId = params.clientId as string | undefined;
+  const clientName = params.clientName as string | undefined;
+  const clientPhone = params.clientPhone as string | undefined;
+  if (slotStart && slotEnd && roomId && date && clientId) {
+    // Blur any focused element before opening drawer (web accessibility fix)
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
     }
-  }, [params.slotStart, params.slotEnd, params.roomId, params.date, params.clientId]);
+    // Find patient gender for filtering
+    const patient = clients.find(p => p.id === clientId);
+    const patientGender = patient?.gender;
+    // Find therapy duration
+    const therapyId = (drawerForm && drawerForm.therapy) || '';
+    const therapyObj = (therapies || []).find(t => t.id === therapyId);
+    const therapyDuration = therapyObj?.duration ? String(therapyObj.duration) : '60';
+    // Filter therapists by gender and slot availability
+    let filteredTherapists: any[] = [];
+    if (patientGender && date && slotStart) {
+      const genderMatched = filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
+      filteredTherapists = genderMatched.filter(t => {
+        if (!t || !t.availability || !t.availability[date]) return false;
+        return t.availability[date].includes(slotStart);
+      });
+    } else {
+      filteredTherapists = therapists.map(t => ({ id: t.id, name: t.name }));
+    }
+    setDrawerForm(prev => ({
+      ...prev,
+      client: {
+        id: clientId,
+        name: clientName || '',
+        mobile: clientPhone || ''
+      },
+      date,
+      time: slotStart,
+      duration: therapyDuration,
+      therapists: (filteredTherapists as any[]).map((t: any) => ({ id: t.id, name: t.name })),
+      selectedTherapists: [],
+      notes: ''
+    }));
+    setDrawerVisible(true);
+    // Optionally: clear params here if needed (requires router.replace or navigation reset)
+  }
+}, [params.slotStart, params.slotEnd, params.roomId, params.date, params.clientId]);
   // Helper to ensure param is always a string
   const getString = (v: string | string[] | undefined) => Array.isArray(v) ? v[0] || '' : v || '';
 
@@ -183,21 +274,17 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
     setTimeSlot,
     setSelectedRoom,
     setDuration,
-    setCustomDuration,
-    setCustomMode,
     setNotes,
   } = useTherapyAppointmentFormV2({
     initialValues: {
-      selectedPatient: null,
-      selectedTherapy: null,
-      selectedTherapists: [],
+      selectedPatient: '',
+      selectedTherapy: '',
+      selectedTherapists: Array.isArray(safeTherapists) ? [] : [], // always array
       startDate: '',
       timeSlot: '',
-      selectedRoom: null,
-      duration: null,
-      customDuration: '',
-      customMode: false,
-      notes: ''
+      selectedRoom: '',
+      duration: 1,
+      notes: '',
     },
     validate: (formValues) => validationUtils.validateRequiredFields(formValues, [
       'selectedPatient',
@@ -208,8 +295,37 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
       'selectedRoom',
       'duration'
     ]),
-    onSubmit: onCreate
+    onSubmit: (values) => {
+      if (props.onCreate) props.onCreate(values);
+    },
   });
+
+  // --- Matrix Date, Therapy Object, Stable Rooms ---
+  const matrixDate = values?.startDate || safeFormatDate(new Date(), 'yyyy-MM-dd');
+  const selectedTherapyObj = (safeTherapies ?? []).find((t: any) => t.id === values?.selectedTherapy) || null;
+  const stableRooms = React.useMemo(() => safeRooms, [safeRooms]);
+
+
+  // Runtime check for undefined arrays/fields
+  if (
+    values.selectedTherapists === undefined ||
+    !Array.isArray(values.selectedTherapists) ||
+    safeTherapists === undefined ||
+    safeClients === undefined ||
+    safeRooms === undefined ||
+    safeAppointments === undefined ||
+    safeTherapies === undefined
+  ) {
+    console.error('[TherapyAppointments] FATAL: One or more initialValues or safe arrays are undefined!', {
+      values,
+      safeTherapists,
+      safeClients,
+      safeRooms,
+      safeAppointments,
+      safeTherapies,
+    });
+  }
+  console.log('[TherapyAppointments] useTherapyAppointmentFormV2 initial values:', values);
 
   const [therapySearch, setTherapySearch] = React.useState('');
   const [therapyInputFocused, setTherapyInputFocused] = React.useState(false);
@@ -220,26 +336,15 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
   const [clientGender, setClientGender] = React.useState<string | null>(null);
 
   const filteredTherapists = React.useMemo(() => {
-    if (!clientGender) return therapists;
-    return filterTherapistsByGender(therapists, clientGender, enforceGenderMatch);
+    if (!clientGender) return therapists ?? [];
+    return filterTherapistsByGender(therapists ?? [], clientGender, enforceGenderMatch);
   }, [therapists, clientGender, enforceGenderMatch]);
 
   const [replacementSlots, setReplacementSlots] = React.useState<Record<string, string>>({});
 
   // Memoize appointments, therapists, and rooms to ensure stable references for useMemo dependencies
-  const stableAppointments = React.useMemo(() => appointments, [appointments]);
-  const stableTherapists = React.useMemo(() => therapists, [therapists]);
-  const stableRooms = React.useMemo(() => rooms, [rooms]);
-
-  // Matrix date state, controlled by the date slider above the matrix
-  const [matrixDate, setMatrixDate] = React.useState(safeFormatDate(new Date(), 'yyyy-MM-dd'));
-
-  // Map therapists and rooms with all required variables from props
-  const date = values.startDate;
-  // Dynamically determine slotDuration from selected therapy
-  const selectedTherapyObj = React.useMemo(() => {
-    return therapies?.find((t: any) => t.id === values.selectedTherapy) || null;
-  }, [therapies, values.selectedTherapy]);
+  const stableAppointments = React.useMemo(() => appointments ?? [], [appointments]);
+  const stableTherapists = React.useMemo(() => therapists ?? [], [therapists]);
   // Default slot values.duration is 60 minutes until a therapy is selected
   const slotDuration = selectedTherapyObj ? selectedTherapyObj.duration : 60;
   const therapistsWithAvailability = addDynamicAvailability({
@@ -274,9 +379,26 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
   });
 
   // Build the schedule matrix using only stable dependencies
-  const matrix = React.useMemo(() => {
+  const matrix: any[] = React.useMemo(() => {
     if (!matrixDate) return [];
-    return buildScheduleMatrix(
+    const safeStableAppointments = Array.isArray(stableAppointments) ? stableAppointments : [];
+    console.log('[TherapyAppointments] Appointments for matrix:', Array.isArray(safeStableAppointments) ? safeStableAppointments.length : 'not array', safeStableAppointments && safeStableAppointments.length > 0 ? safeStableAppointments.slice(0, 2) : safeStableAppointments);
+    console.log('[Matrix Inputs]', {
+      matrixDate,
+      rooms: stableRooms,
+      therapists: stableTherapists,
+      clinicTimings,
+    });
+
+    const weekday = new Date(matrixDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    console.log('[Matrix Weekday]', weekday, clinicTimings.weekdays[weekday]);
+    const safeMatrix = Array.isArray(matrix) ? matrix : [];
+    console.log('[TherapyAppointments] matrix for render:', safeMatrix, Array.isArray(safeMatrix), safeMatrix.length, typeof safeMatrix, safeMatrix);
+    if (!Array.isArray(safeMatrix)) {
+      console.error('[TherapyAppointments] matrix is not array!', safeMatrix);
+    }
+    
+    const scheduleMatrix = buildScheduleMatrix(
       matrixDate,
       stableAppointments,
       stableRooms,
@@ -287,6 +409,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
       selectedTherapyObj?.duration || 60,
       clients // Pass as clients argument
     );
+    return scheduleMatrix || [];
   }, [matrixDate, stableAppointments, stableRooms, stableTherapists, clinicTimings, enforceGenderMatch, clientGender, selectedTherapyObj, clients]);
 
   React.useEffect(() => {
@@ -326,7 +449,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
     return getRecurringSlotAlternatives({
       enforceGenderMatch,
       startDate: values.startDate,
-      days: values.customMode ? Number(values.customDuration) : (values.duration ?? 1),
+      days: values.duration ?? 1,
       requestedSlot: values.timeSlot,
       selectedTherapists: values.selectedTherapists,
       appointments,
@@ -337,7 +460,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
       clients: clients,
       now: new Date(),
     });
-  }, [appointments, values.startDate, values.timeSlot, values.selectedTherapists, values.selectedRoom, therapists, rooms, clients, values.customMode, values.customDuration, values.duration]);
+  }, [appointments, values.startDate, values.timeSlot, values.selectedTherapists, values.selectedRoom, therapists, rooms, clients, values.duration]);
 
   // Handler for dropdown
   const handleSlotChange = (date: string, slot: string) => {
@@ -346,7 +469,9 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
 
   // Show alternatives if there is a conflict
   React.useEffect(() => {
-    if (!values.startDate || !values.timeSlot || !values.selectedTherapists.length || !values.selectedRoom) {
+    const safeSelectedTherapists = Array.isArray(values.selectedTherapists) ? values.selectedTherapists : [];
+    console.log('[TherapyAppointments] safeSelectedTherapists:', safeSelectedTherapists, typeof safeSelectedTherapists);
+    if (!values.startDate || !values.timeSlot || safeSelectedTherapists.length === 0 || !values.selectedRoom) {
       setRecommendedSlots([]);
       setShowAlternatives(false);
       return;
@@ -371,11 +496,10 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
       return;
     }
     // --- FIX: Compute recurring slot alternatives ---
-    const days = values.customMode ? Number(values.customDuration) : (values.duration ?? 1);
     const alternativesResult = getRecurringSlotAlternatives({
       enforceGenderMatch: enforceGenderMatch,
       startDate: values.startDate,
-      days: days,
+      days: values.duration ?? 1,
       requestedSlot: values.timeSlot,
       selectedTherapists: values.selectedTherapists,
       appointments: appointments,
@@ -388,13 +512,15 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
     });
     setRecommendedSlots(alternativesResult[0]?.alternatives || []);
     setShowAlternatives(true);
-  }, [appointments, values.startDate, values.timeSlot, values.selectedTherapists, values.selectedRoom, matrix, values.customMode, values.customDuration, values.duration, clients, therapists, rooms]);
+  }, [appointments, values.startDate, values.timeSlot, values.selectedTherapists, values.selectedRoom, matrix, values.duration, clients, therapists, rooms]);
 
   // Memoize recurringConflicts
-  const isRecurring = (values.customMode && Number(values.customDuration) > 1) || (!values.customMode && values.duration && [3, 7, 14, 21].includes(values.duration));
+  const isRecurring = values.duration && [3, 7, 14, 21].includes(values.duration);
   const recurringConflicts = React.useMemo(() => {
-    if (values.selectedTherapists.length > 0 && values.startDate && values.timeSlot && isRecurring) {
-      const days = values.customMode ? Number(values.customDuration) : (values.duration ?? 1);
+    const safeSelectedTherapists2 = Array.isArray(values.selectedTherapists) ? values.selectedTherapists : [];
+    console.log('[TherapyAppointments] safeSelectedTherapists2:', safeSelectedTherapists2, typeof safeSelectedTherapists2);
+    if (safeSelectedTherapists2.length > 0 && values.startDate && values.timeSlot && isRecurring) {
+      const days = values.duration ?? 1;
       const dateAdd = (dateStr: string, n: number) => format(addDays(parseISO(dateStr), n), 'yyyy-MM-dd');
       const conflicts = getRecurringConflicts(
         appointments,
@@ -407,18 +533,20 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
       return conflicts;
     }
     return [];
-  }, [appointments, values.startDate, values.timeSlot, values.selectedTherapists, values.customMode, values.customDuration, values.duration, isRecurring]);
+  }, [appointments, values.startDate, values.timeSlot, values.selectedTherapists, values.duration, isRecurring]);
 
   // Validation logic 
   const isValid = () => {
-    if (!values.selectedPatient || !values.selectedTherapy || values.selectedTherapists.length === 0 || !values.startDate || !values.timeSlot || (!values.duration && !(values.customMode && !!values.customDuration && Number(values.customDuration) > 0))) {
+    const safeSelectedTherapists3 = Array.isArray(values.selectedTherapists) ? values.selectedTherapists : [];
+    console.log('[TherapyAppointments] safeSelectedTherapists3:', safeSelectedTherapists3, typeof safeSelectedTherapists3);
+    if (!values.selectedPatient || !values.selectedTherapy || safeSelectedTherapists3.length === 0 || !values.startDate || !values.timeSlot || (!values.duration && !(false))) {
       return false;
     }
     // Ensure values.selectedPatient and values.selectedRoom are never null or undefined
     const clientId = values.selectedPatient ? values.selectedPatient : '';
     const roomId = values.selectedRoom ? values.selectedRoom : '';
     // Check for any slot in the series being in the past or unresolved
-    const daysToBook = values.customMode ? Number(values.customDuration) : (values.duration ?? 1);
+    const daysToBook = values.duration ?? 1;
     const now = new Date();
 
 
@@ -479,7 +607,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
     }
 
     // Build recurring appointments for each day in values.duration
-    const days = values.customMode ? Number(values.customDuration) : (values.duration ?? 1);
+    const days = values.duration ?? 1;
     let lastCreatedAppointment = null;
     const daysToBook = Number(days);
     const generatedAppointments: any[] = [];
@@ -503,7 +631,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
 
     // TODO: Implement logic to create appointments
   };
-
+  
   return (
     <View style={{ flex: 1 }}>
       <View>
@@ -512,15 +640,15 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
           <View style={{ margin: 0, padding: 0, backgroundColor: 'transparent', borderRadius: 0 }}>
             <View style={{ margin: 0, padding: 0, backgroundColor: 'transparent', borderRadius: 0 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <TouchableOpacity onPress={() => setMatrixDate(format(addDays(parseISO(matrixDate), -1), 'yyyy-MM-dd'))}>
+                <TouchableOpacity onPress={() => setStartDate(format(addDays(parseISO(matrixDate), -1), 'yyyy-MM-dd'))}>
                   <Text style={{ fontSize: 28 }}>‹</Text>
                 </TouchableOpacity>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', marginHorizontal: 16 }}>{matrixDate}</Text>
-                <TouchableOpacity onPress={() => setMatrixDate(format(addDays(parseISO(matrixDate), 1), 'yyyy-MM-dd'))}>
+                <TouchableOpacity onPress={() => setStartDate(format(addDays(parseISO(matrixDate), 1), 'yyyy-MM-dd'))}>
                   <Text style={{ fontSize: 28 }}>›</Text>
                 </TouchableOpacity>
               </View>
-              {matrix && matrix.length > 0 ? (
+              {Array.isArray(matrix) && matrix.length > 0 ? (
                 <ScheduleMatrix
                   matrix={matrix}
                   conflicts={getRecurringConflicts
@@ -539,18 +667,19 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
                     )
                     : []
                   }
-                  selectedDate={values.startDate}
-                  selectedTherapists={values.selectedTherapists}
+                  selectedDate={matrixDate}
+                  selectedTherapists={values.selectedTherapists ?? []}
                   selectedSlot={{ id: values.selectedRoom || '', slot: values.timeSlot || '' }}
-                  recommendedSlots={recommendedSlots}
+                  recommendedSlots={recommendedSlots ?? []}
                   onSlotSelect={(roomId: string, slot: string, date: string) => {
                     setSelectedRoom(roomId);
                     setTimeSlot(slot);
                     setStartDate(date);
                   }}
-                  therapists={therapists}
+                  therapists={therapists ?? []}
                   onCreateSlot={handleCreateSlot}
                   highlightedSlot={{ slotStart: values.timeSlot || '', slotRoom: values.selectedRoom || '' }}
+                  onCloseModal={() => setDrawerVisible(false)}
                 />
               ) : (
                 <Text style={{ color: '#888', textAlign: 'center', marginTop: 20 }}>
@@ -597,20 +726,87 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props = {} as T
             }}>
               <TherapyAppointmentDrawer
                 visible={drawerVisible}
-                onClose={() => setDrawerVisible(false)}
+                onClose={handleDrawerClose}
                 onSubmit={(appointment) => {
                   if (props.onCreate) {
                     props.onCreate(appointment);
                   }
-                  setDrawerVisible(false);
+                  handleDrawerClose(); // Always clear and close after booking
+
                 }}
                 client={drawerForm.client}
                 therapy={drawerForm.therapy}
-                onTherapyChange={therapy => setDrawerForm((f: DrawerForm) => ({ ...f, therapy }))}
+                onTherapyChange={therapyId => {
+                  // Find selected therapy object
+                  const therapyObj = (therapies || []).find(t => t.id === therapyId);
+                  // Get duration from therapy
+                  const therapyDuration = therapyObj?.duration ? String(therapyObj.duration) : '60';
+                  // Find patient gender
+                  const patient = clients.find(p => p.id === drawerForm.client.id);
+                  const patientGender = patient?.gender;
+                  // Defensive: get date and slot
+                  const date = drawerForm.date;
+                  const slot = drawerForm.time;
+                    // Filter therapists by gender and slot availability
+                    let filteredTherapists: any[] = [];
+                    if (patientGender && date && slot) {
+                      const genderMatched = filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
+                      filteredTherapists = genderMatched.filter(t => {
+                        if (!t || !t.availability || !t.availability[date]) return false;
+                        return t.availability[date].includes(slot);
+                      });
+                    } else {
+                      filteredTherapists = therapists.map(t => ({ id: t.id, name: t.name }));
+                    }
+                    setDrawerForm((f: DrawerForm) => ({
+                      ...f,
+                      therapy: therapyId,
+                      duration: therapyDuration,
+                      therapists: filteredTherapists,
+                    }));
+                } }
                 date={drawerForm.date}
                 time={drawerForm.time}
-                onDateChange={date => setDrawerForm((f: DrawerForm) => ({ ...f, date }))}
-                onTimeChange={time => setDrawerForm((f: DrawerForm) => ({ ...f, time }))}
+                onDateChange={date => {
+                  const patient = clients.find(p => p.id === drawerForm.client.id);
+                  const patientGender = patient?.gender;
+                  const slot = drawerForm.time;
+                  let filteredTherapists: any[] = [];
+                  if (patientGender && date && slot) {
+                    const genderMatched = filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
+                    filteredTherapists = genderMatched.filter(t => {
+                      if (!t || !t.availability || !t.availability[date]) return false;
+                      return t.availability[date].includes(slot);
+                    });
+                  } else {
+                    filteredTherapists = therapists.map(t => ({ id: t.id, name: t.name }));
+                  }
+                  setDrawerForm((f: DrawerForm) => ({
+                    ...f,
+                    date,
+                    therapists: filteredTherapists,
+                  }));
+                }}
+                onTimeChange={time => {
+                  const patient = clients.find(p => p.id === drawerForm.client.id);
+                  const patientGender = patient?.gender;
+                  const date = drawerForm.date;
+                  let filteredTherapists: any[] = [];
+                  if (patientGender && date && time) {
+                    const genderMatched = filterTherapistsByGender(therapists, patientGender, enforceGenderMatch);
+                    filteredTherapists = genderMatched.filter(t => {
+                      if (!t || !t.availability || !t.availability[date]) return false;
+                      return t.availability[date].includes(time);
+                    });
+                  } else {
+                    filteredTherapists = therapists.map(t => ({ id: t.id, name: t.name }));
+                  }
+                  setDrawerForm((f: DrawerForm) => ({
+                    ...f,
+                    time,
+                    therapists: filteredTherapists,
+                  }));
+                }}
                 duration={drawerForm.duration}
                 onDurationChange={duration => setDrawerForm((f: DrawerForm) => ({ ...f, duration }))}
                 therapists={drawerForm.therapists}

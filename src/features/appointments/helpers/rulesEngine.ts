@@ -268,7 +268,6 @@ export function getBookingOptions({
     finalAlternativesPopulated = true;
   }
 
-  console.log('[DEBUG][Alternatives][RETURN]', finalAlternatives);
   const result = [{
     date,
     slot,
@@ -278,7 +277,5 @@ export function getBookingOptions({
     selectedRoom,
     alternatives: JSON.parse(JSON.stringify(finalAlternatives))
   }];
-  // DEBUG LOG: Output value
-  console.log('[DEBUG][getBookingOptions][OUTPUT]', result);
   return result;
 }

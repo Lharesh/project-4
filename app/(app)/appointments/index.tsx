@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { ROUTE_APPOINTMENTS } from '@/constants/routes';
 import {
   View,
   Text,
@@ -9,6 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { usePathname } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@/theme';
 import { format, addDays, subDays } from 'date-fns';
@@ -22,6 +25,7 @@ import { fetchAppointments, addAppointment } from '@/features/appointments/appoi
 import AppointmentCard from '@/features/appointments/components/AppointmentCard';
 import { selectTherapists, selectRooms, selectClinicTimings } from '../../(admin)/clinics/setup/setupSlice';
 import type { TreatmentSlot } from '../../(admin)/clinics/setup/setupSlice';
+import { safeFormatDate } from '@/features/appointments/helpers/dateHelpers';
 
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
@@ -34,13 +38,13 @@ function AppointmentsScreen() {
   const [showModal, setShowModal] = useState(false);
 
   // Get navigation params for modal auto-open and client info
-  const { initialClientId, initialClientName, initialClientPhone, autoOpenDrawer } = useAppointmentModalParams();
+  const { initialClientId, initialClientName, initialClientPhone, autoOpenDrawer, newAppointment, initialSlotStart, initialSlotEnd, initialRoomId, initialDate } = useAppointmentModalParams();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tab, setTab] = useState<'Doctor' | 'Therapy'>('Doctor'); // Show Doctor by default
-
+  const pathname = usePathname();// Only show the modal if you are on the /appointments route (not /clients, etc.
   const therapies: TreatmentSlot[] = useAppSelector(state => state.setup.treatmentSlots);
   const { appointments, isLoading, error } = useAppSelector(state => state.appointments);
-  const selectedKey = format(selectedDate, 'yyyy-MM-dd');
+  const selectedKey = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
 
   useEffect(() => {
     dispatch(fetchAppointments({ tab, date: selectedKey }) as any);
@@ -70,13 +74,17 @@ function AppointmentsScreen() {
   // Get status counts
   const { completed, cancelled, pending } = getStatusCounts();
 
+  const router = useRouter();
 
   // Auto-open modal if navigation params dictate
   useEffect(() => {
-    if (autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) {
+    // Only auto-open modal if newAppointment is true (explicit intent)
+    if (newAppointment) {
+      console.log('Auto-opening modal for new appointment');
       setShowModal(true);
+      if (initialDate) setSelectedDate(new Date(initialDate));
     }
-  }, [autoOpenDrawer, initialClientId, initialClientName, initialClientPhone]);
+  }, [newAppointment, initialDate]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { flex: 1 }]} edges={['bottom', 'left', 'right']}>
@@ -114,32 +122,50 @@ function AppointmentsScreen() {
           )}
         </ScrollView>
         {/* Floating Action Button */}
-        <TouchableOpacity style={styles.fab} onPress={() => setShowModal(true)} accessibilityLabel="Add Appointment">
+        <TouchableOpacity style={styles.fab} onPress={() => {
+  // FAB should open modal with blank state, so clear params
+  router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
+  setShowModal(true);
+}} accessibilityLabel="Add Appointment">
           <Plus size={28} color="#fff" />
         </TouchableOpacity>
-        <NewAppointmentModal
-          visible={showModal}
-          clients={clients}
-          therapists={therapists}
-          rooms={rooms}
-          clinicTimings={clinicTimings}
-          onClose={() => setShowModal(false)}
-          onCreate={(appointmentOrArr: any) => {
-            if (Array.isArray(appointmentOrArr)) {
-              appointmentOrArr.forEach(appt => dispatch(addAppointment(appt)));
-            } else {
-              dispatch(addAppointment(appointmentOrArr));
-            }
-            setShowModal(false);
-          }}
-          appointments={appointments}
-          therapies={therapies}
-          enforceGenderMatch={enforceGenderMatch}
-          autoOpenDrawer={autoOpenDrawer}
-          initialClientId={initialClientId}
-          initialClientName={initialClientName}
-          initialClientPhone={initialClientPhone}
-        />
+        {/* Only show the modal if you are on the /appointments route (not /clients, etc.) */}
+        {pathname?.includes('/appointments') && (
+          <NewAppointmentModal
+            visible={showModal}
+            clients={clients}
+            therapists={therapists}
+            rooms={rooms}
+            clinicTimings={clinicTimings}
+            onClose={() => {
+  setShowModal(false);
+  // Clear navigation params after modal close to prevent modal/drawer from reopening
+  router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
+}}
+            onCreate={(appointmentOrArr: any) => {
+              if (Array.isArray(appointmentOrArr)) {
+                appointmentOrArr.forEach(appt => dispatch(addAppointment(appt)));
+              } else {
+                dispatch(addAppointment(appointmentOrArr));
+              }
+              setShowModal(false);
+// Clear navigation params after booking to prevent modal/drawer from reopening
+router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
+            }}
+            appointments={appointments}
+            therapies={therapies}
+            enforceGenderMatch={enforceGenderMatch}
+            autoOpenDrawer={autoOpenDrawer}
+            newAppointment={newAppointment}
+            initialClientId={initialClientId}
+            initialClientName={initialClientName}
+            initialClientPhone={initialClientPhone}
+            initialSlotStart={initialSlotStart}
+            initialSlotEnd={initialSlotEnd}
+            initialRoomId={initialRoomId}
+            initialDate={initialDate}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
