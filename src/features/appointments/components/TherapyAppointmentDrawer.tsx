@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Platform, KeyboardAvoidingView, Dimensions } from 'react-native';
 import { COLORS, generateTheme } from '../../../theme/constants/theme';
 import TherapyPicker from './TherapyPicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import type { Appointment } from '../../appointments/appointmentsSlice';
 const theme = generateTheme('vata', 'light'); // TODO: Replace with actual dosha/mode from app context
 
 interface TherapistOption {
@@ -13,7 +13,7 @@ interface TherapistOption {
 
 
 
-import type { Appointment } from '../../appointments/appointmentsSlice';
+
 
 interface TherapyAppointmentDrawerProps {
   visible: boolean;
@@ -36,9 +36,47 @@ interface TherapyAppointmentDrawerProps {
   onNotesChange: (notes: string) => void;
   isSubmitting?: boolean;
   therapies: { id: string; name: string }[];
+  // New props for dynamic room/therapist selection and custom days
+  availableRooms: { id: string; name: string }[];
+  selectedRoom: string;
+  onRoomChange?: (roomId: string) => void;
+  availableTherapists: { id: string; name: string }[];
+  customDays?: string;
+  onCustomDaysChange?: (val: string) => void;
+  showRoomSelection?: boolean;
 }
 
 const TherapyAppointmentDrawer: React.FC<TherapyAppointmentDrawerProps> = (props) => {
+  // ...existing hooks and state...
+
+  // Submit handler, now inside component
+  function handleSubmit() {
+    const treatmentObj = props.therapies.find(t => t.id === (selectedTherapy || props.therapy));
+    const therapistObjs = props.therapists.filter(t => selectedTherapists.includes(t.id));
+    const appointment = {
+      id: `${props.client.id}_${props.date}_${props.time}`,
+      clientId: props.client.id,
+      clientName: props.client.name,
+      clientMobile: props.client.mobile,
+      therapistIds: selectedTherapists,
+      therapistNames: therapistObjs.map(t => t.name),
+      treatmentId: selectedTherapy || props.therapy,
+      treatmentName: treatmentObj ? treatmentObj.name : '',
+      duration: Number(props.duration === 'Cust' ? props.customDays : props.duration),
+      date: props.date,
+      time: props.time,
+      status: 'scheduled' as Appointment['status'],
+      notes: props.notes,
+      tab: 'Therapy' as Appointment['tab'],
+      createdAt: new Date().toISOString(),
+      roomId: props.selectedRoom,
+      roomName: (props.availableRooms.find(r => r.id === props.selectedRoom)?.name) || '',
+    };
+    if (typeof props.onSubmit === 'function') {
+      props.onSubmit(appointment);
+    }
+  }
+
   // DEBUG: Log all received props on every render
   // eslint-disable-next-line no-console
   console.log('[DEBUG][TherapyAppointmentDrawer] props:', props);
@@ -66,6 +104,13 @@ const TherapyAppointmentDrawer: React.FC<TherapyAppointmentDrawerProps> = (props
     onNotesChange,
     isSubmitting,
     therapies = [], // pass this prop from parent if available
+    availableRooms = [],
+    selectedRoom = '',
+    onRoomChange,
+    availableTherapists = [],
+    customDays = '',
+    onCustomDaysChange,
+    showRoomSelection = false,
   } = props;
 
   // State for pickers
@@ -119,79 +164,42 @@ const TherapyAppointmentDrawer: React.FC<TherapyAppointmentDrawerProps> = (props
     }
   };
 
-  if (!visible) return null;
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      enabled={visible}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 48 : 0} // Adjust as needed for your header/status bar
+    <Modal
+      visible={props.visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={props.onClose}
     >
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <View style={{
-          width: '100%',
-          alignSelf: 'stretch',
-          minHeight: 500,
-          maxHeight: '90%',
-          backgroundColor: '#fff',
-          borderTopLeftRadius: theme.borderRadius.lg,
-          borderTopRightRadius: theme.borderRadius.lg,
-          paddingVertical: 12,
-          paddingHorizontal: 14,
-          borderWidth: 2,
-          borderColor: '#1976d2',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
-          elevation: 5
-          // DO NOT add flex: 1 or flexGrow: 1 here!
-        }}>
-
+      <KeyboardAvoidingView
+        style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+      >
+        <View
+          style={{
+            width: '100%',
+            alignSelf: 'stretch',
+            maxHeight: Dimensions.get('window').height * 0.9,
+            backgroundColor: '#fff',
+            borderTopLeftRadius: theme.borderRadius.lg,
+            borderTopRightRadius: theme.borderRadius.lg,
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            borderWidth: 2,
+            borderColor: '#1976d2',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+          }}
+        >
           <ScrollView
-            style={styles.content}
-            contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 90, flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Header Group */}
-            <View style={{ marginBottom: 14 }}>
-              <Text style={[styles.sectionTitle, { marginBottom: 6 }]}>Confirm Appointment</Text>
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-            </View>
-            {/* Form Group */}
-            {/* Patient Details */}
-            <View style={{
-              backgroundColor: '#f3f6fa',
-              borderRadius: 8,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              marginBottom: 12,
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              justifyContent: 'center',
-            }}>
-              {/* Patient name, phone, and ID avatar row - avatar vertically centered */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between', minHeight: 44 }}>
-                <View style={{ justifyContent: 'center', minHeight: 44 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <MaterialIcons name="person" size={22} color="#1976d2" style={{ marginRight: 6 }} />
-                    <Text style={{ fontWeight: '600', fontSize: 16, marginRight: 4 }}>{client.name}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <MaterialIcons name="phone" size={18} color="#1a73e8" style={{ marginRight: 5 }} />
-                    <Text style={{ color: '#555', fontSize: 14 }}>{client.mobile}</Text>
-                  </View>
-                </View>
-                <View style={{ minWidth: 28, height: 28, borderRadius: 14, backgroundColor: '#1976d2', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
-                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{client.id}</Text>
-                </View>
-              </View>
-            </View>
+            {/* Header, Patient Details, TherapyPicker, Date/Time, Duration, Room, Therapists, Notes (as previously structured) */}
             <View style={{ marginBottom: 14 }}>
               <View style={{ marginBottom: 10 }}>
                 <TherapyPicker
@@ -217,9 +225,80 @@ const TherapyAppointmentDrawer: React.FC<TherapyAppointmentDrawerProps> = (props
                   <Text style={styles.timeChip}>{time}</Text>
                 </TouchableOpacity>
               </View>
-              {/* Add other form fields here, each with marginBottom: 10 if needed */}
+              {/* Duration */}
+              <View style={[styles.row, { marginBottom: 10 }]}>
+                {["1", "3", "7", "14", "21", "Cust"].map(opt => {
+                  if (opt === 'Cust') {
+                    return (
+                      <TextInput
+                        key={opt}
+                        style={[
+                          styles.customDurationInput,
+                          duration === 'Cust' ? styles.customDurationInputActive : styles.customDurationInputInactive
+                        ]}
+                        placeholderTextColor={styles.customDurationInput.color}
+                        keyboardType="numeric"
+                        placeholder="Days"
+                        value={props.customDays || ''}
+                        onChangeText={(text) => {
+                          console.log('Custom Duration onChangeText:', text);
+                          if (props.onCustomDaysChange) {
+                            props.onCustomDaysChange(text);
+                          }
+                        }}
+                        onFocus={() => {
+                          console.log('Custom Duration onFocus');
+                          onDurationChange('Cust');
+                        }}
+                        maxLength={2}
+                        pointerEvents="auto"
+                      />
+                    );
+                  }
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.durationButton, duration === opt ? styles.durationButtonActive : null]}
+                      onPress={() => onDurationChange(opt)}
+                    >
+                      <Text style={duration === opt ? styles.durationButtonActiveText : styles.durationButtonText}>{opt + 'd'}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {/* Room */}
+              <View style={[styles.row, { marginBottom: 10 }]}>
+                {availableRooms.map(room => (
+                  <TouchableOpacity
+                    key={room.id}
+                    style={[styles.roomAvatar, selectedRoom === room.id ? styles.roomAvatarActive : null]}
+                    onPress={() => onRoomChange && onRoomChange(room.id)}
+                  >
+                    <Text style={selectedRoom === room.id ? styles.roomAvatarActiveText : styles.roomAvatarText}>{room.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {/* Therapists */}
+              <View style={[styles.row, { marginBottom: 10 }]}>
+                {availableTherapists.map(t => (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={[styles.therapistAvatar, selectedTherapists.includes(t.id) ? styles.therapistAvatarActive : null]}
+                    onPress={() => onTherapistToggle(t.id)}
+                  >
+                    <Text style={selectedTherapists.includes(t.id) ? styles.therapistAvatarActiveText : styles.therapistAvatarText}>{t.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {/* Notes */}
+              <TextInput
+                style={styles.input}
+                value={notes}
+                onChangeText={onNotesChange}
+                placeholder="Add notes"
+                multiline
+              />
             </View>
-
             {/* Action Button Group: separated by 14px above */}
             {showDatePicker && (
               <DateTimePicker
@@ -238,88 +317,21 @@ const TherapyAppointmentDrawer: React.FC<TherapyAppointmentDrawerProps> = (props
                 onChange={handleTimeChange}
               />
             )}
-
-            {/* 5px space */}
-            <View style={{ height: 5 }} />
-
-            {/* Duration Buttons */}
-            <View style={styles.row}>
-              {["1d", "3d", "7d", "14d", "21d", "Cust"].map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[styles.durationButton, duration === opt ? styles.durationButtonActive : null]}
-                  onPress={() => onDurationChange(opt)}
-                >
-                  <Text style={duration === opt ? styles.durationButtonActiveText : styles.durationButtonText}>{opt}</Text>
-                </TouchableOpacity>
-              ))}
+            {/* Start Therapy button anchored at the bottom */}
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#fff', padding: 12, borderTopWidth: 1, borderColor: '#eee', zIndex: 10 }}>
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              ></TouchableOpacity>
             </View>
-
-            {/* Therapists Quick Picks */}
-            <View style={styles.row}>
-              {therapists.length > 0 ? (
-                therapists.map(t => (
-                  <TouchableOpacity
-                    key={t.id}
-                    style={[styles.therapistChip, selectedTherapists.includes(t.id) ? styles.therapistChipActive : null]}
-                    onPress={() => onTherapistToggle(t.id)}
-                  >
-                    <Text style={selectedTherapists.includes(t.id) ? styles.therapistChipActiveText : styles.therapistChipText}>{t.name}</Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={{ color: '#999', fontStyle: 'italic', marginVertical: 6 }}>
-                  No therapists available for this slot
-                </Text>
-              )}
-            </View>
-
-            {/* Notes */}
-            <Text style={styles.label}>Notes / Special Instructions</Text>
-            <TextInput
-              style={styles.input}
-              value={notes}
-              onChangeText={onNotesChange}
-              placeholder="Add notes"
-              multiline
-            />
-
-            {/* Create Button */}
-            <TouchableOpacity
-              style={styles.createButton}
-              onPress={() => {
-                // Build a compliant Appointment object for Redux/state
-                const treatmentObj = therapies.find(t => t.id === (selectedTherapy || therapy));
-                const therapistObjs = therapists.filter(t => selectedTherapists.includes(t.id));
-                const appointment = {
-                  id: `${client.id}_${date}_${time}`,
-                  clientId: client.id,
-                  clientName: client.name,
-                  clientMobile: client.mobile,
-                  therapistIds: selectedTherapists,
-                  therapistNames: therapistObjs.map(t => t.name),
-                  treatmentId: selectedTherapy || therapy,
-                  treatmentName: treatmentObj ? treatmentObj.name : '',
-                  duration: Number(duration),
-                  date,
-                  time,
-                  status: 'scheduled' as Appointment['status'],
-                  notes,
-                  tab: 'Therapy' as Appointment['tab'],
-                  createdAt: new Date().toISOString(),
-                };
-                onSubmit(appointment);
-              }}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.createButtonText}>Start Therapy</Text>
-            </TouchableOpacity>
           </ScrollView>
+
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </Modal >
   );
-};
+}
 export default TherapyAppointmentDrawer;
 
 const styles = StyleSheet.create({
@@ -509,6 +521,81 @@ const styles = StyleSheet.create({
   },
   therapistChipActive: {
     backgroundColor: '#1976d2',
+  },
+  customDurationInput: {
+    backgroundColor: '#fff',
+    width: 60,
+    textAlign: 'center',
+    paddingVertical: 6, // from styles.durationButton.paddingVertical
+    paddingHorizontal: 10, // from styles.durationButton.paddingHorizontal
+    color: '#444', // from styles.durationButtonText.color
+    borderRadius: 8, // from styles.durationButton.borderRadius
+    marginRight: 6, // from styles.durationButton.marginRight
+    marginBottom: 6, // from styles.durationButton.marginBottom
+    borderWidth: 1.5,
+    fontSize: 15, // Consistent with styles.input
+  },
+  customDurationInputActive: {
+    borderColor: '#777',
+  },
+  roomAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#c0c0c0',
+  },
+  roomAvatarActive: {
+    backgroundColor: '#1976d2',
+    borderColor: '#1976d2',
+  },
+  roomAvatarText: {
+    color: '#333',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  therapistAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#c0c0c0',
+  },
+  therapistAvatarActive: {
+    backgroundColor: '#1976d2',
+    borderColor: '#1976d2',
+  },
+  therapistAvatarText: {
+    color: '#333',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  therapistAvatarActiveText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  roomAvatarActiveText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  customDurationInputInactive: {
+    borderColor: '#ccc',
   },
   therapistChipText: {
     color: '#444',

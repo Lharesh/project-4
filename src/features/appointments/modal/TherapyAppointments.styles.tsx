@@ -29,6 +29,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     display: 'flex',
   },
+  appointmentsListTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 5,
+    paddingLeft: 5,
+  },
+  noAppointmentsText: {
+    textAlign: 'center',
+    color: '#777',
+    marginVertical: 10,
+    paddingLeft: 5,
+  },
+  card: {
+    padding: 12,
+    marginVertical: 6,
+    backgroundColor: '#f9f9f9',
+    borderColor: '#e0e0e0',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  cardText: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: TEXT_DARK,
+  },
   errorText: {
     color: '#d32f2f',
     fontSize: 13,

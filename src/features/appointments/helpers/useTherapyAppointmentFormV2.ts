@@ -12,6 +12,7 @@ export interface TherapyAppointmentFormValues {
   selectedRoom: string | null;
   duration: number | null;
   notes: string;
+  customDays: string | null; // Added for custom duration input
 }
 
 export function useTherapyAppointmentFormV2({
@@ -23,9 +24,14 @@ export function useTherapyAppointmentFormV2({
   validate: (values: TherapyAppointmentFormValues) => string | null;
   onSubmit: (values: TherapyAppointmentFormValues) => void;
 }) {
+  // Ensure initialValues includes customDays, defaulting to null if not provided
+  const fullInitialValues = {
+    ...initialValues,
+    customDays: initialValues.customDays === undefined ? null : initialValues.customDays,
+  };
   // Use the generic form hook
   const form = useGenericForm<TherapyAppointmentFormValues>({
-    initialState: initialValues,
+    initialState: fullInitialValues,
     validate,
     onSubmit,
   });
@@ -63,6 +69,10 @@ export function useTherapyAppointmentFormV2({
     (val: string) => form.setValues((v: TherapyAppointmentFormValues) => ({ ...v, notes: val })),
     [form]
   );
+  const setCustomDays = useCallback(
+    (val: string | null) => form.setValues((v: TherapyAppointmentFormValues) => ({ ...v, customDays: val })),
+    [form]
+  );
 
   return {
     ...form,
@@ -74,5 +84,6 @@ export function useTherapyAppointmentFormV2({
     setSelectedRoom,
     setDuration,
     setNotes,
+    setCustomDays,
   };
 }

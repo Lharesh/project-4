@@ -97,16 +97,17 @@ function ClientsScreen() {
       router.replace({
         pathname: '/(app)/appointments',
         params: {
-          [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id, // <-- match extraction hook
-          clientName: client.name,
-          clientPhone: client.mobile,
+          [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id,
+          [APPOINTMENT_PARAM_KEYS.CLIENT_NAME]: client.name,
+          [APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE]: client.mobile,
           [APPOINTMENT_PARAM_KEYS.SLOT_START]: params[APPOINTMENT_PARAM_KEYS.SLOT_START],
           [APPOINTMENT_PARAM_KEYS.SLOT_END]: params[APPOINTMENT_PARAM_KEYS.SLOT_END],
-          [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom, // ensure both supported
-          slotRoom: params.slotRoom, // keep for compatibility
+          [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom,
+          slotRoom: params.slotRoom,
           [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
-          autoOpenDrawer: 1, // <-- match extraction hook
-          t: Date.now(), // optional, to force navigation refresh
+          tab: 'Therapy',
+          autoOpenDrawer: 1,
+          t: Date.now(),
         }
       });
     } else {

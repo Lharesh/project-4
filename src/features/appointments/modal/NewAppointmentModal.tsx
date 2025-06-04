@@ -30,14 +30,50 @@ interface NewAppointmentModalProps {
 }
 
 
-const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clients, therapists, rooms, clinicTimings, onClose, onCreate, appointments, therapies, enforceGenderMatch, initialClientId, initialClientName, initialClientPhone, autoOpenDrawer, newAppointment, initialSlotStart, initialSlotEnd, initialRoomId, initialDate }) => {
+
+const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
+  visible,
+  clients,
+  therapists,
+  rooms,
+  clinicTimings,
+  onClose,
+  onCreate,
+  appointments = [],
+  therapies = [],
+  enforceGenderMatch,
+  initialClientId,
+  initialClientName,
+  initialClientPhone,
+  autoOpenDrawer,
+  newAppointment,
+  initialSlotStart,
+  initialSlotEnd,
+  initialRoomId,
+  initialDate
+}) => {
 
   // Unified onCreate handler for both Doctor and Therapy
   const handleCreate = (appointmentOrArr: any) => {
     // Only call onCreate, do not dispatch here
     if (onCreate) onCreate(appointmentOrArr);
+    // Show a toast/snackbar or alert for confirmation
+    if (typeof window !== 'undefined' && window?.navigator?.product === 'ReactNative') {
+      // For Android native
+      try {
+        const { ToastAndroid } = require('react-native');
+        ToastAndroid.show('Appointment created successfully!', ToastAndroid.SHORT);
+      } catch (e) {
+        // fallback
+        alert('Appointment created successfully!');
+      }
+    } else {
+      // fallback for web or other
+      alert('Appointment created successfully!');
+    }
     if (onClose) onClose();
   };
+
 
   // Set Therapy as default tab if autoOpenDrawer and client info are present
   const defaultTab = (autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) ? 'Therapy' : 'Doctor';
@@ -53,14 +89,41 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({ visible, clie
 
   // If modal becomes visible with autoOpenDrawer and client info, switch to Therapy tab
   React.useEffect(() => {
-    if (visible && autoOpenDrawer && initialClientId && initialClientName && initialClientPhone && initialSlotStart && initialSlotEnd && initialRoomId && initialDate) {
+    if (
+      visible &&
+      autoOpenDrawer &&
+      initialClientId &&
+      initialClientName &&
+      initialClientPhone &&
+      initialSlotStart &&
+      initialSlotEnd &&
+      initialRoomId &&
+      initialDate
+    ) {
       setTab('Therapy');
     }
   }, [visible, autoOpenDrawer, initialClientId, initialClientName, initialClientPhone, initialSlotStart, initialSlotEnd, initialRoomId, initialDate]);
 
   // Filter appointments by tab
-  const doctorAppointments = (appointments ?? []).filter(app => app.tab === 'Doctor');
-  const therapyAppointments = (appointments ?? []).filter(app => app.tab === 'Therapy');
+  const doctorAppointments = (appointments ?? []).filter((app: any) => app.tab === 'Doctor');
+  const therapyAppointments = (appointments ?? []).filter((app: any) => app.tab === 'Therapy');
+
+  // Minimal styles (expand as needed)
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' },
+    modal: { backgroundColor: '#fff', width: '94%', borderRadius: 18, padding: 18, flex: 1 },
+    title: { fontSize: 23, fontWeight: '700', marginBottom: 4 },
+    tabs: { flexDirection: 'row', marginBottom: 20 },
+    tab: { flex: 1, paddingVertical: 12, borderRadius: 16, backgroundColor: '#f1f2f6', alignItems: 'center', marginHorizontal: 3 },
+    tabActive: { backgroundColor: '#1a2233' },
+    tabLabel: { fontSize: 17, color: '#1a2233', fontWeight: '600' },
+    tabLabelActive: { color: '#fff' },
+  });
 
   return (
     <Modal visible={visible} animationType="slide" transparent>

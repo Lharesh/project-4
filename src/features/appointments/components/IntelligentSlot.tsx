@@ -57,19 +57,28 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
   date,
   onCloseModal,
 }) => {
-  // Slot color and content logic
+  // Always use the correct slot style for the outermost View
   let slotStyle = styles.available;
-  let mainContent = null;
-  let actions = null;
-  let statusLabel = '';
+  if (status === 'booked') slotStyle = styles.booked;
+  else if (status === 'break') slotStyle = styles.break;
+  else if ([
+    'unavailable',
+    'therapistUnavailable',
+    'notAvailable'
+  ].includes(status)) {
+    slotStyle = styles.unavailable;
+  }
 
-  // Overlay icon (top right)
+  // Dosha color cycle for avatars
+  const doshaColors = [colors.vata.primary, colors.pitta.primary, colors.kapha.primary];
+
   // --- Action menu state ---
   const [menuVisible, setMenuVisible] = React.useState(false);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
+  // Overlay icon (top right)
   const overlayIcon = (
     <TouchableOpacity style={styles.overlayIcon} onPress={openMenu} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
       <Text style={{ fontSize: 18, color: colors.grayDark }}>⋮</Text>
@@ -141,15 +150,14 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
     </Modal>
   );
 
-  // Dosha color cycle for avatars
-  const doshaColors = [colors.vata.primary, colors.pitta.primary, colors.kapha.primary];
+  let mainContent = null;
+  let actions = null;
+  let statusLabel = '';
 
   if (status === 'break') {
-    slotStyle = styles.break;
     mainContent = <Text style={styles.breakText}>Break</Text>;
     statusLabel = 'Break';
   } else if (status === 'booked') {
-    slotStyle = styles.booked;
     mainContent = (
       <>
         {/* Time always at the top */}
@@ -187,7 +195,6 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
     statusLabel = 'Booked';
     actions = null; // No action buttons for booked slots
   } else if (status === 'available') {
-    slotStyle = styles.available;
     mainContent = (
       <>
         <Text style={styles.timeText}>{startTime} - {endTime}</Text>
@@ -387,37 +394,62 @@ const styles = StyleSheet.create({
   },
   // ...keep the rest of your existing styles
 
+  // Consistent slot sizing
   available: {
     backgroundColor: colors.success,
-    borderColor: colors.success,
+    borderColor: '#1976d2', // debug blue border
     borderWidth: 2,
     minHeight: 120,
+    minWidth: 120,
+    maxWidth: 160,
+    maxHeight: 140,
     alignItems: 'stretch',
     justifyContent: 'space-between',
+    flexShrink: 0,
+    flexGrow: 0,
+    overflow: 'hidden',
   },
   booked: {
     backgroundColor: colors.info,
-    borderColor: colors.info,
+    borderColor: '#ff9800', // debug orange border
     borderWidth: 2,
     minHeight: 120,
+    minWidth: 120,
+    maxWidth: 160,
+    maxHeight: 140,
     alignItems: 'stretch',
     justifyContent: 'space-between',
+    flexShrink: 0,
+    flexGrow: 0,
+    overflow: 'hidden',
   },
   break: {
     backgroundColor: colors.error,
-    borderColor: colors.error,
+    borderColor: '#d32f2f', // debug red border
     borderWidth: 2,
     minHeight: 120,
+    minWidth: 120,
+    maxWidth: 160,
+    maxHeight: 140,
     alignItems: 'stretch',
     justifyContent: 'space-between',
+    flexShrink: 0,
+    flexGrow: 0,
+    overflow: 'hidden',
   },
   unavailable: {
     backgroundColor: colors.grayLight,
-    borderColor: colors.gray,
+    borderColor: '#888', // debug gray border
     borderWidth: 2,
     minHeight: 120,
+    minWidth: 120,
+    maxWidth: 160,
+    maxHeight: 140,
     alignItems: 'stretch',
     justifyContent: 'space-between',
+    flexShrink: 0,
+    flexGrow: 0,
+    overflow: 'hidden',
   },
   timeText: {
     fontWeight: 'bold',
