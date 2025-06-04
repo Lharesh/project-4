@@ -631,7 +631,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
 
     // TODO: Implement logic to create appointments
   };
-  
+
   return (
     <View style={{ flex: 1 }}>
       <View>

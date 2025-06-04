@@ -237,13 +237,14 @@ export function generateRoomSlots({
         })()
       ))
       .flatMap(a => Array.isArray(a.therapistIds) ? a.therapistIds : (a.therapistId ? [a.therapistId] : []));
+    const genderFilter = clientGender ? enforceGenderMatch : false;
     const availableTherapists = getAvailableTherapists(
       therapists,
       clientGender,
       date,
       slot.start,
       appointments,
-      enforceGenderMatch
+      genderFilter
     ).filter(t => !bookedTherapistIds.includes(t.id));
     let status: RoomSlotStatus = 'available';
     if (isPast) {
