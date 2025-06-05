@@ -94,9 +94,10 @@ function ClientsScreen() {
 
   const handleSelectClient = (client: Client) => {
     if (selectMode) {
-      router.replace({
-        pathname: '/(app)/appointments',
+      router.push({
+        pathname: '/appointments/booking',
         params: {
+          ...params,
           [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id,
           [APPOINTMENT_PARAM_KEYS.CLIENT_NAME]: client.name,
           [APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE]: client.mobile,
@@ -105,8 +106,6 @@ function ClientsScreen() {
           [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom,
           slotRoom: params.slotRoom,
           [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
-          tab: 'Therapy',
-          autoOpenDrawer: 1,
           t: Date.now(),
         }
       });
@@ -172,8 +171,8 @@ function ClientsScreen() {
     });
   };
 
-  
-const handleSubmit = async () => {
+
+  const handleSubmit = async () => {
     const errors = validate();
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -322,4 +321,3 @@ const handleSubmit = async () => {
 }
 
 export default ClientsScreen;
-              

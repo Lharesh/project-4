@@ -5,11 +5,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTherapyAppointmentFormV2, TherapyAppointmentFormValues } from '../helpers/useTherapyAppointmentFormV2';
 import * as validationUtils from '@/hooks/validationUtils';
 import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
-import RNPickerSelect from 'react-native-picker-select';
-import MultiSelect from 'react-native-multiple-select';
 import styles, { pickerSelectStyles } from './TherapyAppointments.styles';
 import ScheduleMatrix from '../components/ScheduleMatrix';
-import TherapyAppointmentDrawer from '../components/TherapyAppointmentDrawer';
 import type { Client } from '@/features/clients/clientsSlice';
 import { buildScheduleMatrix } from './buildScheduleMatrix';
 import { getRecurringConflicts } from '../helpers/conflictCalculations';
@@ -23,6 +20,8 @@ import { addDynamicAvailability } from '../helpers/dynamicAvailability';
 import { useLocalSearchParams } from 'expo-router';
 import { APPOINTMENT_PARAM_KEYS } from '../constants/paramKeys';
 import { router } from 'expo-router';
+import BookingModalPanel from '../components/BookingModalPanel';
+import BookingForm from '../components/BookingForm';
 
 
 
@@ -116,14 +115,6 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
   const safeAppointments = Array.isArray(appointments) ? appointments : [];
   const safeTherapies = Array.isArray(therapies) ? therapies : [];
 
-  // Debug log for all drawerForm initial values
-  console.log('drawerForm init', {
-    initialClientId,
-    initialClientName,
-    initialClientPhone,
-    therapists: safeTherapists,
-  });
-
   // Initialize router params hook early
   const params = useLocalSearchParams();
 
@@ -210,8 +201,6 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     slotDuration,
   }), [safeRooms, matrixDate, safeAppointments, clinicTimings, slotDuration]);
 
-  // Maintain room state for dynamic room change in drawer form
-
   // Calculate recurring conflicts for the schedule matrix (moved here after all dependencies are declared)
   const recurringConflicts = useMemo(() => {
     if (!values.startDate || !values.timeSlot || values.selectedTherapists.length === 0) {
@@ -230,59 +219,28 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
   const [drawerError, setDrawerError] = React.useState<string | undefined>(undefined);
   const handleRoomChange = (roomId: string) => setSelectedRoom(roomId);
 
-  // --- Drawer State ---
-  const [drawerVisible, setDrawerVisible] = React.useState(false);
-
   // Other state variables
   const [appointmentsToCreate, setAppointmentsToCreate] = React.useState<any[]>([]);
-  const [availableRooms, setAvailableRooms] = React.useState<Room[]>(safeRooms); // Will be updated by an effect
-  const [availableTherapists, setAvailableTherapists] = React.useState<Therapist[]>(safeTherapists); // Will be updated by an effect
   const [recommendedSlots, setRecommendedSlots] = React.useState<any[]>([]);
   const [showAlternatives, setShowAlternatives] = React.useState(false);
   const [replacementSlots, setReplacementSlots] = React.useState<Record<string, string>>({});
   const [clientGender, setClientGender] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    setAvailableRooms(roomsWithAvailability || []);
+  // --- Replace with useMemo for availableRooms ---
+  const availableRooms = useMemo(() => {
+    return roomsWithAvailability || [];
+  }, [roomsWithAvailability]);
+
+  // --- Replace with useMemo for availableTherapists ---
+  const availableTherapists = useMemo(() => {
     let finalTherapists = therapistsWithAvailability || [];
     const currentPatient = safeClients.find(c => c.id === values.selectedPatient);
     const currentPatientGender = currentPatient?.gender;
-
     if (enforceGenderMatch && currentPatientGender && Array.isArray(finalTherapists)) {
       finalTherapists = filterTherapistsByGender(finalTherapists, currentPatientGender, true);
     }
-    setAvailableTherapists(finalTherapists);
-  }, [
-    roomsWithAvailability,
-    therapistsWithAvailability,
-    safeClients,
-    values.selectedPatient,
-    enforceGenderMatch,
-  ]);
-
-  React.useEffect(() => {
-    if (drawerVisible) {
-      setShowRoomSelection(true);
-    }
-    // If rooms should be hidden when drawer closes, add: else { setShowRoomSelection(false); }
-  }, [drawerVisible]);
-
-  React.useEffect(() => {
-    if (newAppointment) {
-      resetForm();
-      setDrawerVisible(true);
-    }
-  }, [newAppointment, resetForm]);
-
-  // Drawer close handler: always clear form and close drawer
-  const handleDrawerClose = React.useCallback(() => {
-    setDrawerVisible(false);
-    resetForm();
-  }, [resetForm]);
-
-  const openDrawer = React.useCallback(() => {
-    setDrawerVisible(true);
-  }, []);
+    return finalTherapists;
+  }, [therapistsWithAvailability, safeClients, values.selectedPatient, enforceGenderMatch]);
 
   // --- Automatically open drawer if autoOpenDrawer and valid client info ---
   // --- Handler for slot creation (used in ScheduleMatrix) ---
@@ -300,7 +258,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       availableTherapists,
       customDays,
     } = slotInfo || {};
-  
+
     // Prefill all relevant drawer values
     setValues((prev: any) => ({
       ...prev,
@@ -318,7 +276,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       // drawerMode: 'create', // if you use a mode flag
       // appointmentType: 'therapy', // if you support multiple types
     }));
-  
+
     // Use param constants for navigation
     router.push({
       pathname: '/(app)/clients',
@@ -336,7 +294,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         t: Date.now(), // ensures navigation uniqueness
       }
     });
-  
+
     // Delay opening the drawer so form state is updated first (if needed)
     // setTimeout(() => setDrawerVisible(true), 0);
   };
@@ -427,7 +385,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     if (
       tab === 'Therapy' &&
       slotStart && slotEnd && roomId && date && clientId &&
-      (!drawerVisible ||
+      (!showRoomSelection ||
         values.selectedPatient !== clientId ||
         values.timeSlot !== slotStart ||
         values.startDate !== date)
@@ -442,7 +400,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         selectedRoom: roomId,
         // ...other fields as needed
       }));
-      setDrawerVisible(true);
+      setShowRoomSelection(true);
     }
   }, [
     params[APPOINTMENT_PARAM_KEYS.SLOT_START],
@@ -454,7 +412,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     params[APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE],
     params.tab,
     therapists,
-    drawerVisible,
+    showRoomSelection,
     values.selectedPatient,
     values.timeSlot,
     values.startDate, // Added startDate as it affects matrixDate which is a dependency
@@ -733,7 +691,6 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       if (typeof onCreate === 'function') {
         onCreate(generatedAppointments.length === 1 ? generatedAppointments[0] : generatedAppointments);
       }
-      setDrawerVisible(false);
       resetForm();
     } else {
       console.warn('[handleBookAppointments] No appointments generated, nothing to create.');
@@ -741,17 +698,70 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     }
   };
 
+  // Determine if we have enough info to show the booking modal (client + slot info)
+  const showBookingModal = Boolean(initialClientId && initialClientName && initialClientPhone && initialSlotStart && initialRoomId && initialDate);
+
+  // Prepare initial values for BookingForm
+  const bookingFormInitialValues = React.useMemo(() => ({
+    selectedPatient: initialClientId,
+    selectedTherapy: '',
+    selectedTherapists: [],
+    startDate: initialDate,
+    timeSlot: initialSlotStart,
+    selectedRoom: initialRoomId,
+    duration: null,
+    notes: '',
+    customDays: null,
+  }), [initialClientId, initialDate, initialSlotStart, initialRoomId]);
+
+  // Handler for booking form submit
+  const handleBookingSubmit = (appointment: any) => {
+    // Call rulesEngine for final validation
+    const bookingOptions = getBookingOptions({
+      date: appointment.startDate,
+      slot: appointment.timeSlot,
+      clientId: appointment.selectedPatient,
+      selectedTherapists: appointment.selectedTherapists,
+      selectedRoom: appointment.selectedRoom,
+      appointments: safeAppointments,
+      allTherapists: safeTherapists,
+      allRooms: safeRooms,
+      clients: safeClients,
+      now: new Date(),
+      enforceGenderMatch,
+      maxAlternatives: 3,
+    });
+
+    if (!bookingOptions[0]?.available) {
+      setDrawerError(bookingOptions[0]?.reason || 'Slot is not available.');
+      return;
+    }
+
+    // If all checks pass, create the appointment
+    if (props.onCreate) props.onCreate(appointment);
+  };
+
+  console.log('Show Booking Modal:', showBookingModal);
+  console.log('Booking Form Initial Values:', bookingFormInitialValues);
+
   return (
     <React.Fragment>
       <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-
         {/* General Error Display */}
         {error && typeof error === 'string' && (
           <View style={{ paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#ffebee', borderRadius: 4, marginVertical: 10 }}>
             <Text style={[styles.errorText, { textAlign: 'center' }]}>{error}</Text>
           </View>
         )}
-
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+          <TouchableOpacity onPress={() => setStartDate(format(addDays(parseISO(matrixDate), -1), 'yyyy-MM-dd'))}>
+            <Text style={{ fontSize: 28 }}>‹</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginHorizontal: 16 }}>{matrixDate}</Text>
+          <TouchableOpacity onPress={() => setStartDate(format(addDays(parseISO(matrixDate), 1), 'yyyy-MM-dd'))}>
+            <Text style={{ fontSize: 28 }}>›</Text>
+          </TouchableOpacity>
+        </View>
         {/* Schedule Matrix */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%' }}>
           <View style={styles.matrixContainer}>
@@ -776,59 +786,23 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
           </View>
         </ScrollView>
 
-        <TouchableOpacity style={styles.bookButton} onPress={() => { if (isValid()) setDrawerVisible(true); else console.log('Form is invalid. Current error:', error, 'Form values:', values); }} /*disabled={!isValid()}*/>
+        <TouchableOpacity style={styles.bookButton} onPress={() => { if (isValid()) {/* open booking modal if needed */ } else console.log('Form is invalid. Current error:', error, 'Form values:', values); }} /*disabled={!isValid()}*/>
           <Text style={styles.bookButtonText}>Proceed to Book</Text>
         </TouchableOpacity>
-
       </ScrollView>
 
-      {drawerVisible && (
-        <TherapyAppointmentDrawer
-          visible={drawerVisible}
-          onClose={() => setDrawerVisible(false)}
-          onSubmit={handleBookAppointments} // Changed from onConfirm to onSubmit to match drawer prop
-          error={drawerError}
-          client={selectedPatientObj ? { id: selectedPatientObj.id, name: selectedPatientObj.name, mobile: selectedPatientObj.mobile || '' } : { id: '', name: 'N/A', mobile: '' }}
-          therapy={values.selectedTherapy || ''}
-          onTherapyChange={(id: string) => handleChange('selectedTherapy', id)}
-          date={values.startDate || ''}
-          onDateChange={(date: string) => handleChange('startDate', date)}
-          time={values.timeSlot || ''}
-          onTimeChange={(time: string) => handleChange('timeSlot', time)}
-          // Duration handling: The drawer expects a string. 'Custom' if customDays is used.
-          duration={values.duration ? String(values.duration) : (values.customDays ? 'Custom' : '')}
-          onDurationChange={(val: string) => {
-            if (val === 'Custom') {
-              handleChange('duration', null);
-            } else {
-              handleChange('duration', val);
-              handleChange('customDays', ''); // Clear custom days if a predefined duration is selected
-            }
-          }}
-          customDays={values.customDays || ''}
-          onCustomDaysChange={(val: string) => handleChange('customDays', val)}
-          therapists={therapistsWithAvailability.map(t => ({ id: t.id, name: t.name }))}
-          availableTherapists={therapistsWithAvailability.map(t => ({ id: t.id, name: t.name }))}
-          selectedTherapists={values.selectedTherapists}
-          onTherapistToggle={(id: string) => {
-            const newSelection = values.selectedTherapists.includes(id)
-              ? values.selectedTherapists.filter(tId => tId !== id)
-              : [...values.selectedTherapists, id];
-            handleChange('selectedTherapists', newSelection);
-          }}
-          notes={values.notes || ''}
-          onNotesChange={(notes: string) => handleChange('notes', notes)}
+      {/* Booking Modal Panel */}
+      <BookingModalPanel visible={showBookingModal} onClose={onClose}>
+        <BookingForm
+          initialValues={bookingFormInitialValues}
           therapies={safeTherapies}
-          availableRooms={roomsWithAvailability.map(r => ({ id: r.id, name: r.name }))}
-          selectedRoom={values.selectedRoom || ''}
-          onRoomChange={(id: string) => handleChange('selectedRoom', id)}
-          // showRoomSelection and onShowRoomSelection are likely internal to the drawer or need different handling
-          // For now, omitting them if they are not direct props of TherapyAppointmentDrawerProps
-          // Re-check TherapyAppointmentDrawer.tsx if type errors persist for these.
-          // Based on prior view, showRoomSelection was a prop, let's assume it's controlled from parent for now.
-          showRoomSelection={showRoomSelection}
+          availableRooms={safeRooms}
+          availableTherapists={safeTherapists}
+          onSubmit={handleBookingSubmit}
+          genderFlag={enforceGenderMatch}
+          clientGender={selectedPatientObj?.gender || ''}
         />
-      )}
+      </BookingModalPanel>
     </React.Fragment>
   );
 };

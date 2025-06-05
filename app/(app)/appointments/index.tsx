@@ -26,6 +26,7 @@ import AppointmentCard from '@/features/appointments/components/AppointmentCard'
 import { selectTherapists, selectRooms, selectClinicTimings } from '../../(admin)/clinics/setup/setupSlice';
 import type { TreatmentSlot } from '../../(admin)/clinics/setup/setupSlice';
 import { safeFormatDate } from '@/features/appointments/helpers/dateHelpers';
+import BookingModalPanel from './booking';
 
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
@@ -38,17 +39,19 @@ function AppointmentsScreen() {
   const [showModal, setShowModal] = useState(false);
 
   // Get navigation params for modal auto-open and client info
-  const { initialClientId, initialClientName, initialClientPhone, autoOpenDrawer, newAppointment, initialSlotStart, initialSlotEnd, initialRoomId, initialDate } = useAppointmentModalParams();
+  const { tab, initialClientId, initialClientName, initialClientPhone, autoOpenDrawer, newAppointment, initialSlotStart, initialSlotEnd, initialRoomId, initialDate } = useAppointmentModalParams();
+  const validTab = (tab === 'Doctor' || tab === 'Therapy') ? tab : undefined;
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [tab, setTab] = useState<'Doctor' | 'Therapy'>('Doctor'); // Show Doctor by default
   const pathname = usePathname();// Only show the modal if you are on the /appointments route (not /clients, etc.
   const therapies: TreatmentSlot[] = useAppSelector(state => state.setup.treatmentSlots);
   const { appointments, isLoading, error } = useAppSelector(state => state.appointments);
   const selectedKey = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
 
   useEffect(() => {
-    dispatch(fetchAppointments({ tab, date: selectedKey }) as any);
-  }, [dispatch, tab, selectedKey]);
+    console.log('Fetching appointments with:', { validTab, selectedKey });
+    const tabToUse: 'Doctor' | 'Therapy' = validTab ?? 'Doctor';
+    dispatch(fetchAppointments({ validTab: tabToUse, date: selectedKey }) as any);
+  }, [dispatch, validTab, selectedKey]);
 
   const enforceGenderMatch = useAppSelector(selectEnforceGenderMatch);
 
@@ -78,13 +81,29 @@ function AppointmentsScreen() {
 
   // Auto-open modal if navigation params dictate
   useEffect(() => {
-    // Only auto-open modal if newAppointment is true (explicit intent)
+    console.log('Auto-opening modal with:', { newAppointment, initialDate });
     if (newAppointment) {
       console.log('Auto-opening modal for new appointment');
       setShowModal(true);
+      console.log('Modal set to visible');
       if (initialDate) setSelectedDate(new Date(initialDate));
     }
   }, [newAppointment, initialDate]);
+
+  useEffect(() => {
+    console.log('Initial parameters:', {
+      initialClientId,
+      initialClientName,
+      initialClientPhone,
+      initialSlotStart,
+      initialRoomId,
+      initialDate
+    });
+    console.log('Show Booking Modal:', showModal);
+    if (!showModal) {
+      console.log('Booking modal is not shown because one or more initial parameters are missing or incorrect.');
+    }
+  }, [initialClientId, initialClientName, initialClientPhone, initialSlotStart, initialRoomId, initialDate, showModal]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { flex: 1 }]} edges={['bottom', 'left', 'right']}>
@@ -123,10 +142,11 @@ function AppointmentsScreen() {
         </ScrollView>
         {/* Floating Action Button */}
         <TouchableOpacity style={styles.fab} onPress={() => {
-  // FAB should open modal with blank state, so clear params
-  router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
-  setShowModal(true);
-}} accessibilityLabel="Add Appointment">
+          console.log('FAB pressed, opening modal');
+          router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
+          setShowModal(true);
+          console.log('Modal set to visible');
+        }} accessibilityLabel="Add Appointment">
           <Plus size={28} color="#fff" />
         </TouchableOpacity>
         {/* Only show the modal if you are on the /appointments route (not /clients, etc.) */}
@@ -138,25 +158,28 @@ function AppointmentsScreen() {
             rooms={rooms}
             clinicTimings={clinicTimings}
             onClose={() => {
-  setShowModal(false);
-  // Clear navigation params after modal close to prevent modal/drawer from reopening
-  router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
-}}
+              console.log('Modal close triggered');
+              setShowModal(false);
+              console.log('Modal set to hidden');
+              router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
+            }}
             onCreate={(appointmentOrArr: any) => {
+              console.log('Creating appointment, closing modal');
               if (Array.isArray(appointmentOrArr)) {
                 appointmentOrArr.forEach(appt => dispatch(addAppointment(appt)));
               } else {
                 dispatch(addAppointment(appointmentOrArr));
               }
               setShowModal(false);
-// Clear navigation params after booking to prevent modal/drawer from reopening
-router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
+              console.log('Modal set to hidden');
+              router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
             }}
             appointments={appointments}
             therapies={therapies}
             enforceGenderMatch={enforceGenderMatch}
             autoOpenDrawer={autoOpenDrawer}
             newAppointment={newAppointment}
+            tab={validTab}
             initialClientId={initialClientId}
             initialClientName={initialClientName}
             initialClientPhone={initialClientPhone}

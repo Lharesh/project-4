@@ -122,12 +122,12 @@ const initialState: AppointmentsState = {
 // Async thunk to fetch appointments (mock implementation)
 export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAppointments',
-  async ({ tab, date }: { tab: 'Doctor' | 'Therapy'; date: string }, { rejectWithValue }) => {
+  async ({ validTab, date }: { validTab: 'Doctor' | 'Therapy'; date: string }, { rejectWithValue }) => {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Return mock appointments for the specified tab and date
-      return MOCK_APPOINTMENTS.filter(apt => apt.date === date && apt.tab === tab);
+      return MOCK_APPOINTMENTS.filter(apt => apt.date === date && apt.tab === validTab);
     } catch (error) {
       return rejectWithValue('Error fetching appointments');
     }

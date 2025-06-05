@@ -27,4 +27,5 @@ export const APPOINTMENT_PARAM_KEYS = {
   SLOT_END: 'slotEnd',
   ROOM_ID: 'roomId',
   AUTO_OPEN_DRAWER: 'autoOpenDrawer',
+  NEW_APPOINTMENT: 'newAppointment',
 };

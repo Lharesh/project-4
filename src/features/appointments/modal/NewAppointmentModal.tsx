@@ -27,36 +27,23 @@ interface NewAppointmentModalProps {
   initialSlotEnd?: string;
   initialRoomId?: string;
   initialDate?: string;
+  tab?: string;
 }
 
-
-
-const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
-  visible,
-  clients,
-  therapists,
-  rooms,
-  clinicTimings,
-  onClose,
-  onCreate,
-  appointments = [],
-  therapies = [],
-  enforceGenderMatch,
-  initialClientId,
-  initialClientName,
-  initialClientPhone,
-  autoOpenDrawer,
-  newAppointment,
-  initialSlotStart,
-  initialSlotEnd,
-  initialRoomId,
-  initialDate
+const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' | 'Therapy' }> = ({
+  tab = 'Doctor',
+  ...props
 }) => {
+  // If you want to allow switching tabs inside the modal:
+  const [currentTab, setCurrentTab] = React.useState<'Doctor' | 'Therapy'>(tab);
+  React.useEffect(() => {
+    if (tab !== currentTab) setCurrentTab(tab);
+  }, [tab]);
 
   // Unified onCreate handler for both Doctor and Therapy
   const handleCreate = (appointmentOrArr: any) => {
     // Only call onCreate, do not dispatch here
-    if (onCreate) onCreate(appointmentOrArr);
+    if (props.onCreate) props.onCreate(appointmentOrArr);
     // Show a toast/snackbar or alert for confirmation
     if (typeof window !== 'undefined' && window?.navigator?.product === 'ReactNative') {
       // For Android native
@@ -71,42 +58,12 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
       // fallback for web or other
       alert('Appointment created successfully!');
     }
-    if (onClose) onClose();
+    if (props.onClose) props.onClose();
   };
 
-
-  // Set Therapy as default tab if autoOpenDrawer and client info are present
-  const defaultTab = (autoOpenDrawer && initialClientId && initialClientName && initialClientPhone) ? 'Therapy' : 'Doctor';
-  const [tab, setTab] = useState<'Doctor' | 'Therapy'>(defaultTab);
-
-  // Reset state if newAppointment is triggered
-  React.useEffect(() => {
-    if (newAppointment) {
-      setTab(defaultTab); // optionally reset other local state here
-      // Could add more resets if needed (e.g., clear forms via refs)
-    }
-  }, [newAppointment, defaultTab]);
-
-  // If modal becomes visible with autoOpenDrawer and client info, switch to Therapy tab
-  React.useEffect(() => {
-    if (
-      visible &&
-      autoOpenDrawer &&
-      initialClientId &&
-      initialClientName &&
-      initialClientPhone &&
-      initialSlotStart &&
-      initialSlotEnd &&
-      initialRoomId &&
-      initialDate
-    ) {
-      setTab('Therapy');
-    }
-  }, [visible, autoOpenDrawer, initialClientId, initialClientName, initialClientPhone, initialSlotStart, initialSlotEnd, initialRoomId, initialDate]);
-
   // Filter appointments by tab
-  const doctorAppointments = (appointments ?? []).filter((app: any) => app.tab === 'Doctor');
-  const therapyAppointments = (appointments ?? []).filter((app: any) => app.tab === 'Therapy');
+  const doctorAppointments = (props.appointments ?? []).filter((app: any) => app.tab === 'Doctor');
+  const therapyAppointments = (props.appointments ?? []).filter((app: any) => app.tab === 'Therapy');
 
   // Minimal styles (expand as needed)
   const styles = StyleSheet.create({
@@ -126,57 +83,54 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   });
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={props.visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <Text style={styles.title}>New Appointment</Text>
-              <TouchableOpacity onPress={onClose} accessibilityLabel="close-modal"><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={props.onClose} accessibilityLabel="close-modal"><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
             </View>
             {/* Tabs */}
             <View style={styles.tabs}>
-              <TouchableOpacity style={[styles.tab, tab === 'Doctor' && styles.tabActive]} onPress={() => setTab('Doctor')}>
-                <Text style={[styles.tabLabel, tab === 'Doctor' && styles.tabLabelActive]}>Doctor</Text>
+              <TouchableOpacity style={[styles.tab, currentTab === 'Doctor' && styles.tabActive]} onPress={() => setCurrentTab('Doctor')}>
+                <Text style={[styles.tabLabel, currentTab === 'Doctor' && styles.tabLabelActive]}>Doctor</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.tab, tab === 'Therapy' && styles.tabActive]} onPress={() => setTab('Therapy')}>
-                <Text style={[styles.tabLabel, tab === 'Therapy' && styles.tabLabelActive]}>Therapy</Text>
+              <TouchableOpacity style={[styles.tab, currentTab === 'Therapy' && styles.tabActive]} onPress={() => setCurrentTab('Therapy')}>
+                <Text style={[styles.tabLabel, currentTab === 'Therapy' && styles.tabLabelActive]}>Therapy</Text>
               </TouchableOpacity>
             </View>
 
-
-            {/* ... the appointments should only be passed to the component via props from Redux */}
-
-            {tab === 'Doctor' ? (
+            {currentTab === 'Doctor' ? (
               <DoctorAppointments
-                clients={clients}
-                onClose={onClose}
+                clients={props.clients}
+                onClose={props.onClose}
                 onCreate={handleCreate}
-                therapists={therapists}
+                therapists={props.therapists}
                 appointments={doctorAppointments}
-                newAppointment={newAppointment} // pass to DoctorAppointments
+                newAppointment={props.newAppointment}
               />
             ) : (
               <TherapyAppointments
-                visible={visible}
-                onClose={onClose}
+                visible={props.visible}
+                onClose={props.onClose}
                 onCreate={handleCreate}
-                clients={clients ?? []}
-                therapists={therapists ?? []}
-                rooms={rooms ?? []}
-                clinicTimings={clinicTimings ?? {}}
-                appointments={therapyAppointments ?? []}
-                therapies={therapies ?? []}
-                enforceGenderMatch={enforceGenderMatch}
-                autoOpenDrawer={autoOpenDrawer}
-                newAppointment={newAppointment}
-                initialClientId={initialClientId}
-                initialClientName={initialClientName}
-                initialClientPhone={initialClientPhone}
-                initialSlotStart={initialSlotStart}
-                initialSlotEnd={initialSlotEnd}
-                initialRoomId={initialRoomId}
-                initialDate={initialDate}
+                clients={props.clients ?? []}
+                therapists={props.therapists ?? []}
+                rooms={props.rooms ?? []}
+                clinicTimings={props.clinicTimings ?? {}}
+                appointments={therapyAppointments}
+                therapies={props.therapies ?? []}
+                enforceGenderMatch={props.enforceGenderMatch}
+                autoOpenDrawer={props.autoOpenDrawer}
+                newAppointment={props.newAppointment}
+                initialClientId={props.initialClientId}
+                initialClientName={props.initialClientName}
+                initialClientPhone={props.initialClientPhone}
+                initialSlotStart={props.initialSlotStart}
+                initialSlotEnd={props.initialSlotEnd}
+                initialRoomId={props.initialRoomId}
+                initialDate={props.initialDate}
               />
             )}
           </View>
