@@ -28,6 +28,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
               header: (props) => <AppHeader title={props.options.title} />,
             }}
           />
+          <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen
             name="(admin)"
             options={{ headerShown: false }}
@@ -35,7 +36,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <Stack.Screen name="+not-found" />
         </Stack>
       </Provider>
-      {children}
     </PaperProvider>
   );
 }

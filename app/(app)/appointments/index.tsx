@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ROUTE_APPOINTMENTS } from '@/constants/routes';
+import { ROUTE_NEW_APPOINTMENT } from '@/constants/routes';
 import {
   View,
   Text,
@@ -16,17 +16,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@/theme';
 import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, Plus, Phone, Mail } from 'lucide-react-native';
-import NewAppointmentModal from '@/features/appointments/modal/NewAppointmentModal';
 import { useAppointmentModalParams } from './_useNavigationParams';
 import { selectEnforceGenderMatch } from '@/features/clinicConfig/configSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { useDispatch } from 'react-redux';
-import { fetchAppointments, addAppointment } from '@/features/appointments/appointmentsSlice';
+import { fetchAppointments } from '@/features/appointments/appointmentsSlice';
 import AppointmentCard from '@/features/appointments/components/AppointmentCard';
 import { selectTherapists, selectRooms, selectClinicTimings } from '../../(admin)/clinics/setup/setupSlice';
 import type { TreatmentSlot } from '../../(admin)/clinics/setup/setupSlice';
 import { safeFormatDate } from '@/features/appointments/helpers/dateHelpers';
-import BookingModalPanel from './booking';
 
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
@@ -48,7 +46,6 @@ function AppointmentsScreen() {
   const selectedKey = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
 
   useEffect(() => {
-    console.log('Fetching appointments with:', { validTab, selectedKey });
     const tabToUse: 'Doctor' | 'Therapy' = validTab ?? 'Doctor';
     dispatch(fetchAppointments({ validTab: tabToUse, date: selectedKey }) as any);
   }, [dispatch, validTab, selectedKey]);
@@ -79,32 +76,6 @@ function AppointmentsScreen() {
 
   const router = useRouter();
 
-  // Auto-open modal if navigation params dictate
-  useEffect(() => {
-    console.log('Auto-opening modal with:', { newAppointment, initialDate });
-    if (newAppointment) {
-      console.log('Auto-opening modal for new appointment');
-      setShowModal(true);
-      console.log('Modal set to visible');
-      if (initialDate) setSelectedDate(new Date(initialDate));
-    }
-  }, [newAppointment, initialDate]);
-
-  useEffect(() => {
-    console.log('Initial parameters:', {
-      initialClientId,
-      initialClientName,
-      initialClientPhone,
-      initialSlotStart,
-      initialRoomId,
-      initialDate
-    });
-    console.log('Show Booking Modal:', showModal);
-    if (!showModal) {
-      console.log('Booking modal is not shown because one or more initial parameters are missing or incorrect.');
-    }
-  }, [initialClientId, initialClientName, initialClientPhone, initialSlotStart, initialRoomId, initialDate, showModal]);
-
   return (
     <SafeAreaView style={[styles.safeArea, { flex: 1 }]} edges={['bottom', 'left', 'right']}>
       <View style={{ flex: 1, position: 'relative' }}>
@@ -127,7 +98,6 @@ function AppointmentsScreen() {
           </View>
         </View>
         {/* Appointment List */}
-        {/* Debug log for appointment dates and filter is now above return to fix lint errors */}
         <ScrollView style={{ flex: 1 }}>
           {appointments
             .filter(a => a.date === selectedKey)
@@ -142,53 +112,10 @@ function AppointmentsScreen() {
         </ScrollView>
         {/* Floating Action Button */}
         <TouchableOpacity style={styles.fab} onPress={() => {
-          console.log('FAB pressed, opening modal');
-          router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
-          setShowModal(true);
-          console.log('Modal set to visible');
+          router.push({ pathname: ROUTE_NEW_APPOINTMENT as any });
         }} accessibilityLabel="Add Appointment">
           <Plus size={28} color="#fff" />
         </TouchableOpacity>
-        {/* Only show the modal if you are on the /appointments route (not /clients, etc.) */}
-        {pathname?.includes('/appointments') && (
-          <NewAppointmentModal
-            visible={showModal}
-            clients={clients}
-            therapists={therapists}
-            rooms={rooms}
-            clinicTimings={clinicTimings}
-            onClose={() => {
-              console.log('Modal close triggered');
-              setShowModal(false);
-              console.log('Modal set to hidden');
-              router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
-            }}
-            onCreate={(appointmentOrArr: any) => {
-              console.log('Creating appointment, closing modal');
-              if (Array.isArray(appointmentOrArr)) {
-                appointmentOrArr.forEach(appt => dispatch(addAppointment(appt)));
-              } else {
-                dispatch(addAppointment(appointmentOrArr));
-              }
-              setShowModal(false);
-              console.log('Modal set to hidden');
-              router.replace({ pathname: ROUTE_APPOINTMENTS, params: {} });
-            }}
-            appointments={appointments}
-            therapies={therapies}
-            enforceGenderMatch={enforceGenderMatch}
-            autoOpenDrawer={autoOpenDrawer}
-            newAppointment={newAppointment}
-            tab={validTab}
-            initialClientId={initialClientId}
-            initialClientName={initialClientName}
-            initialClientPhone={initialClientPhone}
-            initialSlotStart={initialSlotStart}
-            initialSlotEnd={initialSlotEnd}
-            initialRoomId={initialRoomId}
-            initialDate={initialDate}
-          />
-        )}
       </View>
     </SafeAreaView>
   );

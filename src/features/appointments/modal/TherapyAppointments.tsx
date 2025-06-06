@@ -292,6 +292,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         select: 1, // triggers client selection
         new: 1,    // signals to open the drawer for a new appointment
         t: Date.now(), // ensures navigation uniqueness
+        tab: 'Therapy',
       }
     });
 
@@ -785,10 +786,6 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
             )}
           </View>
         </ScrollView>
-
-        <TouchableOpacity style={styles.bookButton} onPress={() => { if (isValid()) {/* open booking modal if needed */ } else console.log('Form is invalid. Current error:', error, 'Form values:', values); }} /*disabled={!isValid()}*/>
-          <Text style={styles.bookButtonText}>Proceed to Book</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Booking Modal Panel */}

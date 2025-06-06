@@ -36,8 +36,10 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' 
 }) => {
   // If you want to allow switching tabs inside the modal:
   const [currentTab, setCurrentTab] = React.useState<'Doctor' | 'Therapy'>(tab);
+
+  // Only update currentTab if the tab prop changes (e.g., due to route change)
   React.useEffect(() => {
-    if (tab !== currentTab) setCurrentTab(tab);
+    setCurrentTab(tab);
   }, [tab]);
 
   // Unified onCreate handler for both Doctor and Therapy

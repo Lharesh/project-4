@@ -108,7 +108,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
               }
               setTimeout(() => {
                 console.log('Create action slot params:', { startTime, endTime, roomId, date });
-                router.push({
+                router.replace({
                   pathname: '/(app)/clients',
                   params: {
                     [APPOINTMENT_PARAM_KEYS.SLOT_START]: startTime,
@@ -121,7 +121,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
                     t: Date.now(), // force navigation to be unique
                   }
                 });
-// 'new: 1' param signals downstream components to open the drawer and reset all client/appointment fields
+                // 'new: 1' param signals downstream components to open the drawer and reset all client/appointment fields
               }, 50);
             }}>
               <Text style={styles.menuItemText}>Create</Text>

@@ -5,6 +5,7 @@ import BookingModalPanel from '@/features/appointments/components/BookingModalPa
 import BookingForm from '@/features/appointments/components/BookingForm';
 import { selectTherapists } from '@/features/appointments/selectors';
 import { addAppointment } from '@/features/appointments/appointmentsSlice';
+import { addDays, format, parseISO } from 'date-fns';
 
 function getStringParam(param: any): string {
     if (Array.isArray(param)) return param[0] || '';
@@ -15,6 +16,7 @@ export default function BookingPage() {
     const params = useLocalSearchParams();
     const router = useRouter();
     const dispatch = useAppDispatch();
+    const [formKey, setFormKey] = React.useState(Date.now());
 
     const therapies = useAppSelector(state => state.setup?.treatmentSlots || []);
     const rooms = useAppSelector(state => state.setup?.rooms || []);
@@ -38,17 +40,31 @@ export default function BookingPage() {
     };
 
     const handleSubmit = (values: any) => {
-        if (Array.isArray(values)) {
-            values.forEach((appt) => dispatch(addAppointment(appt)));
+        // Recurring booking logic
+        const totalDays = values.totalDays || values.duration || 1;
+        let appointmentsToAdd = [];
+        if (totalDays > 1) {
+            for (let i = 0; i < totalDays; i++) {
+                const dateObj = addDays(parseISO(values.date), i);
+                const dateStr = format(dateObj, 'yyyy-MM-dd');
+                appointmentsToAdd.push({
+                    ...values,
+                    date: dateStr,
+                    id: `${values.selectedPatient}_${(values.selectedTherapists || []).join('_')}_${values.selectedRoom}_${dateStr}_${values.timeSlot}`,
+                });
+            }
         } else {
-            dispatch(addAppointment(values));
+            appointmentsToAdd = [values];
         }
+        appointmentsToAdd.forEach((appt) => dispatch(addAppointment(appt)));
+        setFormKey(Date.now());
         router.replace({ pathname: '/appointments', params: { tab: 'Therapy' } });
     };
 
     return (
         <BookingModalPanel visible={true} onClose={() => router.replace('/appointments')}>
             <BookingForm
+                key={formKey}
                 initialValues={initialValues}
                 therapies={therapies}
                 availableRooms={rooms}

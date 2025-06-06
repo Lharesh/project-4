@@ -44,7 +44,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
     <>
       <Card style={styles.card}>
         <View style={styles.cardRow}>
-          <View style={[styles.cardCol, { alignItems: 'flex-start' }]}> 
+          <View style={[styles.cardCol, { alignItems: 'flex-start' }]}>
             {/* Row 1: Slot Start time */}
             <View style={styles.cardCell}>
               <View style={styles.rowCellContent}>
@@ -69,7 +69,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
             </View>
           </View>
 
-          <View style={[styles.cardCol, { alignItems: 'flex-start' }]}> 
+          <View style={[styles.cardCol, { alignItems: 'flex-start' }]}>
             {/* Row 1: Patient Name */}
             <View style={styles.cardCell}>
               <View style={styles.rowCellContent}>
@@ -96,7 +96,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
             </View>
           </View>
 
-          <View style={[styles.cardCol, { alignItems: 'flex-end' }]}> 
+          <View style={[styles.cardCol, { alignItems: 'flex-end' }]}>
             {/* Row 1: Duration */}
             <View style={styles.cardCell}>
               <View style={styles.rowCellContent}>
@@ -135,6 +135,6 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
     </>
   );
 }
-      
+
 
 export default AppointmentCard;

@@ -106,6 +106,7 @@ function ClientsScreen() {
           [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom,
           slotRoom: params.slotRoom,
           [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
+          tab: 'Therapy',
           t: Date.now(),
         }
       });

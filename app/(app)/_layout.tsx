@@ -7,13 +7,14 @@ import {
   StyleSheet,
   InteractionManager,
 } from 'react-native';
-import { Tabs, router, useSegments } from 'expo-router';
+import { Tabs, router, useSegments, usePathname } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchClinic } from 'app/(admin)/clinics/clinicSlice';
 import { fetchConfig } from '@/features/clinicConfig/configSlice';
 import { COLORS } from '@/theme/constants/theme';
 import Card from '@/components/ui/Card';
 import { ROLE_TABS } from '@/constants/roleConfig';
+import { ROUTE_APPOINTMENTS } from '@/constants/routes';
 
 export default function AppLayout() {
   const dispatch = useAppDispatch();
@@ -23,6 +24,7 @@ export default function AppLayout() {
 
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const segments = useSegments();
+  const pathname = usePathname();
 
   const role = (user?.role || 'admin').toLowerCase();
   const roleTabs = ROLE_TABS[role] || [];
@@ -42,7 +44,7 @@ export default function AppLayout() {
       dispatch(fetchClinic());
       dispatch(fetchConfig());
       if (segments.join('/') === '(app)') {
-        router.replace('/appointments');
+        router.replace(ROUTE_APPOINTMENTS);
       }
     });
     return () => task.cancel();
@@ -54,7 +56,6 @@ export default function AppLayout() {
 
   return (
     <>
-
       {adminTabs.length > 0 && showAdminMenu && (
         <View style={[styles.adminMenuOverlay, { position: 'absolute', top: 60, right: 10, zIndex: 9999 }]}> {/* Adjust top/right as needed */}
           <TouchableOpacity
