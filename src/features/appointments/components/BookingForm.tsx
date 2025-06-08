@@ -43,6 +43,8 @@ interface BookingFormProps {
   onSubmit: (values: any) => void;
   genderFlag: boolean;
   clientGender: string;
+  error?: string;
+  onCancel?: () => void;
 }
 
 const DURATION_OPTIONS = [1, 3, 7, 14, 21];
@@ -78,6 +80,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
   onSubmit,
   genderFlag,
   clientGender,
+  error,
+  onCancel,
 }) => {
   const [values, setValues] = useState({ ...initialValues, duration: initialValues.duration || 1 });
   const [errors, setErrors] = useState<any>({});
@@ -85,6 +89,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
   const [therapySearch, setTherapySearch] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Filter therapies for search
   const filteredTherapies = useMemo(() => {
@@ -132,15 +138,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
     const newErrors = validate(values);
     setErrors(newErrors);
     setTouched({ selectedTherapy: true, selectedRoom: true, selectedTherapists: true, startDate: true, timeSlot: true, duration: true });
+    console.log('[BookingForm] handleSubmit values:', values);
+    console.log('[BookingForm] handleSubmit validation errors:', newErrors);
     if (isFormValid(values, newErrors)) {
-      // Use the helper to transform form values to appointment object
-      const appointment = transformTherapyFormToAppointment(
-        values,
-        therapies,
-        availableRooms,
-        availableTherapists
-      );
-      onSubmit(appointment);
+      console.log('[BookingForm] onSubmit about to be called with:', values);
+      onSubmit(values);
     }
   };
 
@@ -150,173 +152,209 @@ const BookingForm: React.FC<BookingFormProps> = ({
     setValues({ ...initialValues, duration: initialValues.duration || 1 });
   }, [initialValues, clientGender]);
 
+  React.useEffect(() => {
+    if (error) {
+      setToastMessage(error);
+      setShowToast(true);
+      // Auto-dismiss after 3s
+      const timer = setTimeout(() => setShowToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   if (Platform.OS === 'web') {
     // Get the selected therapy object
     const selectedTherapyObj = therapies.find((t: any) => t.id === values.selectedTherapy);
     // Show filtered therapies if searching, else show all
     const showDropdown = therapySearch && filteredTherapies.length > 0 && !selectedTherapyObj;
     return (
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-        style={{ padding: 16, maxWidth: 420 }}
-      >
-        {/* Client Info */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, background: '#f5f5f5', borderRadius: 8, padding: 12 }}>
-          {MdPerson && <MdPerson size={28} color={COLORS.vata[700]} style={{ marginRight: 8 }} />}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <div style={{ fontWeight: 600, textAlign: 'left' }}>{values.clientName || <span style={{ color: '#aaa' }}>No Name</span>}</div>
-            <div style={{ color: '#666', fontSize: 14, textAlign: 'left' }}>{MdPhone && <MdPhone size={18} color={COLORS.vata[700]} style={{ verticalAlign: 'middle' }} />} {values.clientMobile || <span style={{ color: '#aaa' }}>No Phone</span>}</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 12 }}>
-            <span style={{ fontWeight: 500, background: '#e0e0e0', borderRadius: '50%', padding: '10px 16px', fontSize: 16, color: COLORS.vata[700], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{values.clientId || <span style={{ color: '#aaa' }}>No ID</span>}</span>
-          </div>
-        </div>
-        {/* Therapy Smart Search */}
-        <div style={{ position: 'relative', marginBottom: 12 }}>
-          <input
-            type="text"
-            placeholder="Select therapy"
-            value={selectedTherapyObj ? selectedTherapyObj.name : therapySearch}
-            onChange={e => {
-              setTherapySearch(e.target.value);
-              handleChange('selectedTherapy', '');
-            }}
-            onBlur={() => handleBlur('selectedTherapy')}
-            style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc', outline: errors.selectedTherapy && touched.selectedTherapy ? '2px solid red' : undefined }}
-          />
-          {therapySearch && (
-            <button type="button" onClick={() => { setTherapySearch(''); handleChange('selectedTherapy', ''); }} style={{ position: 'absolute', right: 8, top: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 18 }}>
-              {MdClose && <MdClose size={20} color="#888" />}
-            </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', width: '100vw', background: 'rgba(0,0,0,0.04)' }}>
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          style={{ padding: 16, maxWidth: 420, width: '100%', background: '#fff', borderRadius: 12, boxShadow: '0 2px 24px 0 rgba(0,0,0,0.08)' }}
+        >
+          {/* Toast/Error Banner */}
+          {showToast && toastMessage && (
+            <div style={{ background: '#ffe8e6', color: '#b71c1c', border: '1px solid #f44336', borderRadius: 6, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 600 }}>{toastMessage}</span>
+              <button type="button" onClick={() => setShowToast(false)} style={{ background: 'none', border: 'none', color: '#b71c1c', fontSize: 18, marginLeft: 12, cursor: 'pointer' }}>×</button>
+            </div>
           )}
-          {/* Quick Picks */}
-          <div style={{ display: 'flex', marginTop: 8, gap: 8 }}>
-            {therapies.slice(0, 3).map((t: any) => (
-              <button
-                type="button"
-                key={t.id}
-                style={{ background: values.selectedTherapy === t.id ? '#1976d2' : '#eee', color: values.selectedTherapy === t.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }}
-                onClick={() => {
-                  handleChange('selectedTherapy', t.id);
-                  setTherapySearch(t.name);
-                }}
-              >
-                {t.name}
-              </button>
-            ))}
+          {/* Client Info */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, background: '#f5f5f5', borderRadius: 8, padding: 12 }}>
+            {MdPerson && <MdPerson size={28} color={COLORS.vata[700]} style={{ marginRight: 8 }} />}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <div style={{ fontWeight: 600, textAlign: 'left' }}>{values.clientName || <span style={{ color: '#aaa' }}>No Name</span>}</div>
+              <div style={{ color: '#666', fontSize: 14, textAlign: 'left' }}>{MdPhone && <MdPhone size={18} color={COLORS.vata[700]} style={{ verticalAlign: 'middle' }} />} {values.clientMobile || <span style={{ color: '#aaa' }}>No Phone</span>}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 12 }}>
+              <span style={{ fontWeight: 500, background: '#e0e0e0', borderRadius: '50%', padding: '10px 16px', fontSize: 16, color: COLORS.vata[700], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{values.clientId || <span style={{ color: '#aaa' }}>No ID</span>}</span>
+            </div>
           </div>
-          {/* Dropdown for filtered therapies */}
-          {showDropdown && (
-            <div style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #eee', borderRadius: 4, width: '100%', maxHeight: 120, overflowY: 'auto', marginTop: 4 }}>
-              {filteredTherapies.map((t: any) => (
-                <div
+          {/* Therapy Smart Search */}
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <input
+              type="text"
+              placeholder="Select therapy"
+              value={selectedTherapyObj ? selectedTherapyObj.name : therapySearch}
+              onChange={e => {
+                setTherapySearch(e.target.value);
+                handleChange('selectedTherapy', '');
+              }}
+              onBlur={() => handleBlur('selectedTherapy')}
+              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc', outline: errors.selectedTherapy && touched.selectedTherapy ? '2px solid red' : undefined }}
+            />
+            {therapySearch && (
+              <button type="button" onClick={() => { setTherapySearch(''); handleChange('selectedTherapy', ''); }} style={{ position: 'absolute', right: 8, top: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 18 }}>
+                {MdClose && <MdClose size={20} color="#888" />}
+              </button>
+            )}
+            {/* Quick Picks */}
+            <div style={{ display: 'flex', marginTop: 8, gap: 8 }}>
+              {therapies.slice(0, 3).map((t: any) => (
+                <button
+                  type="button"
                   key={t.id}
-                  style={{ padding: 6, background: values.selectedTherapy === t.id ? '#1976d2' : 'transparent', color: values.selectedTherapy === t.id ? '#fff' : '#222', cursor: 'pointer' }}
-                  onMouseDown={() => {
+                  style={{ background: values.selectedTherapy === t.id ? '#1976d2' : '#eee', color: values.selectedTherapy === t.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }}
+                  onClick={() => {
                     handleChange('selectedTherapy', t.id);
                     setTherapySearch(t.name);
                   }}
                 >
                   {t.name}
-                </div>
+                </button>
               ))}
             </div>
-          )}
-          {touched.selectedTherapy && errors.selectedTherapy && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapy}</div>}
-        </div>
-        {/* Rooms */}
-        <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {availableRooms.map((r: any) => (
-            <button type="button" key={r.id} style={{ background: values.selectedRoom === r.id ? '#1976d2' : '#eee', color: values.selectedRoom === r.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }} onClick={() => handleChange('selectedRoom', r.id)}>{r.name}</button>
-          ))}
-          {touched.selectedRoom && errors.selectedRoom && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedRoom}</div>}
-        </div>
-        {/* Therapists */}
-        <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
-          {filteredTherapists.map((t: any) => {
-            const selected = values.selectedTherapists.includes(t.id);
-            return (
-              <button
-                type="button"
-                key={t.id}
-                style={{ background: selected ? '#1976d2' : '#eee', color: selected ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }}
-                onClick={() => {
-                  handleChange(
-                    'selectedTherapists',
-                    selected
-                      ? values.selectedTherapists.filter((id: string) => id !== t.id)
-                      : [...values.selectedTherapists, t.id]
-                  );
-                }}
-              >
-                {t.name}
-              </button>
-            );
-          })}
-          {touched.selectedTherapists && errors.selectedTherapists && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapists}</div>}
-        </div>
-        {/* Date & Time Row */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-            {MdEvent && <MdEvent size={20} color={COLORS.vata[700]} style={{ position: 'absolute', left: 8, pointerEvents: 'none' }} />}
-            <input
-              type="date"
-              value={values.startDate || ''}
-              onChange={e => handleChange('startDate', e.target.value)}
-              onBlur={() => handleBlur('startDate')}
-              style={{ width: '100%', padding: '8px 8px 8px 36px', borderRadius: 6, border: '1px solid #ccc', outline: errors.startDate && touched.startDate ? '2px solid red' : undefined }}
-            />
-            {touched.startDate && errors.startDate && <div style={{ color: 'red', fontSize: 12, position: 'absolute', top: 40 }}>{errors.startDate}</div>}
+            {/* Dropdown for filtered therapies */}
+            {showDropdown && (
+              <div style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #eee', borderRadius: 4, width: '100%', maxHeight: 120, overflowY: 'auto', marginTop: 4 }}>
+                {filteredTherapies.map((t: any) => (
+                  <div
+                    key={t.id}
+                    style={{ padding: 6, background: values.selectedTherapy === t.id ? '#1976d2' : 'transparent', color: values.selectedTherapy === t.id ? '#fff' : '#222', cursor: 'pointer' }}
+                    onMouseDown={() => {
+                      handleChange('selectedTherapy', t.id);
+                      setTherapySearch(t.name);
+                    }}
+                  >
+                    {t.name}
+                  </div>
+                ))}
+              </div>
+            )}
+            {touched.selectedTherapy && errors.selectedTherapy && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapy}</div>}
           </div>
-          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-            {MdSchedule && <MdSchedule size={20} color={COLORS.vata[700]} style={{ position: 'absolute', left: 8, pointerEvents: 'none' }} />}
-            <input
-              type="time"
-              value={values.timeSlot || ''}
-              onChange={e => handleChange('timeSlot', e.target.value)}
-              onBlur={() => handleBlur('timeSlot')}
-              style={{ width: '100%', padding: '8px 8px 8px 36px', borderRadius: 6, border: '1px solid #ccc', outline: errors.timeSlot && touched.timeSlot ? '2px solid red' : undefined }}
-            />
-            {touched.timeSlot && errors.timeSlot && <div style={{ color: 'red', fontSize: 12, position: 'absolute', top: 40 }}>{errors.timeSlot}</div>}
+          {/* Rooms */}
+          <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {availableRooms.map((r: any) => (
+              <button type="button" key={r.id} style={{ background: values.selectedRoom === r.id ? '#1976d2' : '#eee', color: values.selectedRoom === r.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }} onClick={() => handleChange('selectedRoom', r.id)}>{r.name}</button>
+            ))}
+            {touched.selectedRoom && errors.selectedRoom && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedRoom}</div>}
           </div>
-        </div>
-        {/* Duration Quick-Picks */}
-        <div style={{ marginBottom: 12 }}>
-          {DURATION_OPTIONS.map(opt => (
-            <button type="button" key={opt} style={{ marginRight: 8, background: values.duration === opt ? '#1976d2' : '#eee', color: values.duration === opt ? '#fff' : '#222', border: 'none', borderRadius: 4, padding: '4px 12px', cursor: 'pointer' }} onClick={() => handleChange('duration', opt)}>{opt}d</button>
-          ))}
-          <input
-            type="number"
-            min={1}
-            placeholder="Custom"
-            value={values.duration && !DURATION_OPTIONS.includes(values.duration) ? values.duration : ''}
-            onChange={e => handleChange('duration', Number(e.target.value))}
-            onBlur={() => handleBlur('duration')}
-            style={{ width: 60, marginLeft: 8 }}
-          />
-          {touched.duration && errors.duration && <div style={{ color: 'red', fontSize: 12 }}>{errors.duration}</div>}
-        </div>
-        {/* Notes */}
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="text"
-            value={values.notes}
-            onChange={e => handleChange('notes', e.target.value)}
-            placeholder="Notes (optional)"
-            style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
-          />
-        </div>
-        <button type="submit" style={{ width: '100%', background: formValid ? '#1976d2' : '#aaa', color: '#fff', border: 'none', borderRadius: 6, padding: 16, fontWeight: 600, fontSize: 18, marginTop: 16, cursor: formValid ? 'pointer' : 'not-allowed' }} disabled={!formValid}>Book</button>
-      </form>
+          {/* Therapists */}
+          <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+            {filteredTherapists.map((t: any) => {
+              const selected = values.selectedTherapists.includes(t.id);
+              return (
+                <button
+                  type="button"
+                  key={t.id}
+                  style={{ background: selected ? '#1976d2' : '#eee', color: selected ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }}
+                  onClick={() => {
+                    handleChange(
+                      'selectedTherapists',
+                      selected
+                        ? values.selectedTherapists.filter((id: string) => id !== t.id)
+                        : [...values.selectedTherapists, t.id]
+                    );
+                  }}
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+            {touched.selectedTherapists && errors.selectedTherapists && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapists}</div>}
+          </div>
+          {/* Date & Time Row */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+              {MdEvent && <MdEvent size={20} color={COLORS.vata[700]} style={{ position: 'absolute', left: 8, pointerEvents: 'none' }} />}
+              <input
+                type="date"
+                value={values.startDate || ''}
+                onChange={e => handleChange('startDate', e.target.value)}
+                onBlur={() => handleBlur('startDate')}
+                style={{ width: '100%', padding: '8px 8px 8px 36px', borderRadius: 6, border: '1px solid #ccc', outline: errors.startDate && touched.startDate ? '2px solid red' : undefined }}
+              />
+              {touched.startDate && errors.startDate && <div style={{ color: 'red', fontSize: 12, position: 'absolute', top: 40 }}>{errors.startDate}</div>}
+            </div>
+            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+              {MdSchedule && <MdSchedule size={20} color={COLORS.vata[700]} style={{ position: 'absolute', left: 8, pointerEvents: 'none' }} />}
+              <input
+                type="time"
+                value={values.timeSlot || ''}
+                onChange={e => handleChange('timeSlot', e.target.value)}
+                onBlur={() => handleBlur('timeSlot')}
+                style={{ width: '100%', padding: '8px 8px 8px 36px', borderRadius: 6, border: '1px solid #ccc', outline: errors.timeSlot && touched.timeSlot ? '2px solid red' : undefined }}
+              />
+              {touched.timeSlot && errors.timeSlot && <div style={{ color: 'red', fontSize: 12, position: 'absolute', top: 40 }}>{errors.timeSlot}</div>}
+            </div>
+          </div>
+          {/* Duration Quick-Picks */}
+          <div style={{ marginBottom: 12 }}>
+            {DURATION_OPTIONS.map(opt => (
+              <button type="button" key={opt} style={{ marginRight: 8, background: values.duration === opt ? '#1976d2' : '#eee', color: values.duration === opt ? '#fff' : '#222', border: 'none', borderRadius: 4, padding: '4px 12px', cursor: 'pointer' }} onClick={() => handleChange('duration', opt)}>{opt}d</button>
+            ))}
+            <input
+              type="number"
+              min={1}
+              placeholder="Custom"
+              value={values.duration && !DURATION_OPTIONS.includes(values.duration) ? values.duration : ''}
+              onChange={e => handleChange('duration', Number(e.target.value))}
+              onBlur={() => handleBlur('duration')}
+              style={{ width: 60, marginLeft: 8 }}
+            />
+            {touched.duration && errors.duration && <div style={{ color: 'red', fontSize: 12 }}>{errors.duration}</div>}
+          </div>
+          {/* Notes */}
+          <div style={{ marginBottom: 12 }}>
+            <input
+              type="text"
+              value={values.notes}
+              onChange={e => handleChange('notes', e.target.value)}
+              placeholder="Notes (optional)"
+              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: 0, marginTop: 24 }}>
+            <button type="button" onClick={onCancel} style={{ background: '#eee', color: '#222', borderRadius: 6, padding: '10px 0', border: 'none', fontWeight: 600, fontSize: 16, flex: 1, width: '50%', marginRight: 0, cursor: 'pointer' }}>Cancel</button>
+            <button type="submit" style={{ background: COLORS.vata[700], color: '#fff', borderRadius: 6, padding: '10px 0', border: 'none', fontWeight: 600, fontSize: 16, flex: 1, width: '50%', marginLeft: 12, cursor: 'pointer' }}>Book</button>
+          </div>
+        </form>
+      </div>
     );
   }
 
   // --- REACT NATIVE RENDERING ---
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
+      {/* Toast/Error Banner */}
+      {showToast && toastMessage && (
+        <View style={{ zIndex: 1000 }}>
+          {require('@/components/ui/Toast').Toast && (
+            React.createElement(require('@/components/ui/Toast').Toast, {
+              visible: showToast,
+              type: 'error',
+              message: toastMessage,
+              onDismiss: () => setShowToast(false),
+              duration: 3000,
+            })
+          )}
+        </View>
+      )}
       {/* Client Info */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, backgroundColor: '#f5f5f5', borderRadius: 8, padding: 12 }}>
         <MaterialIcon name="person" size={28} style={{ marginRight: 8, color: COLORS.vata[700] }} />
@@ -492,9 +530,14 @@ const BookingForm: React.FC<BookingFormProps> = ({
           style={{ width: '100%', padding: 8, borderRadius: 6, borderWidth: 1, borderColor: '#ccc' }}
         />
       </View>
-      <TouchableOpacity style={{ width: '100%', backgroundColor: formValid ? '#1976d2' : '#aaa', borderRadius: 6, padding: 16, alignItems: 'center', marginTop: 16 }} onPress={handleSubmit} disabled={!formValid}>
-        <Text style={{ color: '#fff', fontWeight: '600', fontSize: 18 }}>Book</Text>
-      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 }}>
+        <TouchableOpacity onPress={onCancel} style={{ backgroundColor: '#eee', borderRadius: 6, paddingVertical: 12, flex: 1, marginRight: 0, alignItems: 'center' }}>
+          <Text style={{ color: '#222', fontWeight: '600', fontSize: 16 }}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleSubmit} style={{ backgroundColor: COLORS.vata[700], borderRadius: 6, paddingVertical: 12, flex: 1, marginLeft: 12, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Book</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };

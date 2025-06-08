@@ -1,78 +1,58 @@
 import React from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAppSelector, useAppDispatch } from '@/redux/hooks';
-import BookingModalPanel from '@/features/appointments/components/BookingModalPanel';
-import BookingForm from '@/features/appointments/components/BookingForm';
+import { useAppSelector } from '@/redux/hooks';
+import TherapyAppointments from '@/features/appointments/modal/TherapyAppointments';
 import { selectTherapists } from '@/features/appointments/selectors';
-import { addAppointment } from '@/features/appointments/appointmentsSlice';
-import { addDays, format, parseISO } from 'date-fns';
+import { selectRooms, selectClinicTimings } from '../../(admin)/clinics/setup/setupSlice';
+import { ROUTE_APPOINTMENTS, ROUTE_NEW_APPOINTMENT_BOOKING } from '@/constants/routes';
 
-function getStringParam(param: any): string {
-    if (Array.isArray(param)) return param[0] || '';
-    return param || '';
-}
-
-export default function BookingPage() {
+export default function BookingModalRoute() {
     const params = useLocalSearchParams();
     const router = useRouter();
-    const dispatch = useAppDispatch();
-    const [formKey, setFormKey] = React.useState(Date.now());
 
-    const therapies = useAppSelector(state => state.setup?.treatmentSlots || []);
-    const rooms = useAppSelector(state => state.setup?.rooms || []);
+    // Selectors for Redux state
+    const clients = useAppSelector(state => state.clients.clients);
     const therapists = useAppSelector(selectTherapists);
-    const genderFlag = useAppSelector(state => state.config?.enforceGenderMatch ?? false);
-    const clientGender = getStringParam(params.clientGender) || '';
+    const rooms = useAppSelector(selectRooms) ?? [];
+    const clinicTimings = useAppSelector(selectClinicTimings) ?? {};
+    const appointments = useAppSelector(state => state.appointments.appointments);
+    const therapies = useAppSelector(state => state.setup.treatmentSlots);
+    const enforceGenderMatch = useAppSelector(state => state.config.enforceGenderMatch);
 
-    const initialValues = {
-        selectedPatient: getStringParam(params.clientId),
-        selectedTherapy: '',
-        selectedTherapists: [],
-        startDate: getStringParam(params.date),
-        timeSlot: getStringParam(params.slotStart),
-        selectedRoom: getStringParam(params.roomId),
-        duration: null,
-        notes: '',
-        customDays: null,
-        clientName: getStringParam(params.clientName),
-        clientMobile: getStringParam(params.clientMobile),
-        clientId: getStringParam(params.clientId),
-    };
-
-    const handleSubmit = (values: any) => {
-        // Recurring booking logic
-        const totalDays = values.totalDays || values.duration || 1;
-        let appointmentsToAdd = [];
-        if (totalDays > 1) {
-            for (let i = 0; i < totalDays; i++) {
-                const dateObj = addDays(parseISO(values.date), i);
-                const dateStr = format(dateObj, 'yyyy-MM-dd');
-                appointmentsToAdd.push({
-                    ...values,
-                    date: dateStr,
-                    id: `${values.selectedPatient}_${(values.selectedTherapists || []).join('_')}_${values.selectedRoom}_${dateStr}_${values.timeSlot}`,
-                });
-            }
-        } else {
-            appointmentsToAdd = [values];
-        }
-        appointmentsToAdd.forEach((appt) => dispatch(addAppointment(appt)));
-        setFormKey(Date.now());
-        router.replace({ pathname: '/appointments', params: { tab: 'Therapy' } });
-    };
+    // Extract initial values from params
+    const initialClientId = params.clientId as string | undefined;
+    const initialClientName = params.clientName as string | undefined;
+    const initialClientPhone = params.clientMobile as string | undefined;
+    const initialSlotStart = params.slotStart as string | undefined;
+    const initialSlotEnd = params.slotEnd as string | undefined;
+    const initialRoomId = params.roomId as string | undefined;
+    const initialDate = params.date as string | undefined;
 
     return (
-        <BookingModalPanel visible={true} onClose={() => router.replace('/appointments')}>
-            <BookingForm
-                key={formKey}
-                initialValues={initialValues}
-                therapies={therapies}
-                availableRooms={rooms}
-                availableTherapists={therapists}
-                onSubmit={handleSubmit}
-                genderFlag={genderFlag}
-                clientGender={clientGender}
-            />
-        </BookingModalPanel>
+        <TherapyAppointments
+            visible={true}
+            onClose={() => router.replace(ROUTE_APPOINTMENTS)}
+            onCreate={(appointments) => {
+                // Pass the new appointment(s) to AppointmentsScreen via navigation params
+                router.replace({
+                    pathname: ROUTE_APPOINTMENTS,
+                    params: { newAppointment: JSON.stringify(appointments) }
+                });
+            }}
+            clients={clients}
+            therapists={therapists}
+            rooms={rooms}
+            clinicTimings={clinicTimings}
+            appointments={appointments}
+            therapies={therapies}
+            enforceGenderMatch={enforceGenderMatch}
+            initialClientId={initialClientId}
+            initialClientName={initialClientName}
+            initialClientPhone={initialClientPhone}
+            initialSlotStart={initialSlotStart}
+            initialSlotEnd={initialSlotEnd}
+            initialRoomId={initialRoomId}
+            initialDate={initialDate}
+        />
     );
 }

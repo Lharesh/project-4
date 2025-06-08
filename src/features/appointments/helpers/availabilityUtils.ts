@@ -3,6 +3,7 @@
 
 // --- Slot Availability Helper ---
 import { filterTherapistsByGender } from './rulesEngine';
+import { APPOINTMENT_STATUS } from '../constants/status';
 
 export type EntityType = 'therapist' | 'room';
 
@@ -81,16 +82,13 @@ export function getAvailableSlotsForEntity({
     current = addMinutes(current, slotDuration);
   }
 
-
-
-
-
   // 3. Filter out slots that are already booked for this entity
   const bookedSlots = appointments
     .filter(app =>
       app.date === date &&
+      app.status === APPOINTMENT_STATUS.SCHEDULED &&
       ((entityType === 'therapist' && Array.isArray(app.therapistIds) && app.therapistIds.includes(entityId)) ||
-       (entityType === 'room' && app.roomId === entityId))
+        (entityType === 'room' && app.roomId === entityId))
     )
     .map(app => app.slot);
 
@@ -107,11 +105,11 @@ export type Booking = {
   roomId: string;
   therapistIds: string[];
   clientId: string;
+  status: string;
 };
 
 export type Room = { id: string; availability?: { [date: string]: string[] }; };
 export type Patient = { id: string; gender: string; };
-
 
 /**
  * Determines if two time ranges overlap using [start, end) logic.
@@ -154,19 +152,19 @@ function doesBookingOverlap(
   testDuration: number
 ): boolean {
   const overlapResult = (() => {
-  if (booking.date !== testDate) return false;
-  const durA = booking.duration ?? 60;
-  const durB = testDuration;
-  const startA = slotToDate(booking.date, booking.slot);
-  const endA = new Date(startA.getTime() + durA * 60000);
-  const startB = slotToDate(testDate, testSlot);
-  const endB = new Date(startB.getTime() + durB * 60000);
-  // Only return true if the time ranges strictly overlap (not if they just touch)
-  // [startA, endA) and [startB, endB) overlap if startA < endB && startB < endA
-  // If endA === startB or endB === startA, this returns false (adjacent slots are allowed)
-  const result = (startA < endB && startB < endA);
-  return result;
-})();
+    if (booking.date !== testDate) return false;
+    const durA = booking.duration ?? 60;
+    const durB = testDuration;
+    const startA = slotToDate(booking.date, booking.slot);
+    const endA = new Date(startA.getTime() + durA * 60000);
+    const startB = slotToDate(testDate, testSlot);
+    const endB = new Date(startB.getTime() + durB * 60000);
+    // Only return true if the time ranges strictly overlap (not if they just touch)
+    // [startA, endA) and [startB, endB) overlap if startA < endB && startB < endA
+    // If endA === startB or endB === startA, this returns false (adjacent slots are allowed)
+    const result = (startA < endB && startB < endA);
+    return result;
+  })();
   return overlapResult;
 }
 
@@ -188,6 +186,7 @@ export function isTherapistAvailable(
   // Overlap-aware booking check
   const notBooked = !appointments.some(
     (apt) =>
+      apt.status === APPOINTMENT_STATUS.SCHEDULED &&
       Array.isArray(apt.therapistIds) && therapist?.id && apt.therapistIds.includes(therapist.id) &&
       doesBookingOverlap(apt, date, slot, slotDuration)
   );
@@ -211,6 +210,7 @@ export function isRoomAvailable(
   // Overlap-aware booking check
   const notBooked = !appointments.some(
     (apt) =>
+      apt.status === APPOINTMENT_STATUS.SCHEDULED &&
       apt.roomId === room.id &&
       doesBookingOverlap(apt, date, slot, slotDuration)
   );
@@ -244,8 +244,9 @@ export function isPatientAvailable(
   appointments: Booking[],
   slotDuration: number = 60
 ): boolean {
-  
+
   const result = !appointments.some((apt) => {
+    if (apt.status !== APPOINTMENT_STATUS.SCHEDULED) return false; // Only block if scheduled
     const isSamePatient = apt.clientId === clientId;
     const isSameDate = apt.date === date;
     const overlap = doesBookingOverlap(apt, date, slot, slotDuration);

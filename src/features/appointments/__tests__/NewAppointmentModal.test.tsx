@@ -14,19 +14,19 @@ const baseProps = {
 
 describe('NewAppointmentModal', () => {
   it('renders doctor and therapy tabs', () => {
-    const { getByText } = render(<NewAppointmentModal {...baseProps} />);
+    const { getByText } = render(<NewAppointmentModal clients={[]} therapists={[]} rooms={[]} clinicTimings={undefined} appointments={[]} enforceGenderMatch={false} {...baseProps} />);
     expect(getByText('Doctor')).toBeTruthy();
     expect(getByText('Therapy')).toBeTruthy();
   });
 
   it('does not render content when not visible', () => {
-    const { queryByText } = render(<NewAppointmentModal {...baseProps} visible={false} />);
+    const { queryByText } = render(<NewAppointmentModal clients={[]} therapists={[]} rooms={[]} clinicTimings={undefined} appointments={[]} enforceGenderMatch={false} {...baseProps} visible={false} />);
     expect(queryByText('Doctor')).toBeNull();
     expect(queryByText('Therapy')).toBeNull();
   });
 
   it('switches tabs correctly', () => {
-    const { getByText } = render(<NewAppointmentModal {...baseProps} />);
+    const { getByText } = render(<NewAppointmentModal clients={[]} therapists={[]} rooms={[]} clinicTimings={undefined} appointments={[]} enforceGenderMatch={false} {...baseProps} />);
     const doctorTab = getByText('Doctor');
     const therapyTab = getByText('Therapy');
     fireEvent.press(therapyTab);
@@ -38,7 +38,7 @@ describe('NewAppointmentModal', () => {
   it('calls onClose when close button is pressed', () => {
     const onClose = jest.fn();
     const { getByLabelText } = render(
-      <NewAppointmentModal {...baseProps} onClose={onClose} />
+      <NewAppointmentModal clients={[]} therapists={[]} rooms={[]} clinicTimings={undefined} appointments={[]} enforceGenderMatch={false} {...baseProps} onClose={onClose} />
     );
     const closeButton = getByLabelText('close-modal');
     fireEvent.press(closeButton);

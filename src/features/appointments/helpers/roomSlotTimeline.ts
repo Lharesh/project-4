@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { addMinutesToTime, normalizeSlot, safeFormatDate } from '../helpers/dateHelpers';
 import { getAvailableTherapists } from '../helpers/availabilityUtils';
+import { APPOINTMENT_STATUS, SLOT_STATUS, SlotStatus } from '../constants/status';
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(':').map(Number);
@@ -12,7 +13,7 @@ export function isBreakHour(time: string, clinicTimings: any): boolean {
   return time >= clinicTimings.breakStart && time < clinicTimings.breakEnd;
 }
 
-type RoomSlotStatus = 'available' | 'therapistUnavailable' | 'break' | 'notAvailable';
+type RoomSlotStatus = SlotStatus;
 
 type RoomSlot = {
   start: string;
@@ -75,7 +76,7 @@ export function generateRoomSlots({
 
   // Collect all bookings for this room/date, sorted by slot time
   const roomBookings = appointments
-    .filter(a => a.roomId === room.id && a.date === date)
+    .filter(a => a.roomId === room.id && a.date === date && a.status === APPOINTMENT_STATUS.SCHEDULED)
     .sort((a, b) => timeToMinutes(a.slot) - timeToMinutes(b.slot));
 
   // Find earliest booking time for this room/date
@@ -182,7 +183,7 @@ export function generateRoomSlots({
   for (const slot of allSlots) {
     const isBreak = isBreakHour(slot.start, clinicTimings);
     let isPast = false;
-    let slotStatus: 'Scheduled' | 'Not Available' | 'Available' | 'Break' | 'Cancelled' | 'Rescheduled' | 'Completed' | 'Pending' = 'Available';
+    let slotStatus: SlotStatus = SLOT_STATUS.AVAILABLE;
     // Find actual booking for this slot (if any)
     let slotBooking = slot.booking;
     if (!slotBooking) {
@@ -190,17 +191,18 @@ export function generateRoomSlots({
     }
     // --- ENRICH slotBooking with patientId, patientName and patientPhone if missing ---
     if (isBreak) {
-      slotStatus = 'Break';
+      slotStatus = SLOT_STATUS.BREAK;
     } else if (slotBooking) {
       // Check for booking status
-      if (slotBooking.status === 'Cancelled') {
-        slotStatus = 'Cancelled';
-      } else if (slotBooking.status === 'Completed') {
-        slotStatus = 'Completed';
-      } else if (slotBooking.status === 'Rescheduled') {
-        slotStatus = 'Rescheduled'; // for legacy support, but normally should not be set directly
+      if (slotBooking.status === APPOINTMENT_STATUS.CANCELLED) {
+        // Mark as 'Cancelled & Available' if the slot is now free for booking
+        slotStatus = SLOT_STATUS.CANCELLED_AVAILABLE;
+      } else if (slotBooking.status === APPOINTMENT_STATUS.COMPLETED) {
+        slotStatus = APPOINTMENT_STATUS.COMPLETED;
+      } else if (slotBooking.status === APPOINTMENT_STATUS.RESCHEDULED) {
+        slotStatus = APPOINTMENT_STATUS.RESCHEDULED; // for legacy support, but normally should not be set directly
       } else {
-        slotStatus = 'Scheduled';
+        slotStatus = APPOINTMENT_STATUS.SCHEDULED;
       }
       // Only add if not present
       if (!slotBooking.patientId && slotBooking.clientId) slotBooking.patientId = slotBooking.clientId;
@@ -214,12 +216,12 @@ export function generateRoomSlots({
       }
     } else if ((date < todayStr) || (date === todayStr && timeToMinutes(slot.end) <= timeToMinutes(currentTimeStr))) {
       // Past and not booked (for today and any previous day)
-      slotStatus = 'Not Available';
+      slotStatus = SLOT_STATUS.NOT_AVAILABLE;
       isPast = true;
     }
     // After status is determined, if slot is Scheduled and current time >= slot.start, set to Pending (unless already Cancelled, Completed, or Rescheduled)
-    if (slotStatus === 'Scheduled' && ((date < todayStr) || (date === todayStr && timeToMinutes(slot.start) <= timeToMinutes(currentTimeStr)))) {
-      slotStatus = 'Pending';
+    if (slotStatus === APPOINTMENT_STATUS.SCHEDULED && ((date < todayStr) || (date === todayStr && timeToMinutes(slot.start) <= timeToMinutes(currentTimeStr)))) {
+      slotStatus = APPOINTMENT_STATUS.PENDING;
     }
 
     // --- Fix therapist availability: exclude therapists booked elsewhere for this slot ---
@@ -227,7 +229,7 @@ export function generateRoomSlots({
     const slotStartMins = timeToMinutes(slot.start);
     const slotEndMins = timeToMinutes(slot.end);
     const bookedTherapistIds = appointments
-      .filter(a => a.date === date && (
+      .filter(a => a.date === date && a.status === APPOINTMENT_STATUS.SCHEDULED && (
         // booking overlaps if bookingStart < slotEnd && bookingEnd > slotStart
         (() => {
           const bookingStart = timeToMinutes(normalizeSlot(a.slot));
@@ -246,14 +248,21 @@ export function generateRoomSlots({
       appointments,
       genderFilter
     ).filter(t => !bookedTherapistIds.includes(t.id));
-    let status: RoomSlotStatus = 'available';
+    let status: RoomSlotStatus = SLOT_STATUS.AVAILABLE;
     if (isPast) {
-      status = 'notAvailable';
-    } else if (!slotBooking && availableTherapists.length === 0) {
-      status = 'therapistUnavailable';
-    }
-    if (isBreak) {
-      status = 'break';
+      status = SLOT_STATUS.NOT_AVAILABLE;
+    } else if (isBreak) {
+      status = SLOT_STATUS.BREAK;
+    } else if (slotStatus === SLOT_STATUS.CANCELLED_AVAILABLE) {
+      status = SLOT_STATUS.CANCELLED_AVAILABLE;
+    } else if (slotStatus === APPOINTMENT_STATUS.COMPLETED) {
+      status = APPOINTMENT_STATUS.COMPLETED as SlotStatus;
+    } else if (slotStatus === APPOINTMENT_STATUS.RESCHEDULED) {
+      status = APPOINTMENT_STATUS.RESCHEDULED as SlotStatus;
+    } else if (slotStatus === APPOINTMENT_STATUS.SCHEDULED) {
+      status = APPOINTMENT_STATUS.SCHEDULED as SlotStatus;
+    } else if (slotStatus === APPOINTMENT_STATUS.PENDING) {
+      status = APPOINTMENT_STATUS.PENDING as SlotStatus;
     }
     slots.push({
       start: slot.start,
@@ -263,14 +272,10 @@ export function generateRoomSlots({
       therapistAvailable: availableTherapists.length > 0,
       availableTherapists,
       booking: slotBooking,
-      // Add a unique slotId for navigation/context
       slotId: `${room.id}_${date}_${slot.start}_${slot.end}`,
     });
     summary.push({ start: slot.start, end: slot.end, status, isBreak, hasBooking: !!slotBooking });
   }
-  // Map 'notAvailable' status to 'therapistUnavailable' for compatibility with MatrixCell
-  return slots.map(slot => ({
-    ...slot,
-    status: slot.status === 'notAvailable' ? 'therapistUnavailable' : slot.status
-  }))
+  // Remove the mapping at the end; just return slots as-is with standardized SlotStatus
+  return slots;
 };

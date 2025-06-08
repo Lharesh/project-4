@@ -4,6 +4,10 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     width: '100%',
+    marginBottom: 2,
+    flexWrap: 'nowrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cardCol: {
     flex: 1,
@@ -11,10 +15,9 @@ const styles = StyleSheet.create({
   },
   cardCell: {
     flex: 1,
+    minWidth: 0,
     justifyContent: 'center',
-    alignItems: 'flex-start',
-    minHeight: 24,
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
     paddingVertical: 2,
   },
   rowCellContent: {
@@ -28,6 +31,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 8,
     minHeight: 90,
+    width: '100%',
   },
   timeIcon: {
     marginRight: 4,
@@ -47,6 +51,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
     color: '#1a2233',
+    maxWidth: '100%',
   },
   phoneIcon: {
     marginRight: 4,
@@ -77,6 +82,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6c757d',
     marginTop: 2,
+    maxWidth: '100%',
+  },
+  daysText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#1a2233',
+  },
+  therapyName: {
+    fontSize: 13,
+    color: '#6c757d',
+    fontWeight: '500',
+  },
+  durationText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#1a2233',
+    textAlign: 'right',
   },
 });
 

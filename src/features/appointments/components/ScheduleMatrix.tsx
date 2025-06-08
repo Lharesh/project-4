@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Platform, Alert, ScrollView } from 'react-native';
 import IntelligentSlot from './IntelligentSlot';
 import { safeFormatDate } from '../helpers/dateHelpers';
+import { SLOT_STATUS } from '../constants/status';
 
 interface SelectedSlot {
   id: string;
@@ -18,6 +19,7 @@ interface RoomSlot {
   therapistAvailable: boolean;
   availableTherapists: any[];
   booking: any;
+  status: string;
 }
 interface MatrixRoom {
   id: string;
@@ -36,6 +38,7 @@ interface ScheduleMatrixProps {
   onCreateSlot?: (slotInfo: { roomId: string; date: string; startTime: string; endTime: string; duration: number }) => void;
   highlightedSlot?: { slotStart: string; slotRoom: string };
   onCloseModal?: () => void;
+  onCancelAppointment?: (appointmentId: string) => void;
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -49,6 +52,7 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   onCreateSlot,
   highlightedSlot,
   onCloseModal,
+  onCancelAppointment,
 }) => {
 
   function handleCellTap(roomNumber: string, slot: string) {
@@ -70,37 +74,41 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             <Text style={styles.roomHeader}>{room.roomName}</Text>
             <View style={styles.slotCardCol}>
               {room.slots.map((slotObj, idx) => {
-                let status: 'available' | 'booked' | 'break' | 'therapistUnavailable' | 'notAvailable' = 'available';
-                if (slotObj.isBreak) status = 'break';
-                else if (!!slotObj.booking) status = 'booked';
-                else if (!slotObj.therapistAvailable) status = 'therapistUnavailable';
-                // else available
+                const status = slotObj.status;
                 const isHighlighted = highlightedSlot && room.id === highlightedSlot.slotRoom && slotObj.start === highlightedSlot.slotStart;
-                const formattedDate = safeFormatDate(selectedDate,'', 'yyyy-MM-dd');
+                const formattedDate = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
+                let therapistsToShow = slotObj.availableTherapists;
+                if (status === SLOT_STATUS.SCHEDULED && slotObj.booking) {
+                  // Show only assigned therapists for scheduled slots
+                  if (Array.isArray(slotObj.booking.therapists) && slotObj.booking.therapists.length > 0) {
+                    therapistsToShow = slotObj.booking.therapists;
+                  } else if (Array.isArray(slotObj.booking.therapistIds)) {
+                    therapistsToShow = slotObj.booking.therapistIds.map(
+                      (id: string) => therapists.find((t: any) => t.id === id)
+                    ).filter(Boolean);
+                  }
+                }
                 return (
                   <View key={room.id + '-' + slotObj.start} style={isHighlighted ? { borderColor: '#1976d2', borderWidth: 2, backgroundColor: '#e3f0fa', borderRadius: 12 } : undefined}>
                     <IntelligentSlot
                       startTime={slotObj.start}
                       endTime={slotObj.end}
                       duration={slotObj.booking?.duration || 60}
-                      clientId={status === 'booked' ? (slotObj.booking?.patientId || '') : ''}
+                      clientId={slotObj.booking?.patientId || ''}
                       patientName={slotObj.booking?.patientName || ''}
                       patientPhone={slotObj.booking?.patientPhone || ''}
                       therapyName={slotObj.booking?.therapyName || ''}
                       treatmentDay={slotObj.booking?.treatmentDay}
-                      availableTherapists={
-                        status === 'booked'
-                          ? (slotObj.booking?.therapists || (slotObj.booking?.therapistIds ? slotObj.booking.therapistIds.map((id: string) => therapists.find((t: any) => t.id === id)).filter(Boolean) : []) )
-                          : status === 'available'
-                            ? slotObj.availableTherapists
-                            : []
-                      }
+                      availableTherapists={therapistsToShow}
                       status={status}
-                      onBook={status === 'available' ? () => handleCellTap(room.id, slotObj.start) : undefined}
-                      onReschedule={status === 'booked' ? () => {/* implement reschedule logic */ } : undefined}
-                      onCancel={status === 'booked' ? () => {/* implement cancel logic */ } : undefined}
-                      onConfirmVisit={status === 'booked' ? () => {/* implement confirm logic */ } : undefined}
-                      onCreate={status === 'available' && typeof onCreateSlot === 'function' ? () => onCreateSlot({
+                      onBook={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => handleCellTap(room.id, slotObj.start) : undefined}
+                      onReschedule={undefined}
+                      onCancel={onCancelAppointment && slotObj.booking ? () => {
+                        console.log('[SCHEDULE_MATRIX] onCancel wrapper called for:', slotObj.booking.id);
+                        onCancelAppointment(slotObj.booking.id);
+                      } : undefined}
+                      onConfirmVisit={undefined}
+                      onCreate={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onCreateSlot && onCreateSlot({
                         roomId: room.id,
                         date: formattedDate,
                         startTime: slotObj.start,

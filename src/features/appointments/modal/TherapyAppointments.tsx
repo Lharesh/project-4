@@ -22,8 +22,12 @@ import { APPOINTMENT_PARAM_KEYS } from '../constants/paramKeys';
 import { router } from 'expo-router';
 import BookingModalPanel from '../components/BookingModalPanel';
 import BookingForm from '../components/BookingForm';
+import { APPOINTMENT_STATUS } from '../constants/status';
+import CancelAppointmentDialog from '../components/CancelAppointmentDialog';
+import { useAppDispatch } from '@/redux/hooks';
+import { cancelAndShiftSeries } from '../appointmentsSlice';
 
-
+console.log('TherapyAppointments file loaded');
 
 type SlotInfo = {
   roomId: string;
@@ -64,6 +68,7 @@ interface TherapyAppointmentsProps {
   initialSlotEnd?: string;
   initialRoomId?: string;
   initialDate?: string;
+  onCancelAppointment?: (appointmentId: string) => void;
 }
 
 const initialTherapyFormValues: TherapyAppointmentFormValues = {
@@ -79,6 +84,9 @@ const initialTherapyFormValues: TherapyAppointmentFormValues = {
 };
 
 const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
+  console.log('[TherapyAppointments] onCancelAppointment prop:', typeof props.onCancelAppointment, props.onCancelAppointment);
+  console.log('[TherapyAppointments] appointments prop:', props.appointments);
+  console.log('TherapyAppointments component rendered');
   // Support newAppointment prop for resetting state
   const { newAppointment } = props;
 
@@ -102,9 +110,19 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     initialClientName = '',
     initialClientPhone = '',
     initialDate = '',
+    onCancelAppointment,
   } = props;
 
-
+  // Add debug logs for all initialClient* values and showBookingModal
+  console.log('[TherapyAppointments] Params:', {
+    initialClientId,
+    initialClientName,
+    initialClientPhone,
+    initialSlotStart,
+    initialSlotEnd,
+    initialRoomId,
+    initialDate
+  });
 
   // Defensive: fallback to empty array if therapists is undefined
   const safeTherapists = Array.isArray(therapists) ? therapists : [];
@@ -423,6 +441,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     if (!matrixDate || !safeAppointments || !safeRooms || !safeTherapists || !clinicTimings || !safeClients) {
       return []; // Return empty if essential data is missing
     }
+    console.log('[TherapyAppointments] safeAppointments:', safeAppointments);
     return buildScheduleMatrix(
       matrixDate,
       safeAppointments,
@@ -468,6 +487,20 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     enforceGenderMatch,
   ]);
 
+  // Normalization helper
+  function normalizeAppointments(appts: any[]): any[] {
+    return (appts || []).reduce((acc: any[], appt: any) => {
+      const slot = appt.slot || appt[APPOINTMENT_PARAM_KEYS.SLOT_START] || appt.time || appt.startTime || '';
+      const durationRaw = appt.duration || appt[APPOINTMENT_PARAM_KEYS.DURATION] || 60;
+      const duration = Number(durationRaw);
+      if (!slot || isNaN(duration)) {
+        console.warn('[normalizeAppointments] Skipping appointment missing slot or duration:', appt);
+        return acc;
+      }
+      return [...acc, { ...appt, slot, duration }];
+    }, []);
+  }
+
   // Strict conflict check using getBookingOptions - this sets recommendedSlots and showAlternatives
   useEffect(() => {
     const formIsComplete =
@@ -484,6 +517,17 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       return;
     }
 
+    const normalizedAppointments = normalizeAppointments(safeAppointments);
+    console.log('[getBookingOptions] Input normalizedAppointments:', normalizedAppointments);
+    console.log('[getBookingOptions] Input params:', {
+      enforceGenderMatch,
+      clientId: values.selectedPatient || '',
+      selectedTherapists: values.selectedTherapists,
+      selectedRoom: values.selectedRoom || '',
+      date: values.startDate,
+      slot: values.timeSlot,
+      slotDuration: selectedTherapyObj?.duration || slotDuration || 60,
+    });
     const bookingOptions = getBookingOptions({
       enforceGenderMatch,
       clientId: values.selectedPatient || '',
@@ -491,13 +535,15 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       selectedRoom: values.selectedRoom || '',
       date: values.startDate,
       slot: values.timeSlot,
-      appointments: safeAppointments,
+      appointments: normalizedAppointments,
       allTherapists: therapistsWithAvailability, // Use memoized version
       allRooms: roomsWithAvailability, // Use memoized version
       clients: safeClients,
       now: new Date(),
-      maxAlternatives: 3
+      maxAlternatives: 3,
+      slotDuration: selectedTherapyObj?.duration || slotDuration || 60,
     });
+    console.log('[getBookingOptions] Output:', bookingOptions);
 
     if (bookingOptions && bookingOptions.length > 0 && !bookingOptions[0]?.available) {
       setRecommendedSlots(bookingOptions[0]?.alternatives || []);
@@ -521,6 +567,8 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     roomsWithAvailability,
     safeClients,
     enforceGenderMatch,
+    selectedTherapyObj,
+    slotDuration,
   ]);
 
   const isValid = () => {
@@ -559,7 +607,8 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         allRooms: rooms,
         clients: clients,
         now: new Date(),
-        maxAlternatives: 3
+        maxAlternatives: 3,
+        slotDuration: selectedTherapyObj?.duration || slotDuration || 60,
       };
       const bookingOptionsResult = getBookingOptions(bookingOptionsInput);
       if (!bookingOptionsResult[0]?.available) {
@@ -584,6 +633,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       return;
     }
 
+    const normalizedAppointments = normalizeAppointments(safeAppointments);
     const bookingOptions = getBookingOptions({
       enforceGenderMatch,
       clientId: values.selectedPatient || '',
@@ -591,12 +641,13 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       selectedRoom: values.selectedRoom || '',
       date: values.startDate,
       slot: values.timeSlot,
-      appointments,
+      appointments: normalizedAppointments,
       allTherapists: therapists,
       allRooms: rooms,
       clients: clients,
       now: new Date(),
-      maxAlternatives: 3
+      maxAlternatives: 3,
+      slotDuration: selectedTherapyObj?.duration || slotDuration || 60,
     });
 
     if (!bookingOptions[0]?.available) {
@@ -613,137 +664,158 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     values.startDate,
     values.timeSlot,
     values.selectedRoom,
-    appointments,
+    safeAppointments,
     therapists,
     rooms,
     clients,
+    selectedTherapyObj,
+    slotDuration,
   ]);
 
-  const handleBookAppointments = () => {
-    let daysToBook = 0;
-    if (values.duration === null && values.customDays) {
-      daysToBook = Number(values.customDays);
-    } else if (values.duration !== null) {
-      daysToBook = Number(values.duration);
-    } else {
-      daysToBook = 1; // Default to 1 if somehow both are null/invalid
-    }
+  const handleBookAppointments = (formValues: any) => {
+    try {
+      console.log('[TherapyAppointments] handleBookAppointments called with values:', formValues);
+      let daysToBook = 0;
+      if (formValues.duration === null && formValues.customDays) {
+        daysToBook = Number(formValues.customDays);
+      } else if (formValues.duration !== null) {
+        daysToBook = Number(formValues.duration);
+      } else {
+        daysToBook = 1; // Default to 1 if somehow both are null/invalid
+      }
 
-    if (isNaN(daysToBook) || daysToBook <= 0) {
-      console.warn('[handleBookAppointments] Invalid daysToBook:', daysToBook, 'calculated from duration:', values.duration, 'and customDays:', values.customDays);
-      setDrawerError('Invalid number of days for booking.');
-      return;
-    }
-
-    const generatedAppointments: any[] = [];
-    const currentSelectedTherapyObj = selectedTherapyObj;
-
-    for (let i = 0; i < daysToBook; i++) {
-      let dateObj;
-      try {
-        if (!values.startDate || typeof values.startDate !== 'string' || !values.startDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          throw new Error('Invalid startDate format. Expected YYYY-MM-DD.');
-        }
-        dateObj = addDays(parseISO(values.startDate), i);
-      } catch (error: any) {
-        console.error('[handleBookAppointments] Error processing date:', values.startDate, error);
-        setDrawerError(error.message || 'Invalid start date format.');
+      if (isNaN(daysToBook) || daysToBook <= 0) {
+        console.warn('[handleBookAppointments] Invalid daysToBook:', daysToBook, 'calculated from duration:', formValues.duration, 'and customDays:', formValues.customDays);
+        setDrawerError('Invalid number of days for booking.');
         return;
       }
 
-      const slotString = values.timeSlot;
-      const roomObj = safeRooms.find((r: any) => r.id === values.selectedRoom);
+      // --- Series/multi-day logic is now handled in the addAppointmentThunk ---
+      const currentSelectedTherapyObj = therapies.find(t => t.id === formValues.selectedTherapy);
+      const slotString = formValues.timeSlot;
+      const roomObj = safeRooms.find((r: any) => r.id === formValues.selectedRoom);
       const therapyDuration = currentSelectedTherapyObj?.duration || slotDuration || 60;
-
-      if (!slotString || typeof slotString !== 'string' || !slotString.match(/^\d{2}:\d{2}$/)) {
+      if (!slotString || typeof slotString !== 'string' || !slotString.match(/^[0-9]{2}:[0-9]{2}$/)) {
         console.error('[handleBookAppointments] Invalid timeSlot format:', slotString);
         setDrawerError('Invalid time slot format. Expected HH:MM.');
         return;
       }
       const [hours, minutesValue] = slotString.split(':').map(Number);
-
+      let dateObj;
+      try {
+        if (!formValues.startDate || typeof formValues.startDate !== 'string' || !formValues.startDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) {
+          throw new Error('Invalid startDate format. Expected YYYY-MM-DD.');
+        }
+        dateObj = parseISO(formValues.startDate);
+      } catch (error: any) {
+        console.error('[handleBookAppointments] Error processing date:', formValues.startDate, error);
+        setDrawerError(error.message || 'Invalid start date format.');
+        return;
+      }
       const startTimeObj = new Date(dateObj);
       startTimeObj.setHours(hours, minutesValue, 0, 0);
-
       const endTimeObj = new Date(startTimeObj.getTime() + therapyDuration * 60000);
       const formattedEndTime = `${String(endTimeObj.getHours()).padStart(2, '0')}:${String(endTimeObj.getMinutes()).padStart(2, '0')}`;
-
       const appointment = {
-        id: `${values.selectedPatient}_${values.selectedTherapists.join('_')}_${values.selectedRoom}_${safeFormatDate(dateObj, 'yyyy-MM-dd')}_${slotString}`,
-        clientId: values.selectedPatient,
-        clientName: safeClients.find(c => c.id === values.selectedPatient)?.name || '',
-        therapistIds: values.selectedTherapists,
-        therapistNames: values.selectedTherapists.map((id: string) => (safeTherapists.find((t: Therapist) => t.id === id)?.name || id)),
-        therapyId: values.selectedTherapy,
+        id: `${formValues.selectedPatient}_${formValues.selectedTherapists.join('_')}_${formValues.selectedRoom}_${safeFormatDate(dateObj, 'yyyy-MM-dd')}_${slotString}`,
+        clientId: formValues.selectedPatient,
+        clientName: safeClients.find(c => c.id === formValues.selectedPatient)?.name || '',
+        clientMobile: formValues.clientMobile || selectedPatientObj?.mobile || '',
+        therapistIds: formValues.selectedTherapists,
+        therapistNames: formValues.selectedTherapists.map((id: string) => (safeTherapists.find((t: Therapist) => t.id === id)?.name || id)),
+        therapyId: formValues.selectedTherapy,
         therapyName: currentSelectedTherapyObj?.name || '',
-        roomId: values.selectedRoom,
+        roomId: formValues.selectedRoom,
         roomName: roomObj?.name || '',
         date: safeFormatDate(dateObj, 'yyyy-MM-dd'),
         startTime: slotString,
         endTime: formattedEndTime,
         duration: therapyDuration,
-        status: 'booked',
+        status: APPOINTMENT_STATUS.SCHEDULED,
         tab: 'Therapy',
+        [APPOINTMENT_PARAM_KEYS.SLOT_START]: slotString,
+        slot: slotString, // for matrix matching
+        [APPOINTMENT_PARAM_KEYS.DURATION]: therapyDuration,
+        totalDays: daysToBook,
       };
-      generatedAppointments.push(appointment);
-    }
-
-    if (generatedAppointments.length > 0) {
+      // Final validation: check for slot conflict for the first day only
+      const bookingOptions = getBookingOptions({
+        date: appointment.date,
+        slot: appointment.startTime,
+        clientId: appointment.clientId,
+        selectedTherapists: appointment.therapistIds,
+        selectedRoom: appointment.roomId,
+        appointments: normalizeAppointments(safeAppointments),
+        allTherapists: safeTherapists,
+        allRooms: safeRooms,
+        clients: safeClients,
+        now: new Date(),
+        enforceGenderMatch,
+        maxAlternatives: 3,
+        slotDuration: appointment.duration,
+      });
+      if (!bookingOptions[0]?.available) {
+        setDrawerError(bookingOptions[0]?.reason || 'Slot is not available.');
+        return;
+      }
       if (typeof onCreate === 'function') {
-        onCreate(generatedAppointments.length === 1 ? generatedAppointments[0] : generatedAppointments);
+        onCreate(appointment);
       }
       resetForm();
-    } else {
-      console.warn('[handleBookAppointments] No appointments generated, nothing to create.');
-      setDrawerError('Could not generate appointments. Please check details.');
+    } catch (e) {
+      console.error('[TherapyAppointments] handleBookAppointments error:', e);
+      throw e;
     }
   };
 
-  // Determine if we have enough info to show the booking modal (client + slot info)
-  const showBookingModal = Boolean(initialClientId && initialClientName && initialClientPhone && initialSlotStart && initialRoomId && initialDate);
+  // Loosen the showBookingModal condition
+  const showBookingModal = Boolean(initialClientId && initialSlotStart && initialRoomId && initialDate);
+  console.log('[TherapyAppointments] showBookingModal:', showBookingModal);
 
   // Prepare initial values for BookingForm
   const bookingFormInitialValues = React.useMemo(() => ({
     selectedPatient: initialClientId,
-    selectedTherapy: '',
-    selectedTherapists: [],
     startDate: initialDate,
     timeSlot: initialSlotStart,
     selectedRoom: initialRoomId,
+    selectedTherapy: '',
+    selectedTherapists: [],
     duration: null,
     notes: '',
     customDays: null,
-  }), [initialClientId, initialDate, initialSlotStart, initialRoomId]);
-
-  // Handler for booking form submit
-  const handleBookingSubmit = (appointment: any) => {
-    // Call rulesEngine for final validation
-    const bookingOptions = getBookingOptions({
-      date: appointment.startDate,
-      slot: appointment.timeSlot,
-      clientId: appointment.selectedPatient,
-      selectedTherapists: appointment.selectedTherapists,
-      selectedRoom: appointment.selectedRoom,
-      appointments: safeAppointments,
-      allTherapists: safeTherapists,
-      allRooms: safeRooms,
-      clients: safeClients,
-      now: new Date(),
-      enforceGenderMatch,
-      maxAlternatives: 3,
-    });
-
-    if (!bookingOptions[0]?.available) {
-      setDrawerError(bookingOptions[0]?.reason || 'Slot is not available.');
-      return;
-    }
-
-    // If all checks pass, create the appointment
-    if (props.onCreate) props.onCreate(appointment);
-  };
+    clientName: initialClientName,
+    clientMobile: initialClientPhone,
+    clientId: initialClientId,
+  }), [initialClientId, initialDate, initialSlotStart, initialRoomId, initialClientName, initialClientPhone]);
 
   console.log('Show Booking Modal:', showBookingModal);
   console.log('Booking Form Initial Values:', bookingFormInitialValues);
+
+  // Handler to close booking modal and return to new appointment modal
+  const handleCancelBooking = React.useCallback(() => {
+    resetForm();
+    if (onClose) onClose();
+    // Navigate to new appointment modal with therapy tab
+    router.replace({ pathname: '/appointments/new', params: { tab: 'Therapy' } });
+  }, [resetForm, onClose]);
+
+  // Log appointments prop and derived values on every update
+  React.useEffect(() => {
+    console.log('[TherapyAppointments] appointments prop changed:', appointments);
+    console.log('[TherapyAppointments] safeTherapists:', safeTherapists);
+    console.log('[TherapyAppointments] safeRooms:', safeRooms);
+    console.log('[TherapyAppointments] matrix:', matrix);
+  }, [appointments, safeTherapists, safeRooms, matrix]);
+
+  const dispatch = useAppDispatch();
+  // State for cancel dialog
+  const [cancelDialog, setCancelDialog] = React.useState<{ open: boolean; appointment: any | null }>({ open: false, appointment: null });
+
+  // Handler to open cancel dialog (called from slot or card)
+  const handleOpenCancelDialog = (appointmentId: string) => {
+    const appt = props.appointments.find((a: any) => a.id === appointmentId);
+    setCancelDialog({ open: true, appointment: appt });
+  };
 
   return (
     <React.Fragment>
@@ -780,6 +852,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
                 selectedTherapists={values.selectedTherapists}
                 selectedDate={matrixDate}
                 onCreateSlot={handleCreateSlot}
+                onCancelAppointment={handleOpenCancelDialog}
               />
             ) : (
               <Text>No matrix data available.</Text>
@@ -795,11 +868,42 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
           therapies={safeTherapies}
           availableRooms={safeRooms}
           availableTherapists={safeTherapists}
-          onSubmit={handleBookingSubmit}
+          onSubmit={handleBookAppointments}
           genderFlag={enforceGenderMatch}
           clientGender={selectedPatientObj?.gender || ''}
+          error={drawerError}
+          onCancel={handleCancelBooking}
         />
       </BookingModalPanel>
+
+      {/* Cancel Appointment Dialog (cross-platform) */}
+      <CancelAppointmentDialog
+        visible={cancelDialog.open}
+        appointmentInfo={cancelDialog.appointment ? {
+          clientName: cancelDialog.appointment.clientName,
+          date: cancelDialog.appointment.date,
+          time: cancelDialog.appointment.startTime || cancelDialog.appointment.time,
+        } : undefined}
+        onClose={() => setCancelDialog({ open: false, appointment: null })}
+        onCancel={() => {
+          if (cancelDialog.appointment) {
+            dispatch(cancelAndShiftSeries({ appointmentId: cancelDialog.appointment.id }));
+          }
+          setCancelDialog({ open: false, appointment: null });
+        }}
+        onPush={() => {
+          if (cancelDialog.appointment) {
+            dispatch(cancelAndShiftSeries({ appointmentId: cancelDialog.appointment.id, push: true }));
+          }
+          setCancelDialog({ open: false, appointment: null });
+        }}
+        onCancelAll={() => {
+          if (cancelDialog.appointment) {
+            dispatch(cancelAndShiftSeries({ appointmentId: cancelDialog.appointment.id, cancelAll: true }));
+          }
+          setCancelDialog({ open: false, appointment: null });
+        }}
+      />
     </React.Fragment>
   );
 };

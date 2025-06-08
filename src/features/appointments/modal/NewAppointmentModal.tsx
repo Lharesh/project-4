@@ -28,6 +28,7 @@ interface NewAppointmentModalProps {
   initialRoomId?: string;
   initialDate?: string;
   tab?: string;
+  onCancelAppointment?: (appointmentId: string) => void;
 }
 
 const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' | 'Therapy' }> = ({
@@ -66,6 +67,9 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' 
   // Filter appointments by tab
   const doctorAppointments = (props.appointments ?? []).filter((app: any) => app.tab === 'Doctor');
   const therapyAppointments = (props.appointments ?? []).filter((app: any) => app.tab === 'Therapy');
+
+  // Add debug log for therapyAppointments
+  console.log('[NewAppointmentModal] therapyAppointments:', therapyAppointments);
 
   // Minimal styles (expand as needed)
   const styles = StyleSheet.create({
@@ -133,6 +137,7 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' 
                 initialSlotEnd={props.initialSlotEnd}
                 initialRoomId={props.initialRoomId}
                 initialDate={props.initialDate}
+                onCancelAppointment={props.onCancelAppointment}
               />
             )}
           </View>

@@ -51,6 +51,7 @@ import FormContainer from '@/components/ui/FormContainer';
 import FormFieldRow from 'src/components/ui/FormFieldRow';
 import { ChevronRight, Phone, Mail, Search, Plus, UserPlus2, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
 import type { Client } from '@/features/clients/types/client';
+import { ROUTE_NEW_APPOINTMENT_BOOKING } from '@/constants/routes';
 
 const EMPTY_CLIENT: Client & { mobileCode: string; altMobileCode: string; prefix?: string } = {
   id: '',
@@ -91,27 +92,30 @@ function ClientsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const selectMode = String(params.select) === '1';
+  console.log('[ClientsScreen] selectMode:', selectMode, 'params:', params);
 
   const handleSelectClient = (client: Client) => {
+    console.log('[ClientsScreen] handleSelectClient called', client, 'selectMode:', selectMode);
     if (selectMode) {
-      router.push({
-        pathname: '/appointments/booking',
-        params: {
-          ...params,
-          [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id,
-          [APPOINTMENT_PARAM_KEYS.CLIENT_NAME]: client.name,
-          [APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE]: client.mobile,
-          [APPOINTMENT_PARAM_KEYS.SLOT_START]: params[APPOINTMENT_PARAM_KEYS.SLOT_START],
-          [APPOINTMENT_PARAM_KEYS.SLOT_END]: params[APPOINTMENT_PARAM_KEYS.SLOT_END],
-          [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom,
-          slotRoom: params.slotRoom,
-          [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
-          tab: 'Therapy',
-          t: Date.now(),
-        }
+      const navParams = {
+        [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id,
+        [APPOINTMENT_PARAM_KEYS.CLIENT_NAME]: client.name,
+        [APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE]: client.mobile,
+        [APPOINTMENT_PARAM_KEYS.SLOT_START]: params[APPOINTMENT_PARAM_KEYS.SLOT_START],
+        [APPOINTMENT_PARAM_KEYS.SLOT_END]: params[APPOINTMENT_PARAM_KEYS.SLOT_END],
+        [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom,
+        [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
+        tab: 'Therapy',
+        t: Date.now(),
+      };
+      console.log('[ClientsScreen] Navigating to booking modal with params:', navParams);
+      router.replace({
+        pathname: ROUTE_NEW_APPOINTMENT_BOOKING,
+        params: navParams,
       });
     } else {
       // ...existing logic for non-select mode
+      console.log('[ClientsScreen] handleSelectClient: not in selectMode, no navigation');
     }
   };
 

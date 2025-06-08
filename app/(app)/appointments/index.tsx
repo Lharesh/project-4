@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ROUTE_NEW_APPOINTMENT } from '@/constants/routes';
 import {
   View,
@@ -20,11 +20,13 @@ import { useAppointmentModalParams } from './_useNavigationParams';
 import { selectEnforceGenderMatch } from '@/features/clinicConfig/configSlice';
 import { useAppSelector } from '@/redux/hooks';
 import { useDispatch } from 'react-redux';
-import { fetchAppointments } from '@/features/appointments/appointmentsSlice';
+import { fetchAppointments, cancelAndShiftSeries, addAppointmentThunk } from '@/features/appointments/appointmentsSlice';
 import AppointmentCard from '@/features/appointments/components/AppointmentCard';
 import { selectTherapists, selectRooms, selectClinicTimings } from '../../(admin)/clinics/setup/setupSlice';
 import type { TreatmentSlot } from '../../(admin)/clinics/setup/setupSlice';
 import { safeFormatDate } from '@/features/appointments/helpers/dateHelpers';
+import type { Appointment as AppointmentType } from '@/features/appointments/appointmentsSlice';
+import { APPOINTMENT_STATUS } from '@/features/appointments/constants/status';
 
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
@@ -45,6 +47,15 @@ function AppointmentsScreen() {
   const { appointments, isLoading, error } = useAppSelector(state => state.appointments);
   const selectedKey = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
 
+  // Add log to print appointments array
+  console.log('[AppointmentsScreen] appointments:', appointments);
+
+  const params = useLocalSearchParams();
+  const router = useRouter();
+
+  // Web cancel dialog state
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; appointmentId: string | null }>({ open: false, appointmentId: null });
+
   useEffect(() => {
     const tabToUse: 'Doctor' | 'Therapy' = validTab ?? 'Doctor';
     dispatch(fetchAppointments({ validTab: tabToUse, date: selectedKey }) as any);
@@ -57,11 +68,11 @@ function AppointmentsScreen() {
     const counts = { completed: 0, cancelled: 0, pending: 0 };
     const filtered = appointments.filter(a => a.date === selectedKey);
     filtered.forEach((a) => {
-      if (a.status === 'scheduled') {
+      if (a.status === APPOINTMENT_STATUS.SCHEDULED) {
         counts.pending++;
-      } else if (a.status === 'completed') {
+      } else if (a.status === APPOINTMENT_STATUS.COMPLETED) {
         counts.completed++;
-      } else if (a.status === 'cancelled') {
+      } else if (a.status === APPOINTMENT_STATUS.CANCELLED) {
         counts.cancelled++;
       }
     });
@@ -74,11 +85,98 @@ function AppointmentsScreen() {
   // Get status counts
   const { completed, cancelled, pending } = getStatusCounts();
 
-  const router = useRouter();
+  // Add effect to handle newAppointment param
+  React.useEffect(() => {
+    let newAppointmentParam = params.newAppointment;
+    if (Array.isArray(newAppointmentParam)) {
+      newAppointmentParam = newAppointmentParam[0];
+    }
+    if (newAppointmentParam) {
+      let newAppt;
+      try {
+        newAppt = JSON.parse(newAppointmentParam);
+      } catch (e) {
+        newAppt = null;
+      }
+      if (newAppt) {
+        if (Array.isArray(newAppt)) {
+          newAppt.forEach(appt => dispatch(addAppointmentThunk({ appointment: appt }) as any));
+        } else {
+          dispatch(addAppointmentThunk({ appointment: newAppt }) as any);
+        }
+        // Remove the param to prevent duplicate addition
+        router.replace('/appointments');
+      }
+
+    }
+
+  }, [params.newAppointment]);
+
+  // Efficiently build a lookup table for dayIndex/totalDays per seriesId
+  const seriesDayLookup = useMemo(() => {
+    const map: Record<string, AppointmentType[]> = {};
+    for (const appt of appointments) {
+      if (typeof appt.seriesId !== 'string') continue;
+      if (!map[appt.seriesId]) map[appt.seriesId] = [];
+      map[appt.seriesId].push(appt as AppointmentType);
+    }
+    const lookup: Record<string, { dayIndex: number; totalDays: number }> = {};
+    for (const [seriesId, appts] of Object.entries(map)) {
+      const sorted = (appts as AppointmentType[])
+        .filter(a => a.status !== APPOINTMENT_STATUS.CANCELLED)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      sorted.forEach((a, idx) => {
+        lookup[a.id] = {
+          dayIndex: idx + 1,
+          totalDays: sorted.length,
+        };
+      });
+    }
+    return lookup;
+  }, [appointments]);
+
+  const handleCancelAppointment = (appointmentId: string) => {
+    if (Platform.OS === 'web') {
+      setCancelDialog({ open: true, appointmentId });
+    } else {
+      Alert.alert(
+        'Cancel Appointment',
+        'Choose an option:',
+        [
+          { text: 'Close', style: 'cancel' },
+          { text: 'Cancel', onPress: () => dispatch(cancelAndShiftSeries({ appointmentId }) as any) },
+          { text: 'Cancel & Push', onPress: () => dispatch(cancelAndShiftSeries({ appointmentId, push: true }) as any) },
+          { text: 'Cancel All', onPress: () => dispatch(cancelAndShiftSeries({ appointmentId, cancelAll: true }) as any) },
+        ]
+      );
+    }
+  };
+
+  function handleWebDialogAction(action: 'cancel' | 'push' | 'cancelAll') {
+    if (!cancelDialog.appointmentId) return;
+    const payload: any = { appointmentId: cancelDialog.appointmentId, clinicTimings };
+    if (action === 'push') payload.push = true;
+    if (action === 'cancelAll') payload.cancelAll = true;
+    dispatch(cancelAndShiftSeries(payload) as any);
+    setCancelDialog({ open: false, appointmentId: null });
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { flex: 1 }]} edges={['bottom', 'left', 'right']}>
       <View style={{ flex: 1, position: 'relative' }}>
+        {/* Web Cancel Dialog */}
+        {Platform.OS === 'web' && cancelDialog.open && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000, background: 'rgba(0,0,0,0.25)' }}>
+            <div style={{ background: '#fff', maxWidth: 340, margin: '120px auto', borderRadius: 12, boxShadow: '0 2px 16px #0002', padding: 24, textAlign: 'center' }}>
+              <h3 style={{ marginBottom: 16 }}>Cancel Appointment</h3>
+              <p style={{ marginBottom: 24 }}>Choose an option:</p>
+              <button style={{ margin: 4, padding: '8px 16px' }} onClick={() => setCancelDialog({ open: false, appointmentId: null })}>Close</button>
+              <button style={{ margin: 4, padding: '8px 16px', background: '#e3f0fa' }} onClick={() => handleWebDialogAction('cancel')}>Cancel</button>
+              <button style={{ margin: 4, padding: '8px 16px', background: '#ffe8d2' }} onClick={() => handleWebDialogAction('push')}>Cancel & Push</button>
+              <button style={{ margin: 4, padding: '8px 16px', background: '#ffe0e0' }} onClick={() => handleWebDialogAction('cancelAll')}>Cancel All</button>
+            </div>
+          </div>
+        )}
         {/* Date Slider and Status Hashes */}
         <View style={styles.dateBarRow}>
           <TouchableOpacity onPress={handlePreviousDay} style={styles.dateNavButton}>
@@ -102,7 +200,12 @@ function AppointmentsScreen() {
           {appointments
             .filter(a => a.date === selectedKey)
             .map(appt => (
-              <AppointmentCard key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`} appointment={appt} />
+              <AppointmentCard
+                key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`}
+                appointment={appt}
+                dayInfo={seriesDayLookup[appt.id]}
+                onCancel={() => handleCancelAppointment(appt.id)}
+              />
             ))}
           {appointments.filter(a => a.date === selectedKey).length === 0 && (
             <Text style={{ textAlign: 'center', marginTop: 32, color: '#888' }}>

@@ -1,3 +1,4 @@
+console.log('[rulesEngine] file loaded');
 // --- Types for shared helpers ---
 import { Booking, Therapist, Room, Patient, isTherapistAvailable, isRoomAvailable, isPatientAvailable } from './availabilityUtils';
 import { getAvailableSlotsForEntity } from './availabilityUtils';
@@ -44,6 +45,7 @@ export interface GetBookingOptionsInput {
   clients: Patient[];
   now?: Date;
   maxAlternatives?: number;
+  slotDuration?: number;
 }
 
 // --- Integrated double-booking check ---
@@ -56,8 +58,10 @@ function canBookTherapyAppointment({ appointments, date, slot, roomId, therapist
   clientId: string,
   slotDuration?: number
 }): { available: boolean; reason: string | null } {
+  console.log('[canBookTherapyAppointment] called with:', { appointments, date, slot, roomId, therapistIds, clientId, slotDuration });
   // 1. Patient overlap check
   if (!isPatientAvailable(clientId, date, slot, appointments, slotDuration)) {
+    console.log('[canBookTherapyAppointment] patient not available');
     return { available: false, reason: 'Patient already has an appointment at this time' };
   }
   // 2. Therapist overlap check
@@ -65,12 +69,15 @@ function canBookTherapyAppointment({ appointments, date, slot, roomId, therapist
     tid => isTherapistAvailable({ id: tid } as Therapist, date, slot, appointments, undefined, slotDuration)
   );
   if (therapistUnavailable) {
+    console.log('[canBookTherapyAppointment] therapist not available');
     return { available: false, reason: 'Therapists are busy' };
   }
   // 3. Room overlap check
   if (roomId && !isRoomAvailable({ id: roomId } as Room, date, slot, appointments, undefined, slotDuration)) {
+    console.log('[canBookTherapyAppointment] room not available');
     return { available: false, reason: 'Selected Room is not available' };
   }
+  console.log('[canBookTherapyAppointment] available');
   return { available: true, reason: null };
 }
 
@@ -86,9 +93,10 @@ export function getBookingOptions({
   clients,
   now = new Date(),
   maxAlternatives = 5,
-  enforceGenderMatch = true
+  enforceGenderMatch = true,
+  slotDuration: slotDurationArg
 }: GetBookingOptionsInput & { enforceGenderMatch: boolean }): BookingOption[] {
- 
+  console.log('[getBookingOptions] called with:', { date, slot, clientId, selectedTherapists, selectedRoom, appointments, allTherapists, allRooms, clients, now, maxAlternatives, enforceGenderMatch, slotDurationArg });
   // Fallback guards for arrays
   clients = Array.isArray(clients) ? clients : [];
   allTherapists = Array.isArray(allTherapists) ? allTherapists : [];
@@ -131,7 +139,7 @@ export function getBookingOptions({
     };
   }
   const clinicTimings = normalizeClinicTimings(CLINIC_TIMINGS);
-  const slotDuration = clinicTimings.slotDuration;
+  const slotDuration = slotDurationArg || clinicTimings.slotDuration || 60;
 
   // --- Use getAvailableSlotsForEntity for slot checks ---
   // Find all eligible therapists: if selectedTherapists is set, use only those, else use all by patient gender
@@ -187,7 +195,8 @@ export function getBookingOptions({
     slot,
     roomId: selectedRoom,
     therapistIds: availableTherapists.map((t: Therapist) => t.id),
-    clientId
+    clientId,
+    slotDuration
   });
 
   // Helper: get future slot alternatives
@@ -277,5 +286,6 @@ export function getBookingOptions({
     selectedRoom,
     alternatives: JSON.parse(JSON.stringify(finalAlternatives))
   }];
+  console.log('[getBookingOptions] result:', result);
   return result;
 }

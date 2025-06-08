@@ -4,7 +4,7 @@ export function addDays(dateStr: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-import { addMinutes, format, parseISO } from 'date-fns';
+import { addMinutes, format, parseISO, addDays as addDaysFn } from 'date-fns';
 
 /**
  * Robust date formatting utility. Returns fallback if dateValue is invalid.
@@ -74,4 +74,34 @@ export function normalizeSlot(slot: string): string {
   const hour = parts[0] && !isNaN(Number(parts[0])) ? parts[0].padStart(2, '0') : '00';
   const min = parts[1] && !isNaN(Number(parts[1])) ? parts[1].padStart(2, '0') : '00';
   return `${hour}:${min}`;
+}
+
+/**
+ * Returns an array of working dates (skipping weekly offs and holidays) for a given start date and duration.
+ * @param startDate - The starting date (YYYY-MM-DD)
+ * @param duration - Number of working days to return
+ * @param clinicTimings - The clinicTimings object from setupSlice
+ * @returns Array of date strings (YYYY-MM-DD)
+ */
+export function getWorkingSeriesDates(
+  startDate: string,
+  duration: number,
+  clinicTimings: any
+): string[] {
+  const result: string[] = [];
+  let current = parseISO(startDate);
+  while (result.length < duration) {
+    const weekday = format(current, 'EEEE').toLowerCase();
+    const timings = clinicTimings.weekdays?.[weekday];
+    if (
+      timings &&
+      timings.isOpen &&
+      timings.status !== 'holiday' &&
+      timings.status !== 'weekly_off'
+    ) {
+      result.push(format(current, 'yyyy-MM-dd'));
+    }
+    current = addDaysFn(current, 1);
+  }
+  return result;
 }

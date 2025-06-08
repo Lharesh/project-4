@@ -77,7 +77,11 @@ const Card: React.FC<CardProps> = ({
           )}
         </View>
       ) : null}
-      <View style={[styles.body, bodyStyle]}>{children}</View>
+      <View style={[styles.body, bodyStyle]}>
+        {React.Children.map(children, child =>
+          typeof child === 'string' ? <Text>{child}</Text> : child
+        )}
+      </View>
     </CardComponent>
   );
 };

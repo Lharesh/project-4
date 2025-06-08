@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { Modal, View, StyleSheet, useWindowDimensions, Platform, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 interface BookingModalPanelProps {
@@ -17,6 +17,10 @@ const BookingModalPanel: React.FC<BookingModalPanelProps> = ({ visible, onClose,
   useEffect(() => {
     if (tab) setActiveTab(tab);
   }, [tab]);
+
+  useEffect(() => {
+    console.log('[BookingModalPanel] rendered, visible:', visible, 'Platform:', Platform.OS);
+  }, [visible]);
 
   if (Platform.OS === 'web') {
     if (!visible) return null;

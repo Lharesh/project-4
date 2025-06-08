@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/redux/store';
+import { APPOINTMENT_STATUS } from './constants/status';
+import { getWorkingSeriesDates } from './helpers/dateHelpers';
+import type { ClinicTimings } from './helpers/availabilityUtils';
+import { CLINIC_TIMINGS } from 'app/(admin)/clinics/setup/setupSlice';
+import { safeFormatDate } from './helpers/dateHelpers';
 
 // Appointment interface for both Doctor and Therapy tabs, future-proofed
 /**
@@ -20,7 +25,7 @@ export interface Appointment {
   treatmentName?: string;
   consultationId?: string;
   consultationName?: string;
-  duration?: number;
+  duration: number;
   roomNumber?: string;
   date: string;
   time: string;
@@ -33,8 +38,9 @@ export interface Appointment {
   dayIndex?: number;
   /** ISO string timestamp for when the appointment was created */
   createdAt?: string;
+  /** Unique ID for a multi-day treatment series */
+  seriesId?: string;
 }
-
 
 // Redux state for appointments
 interface AppointmentsState {
@@ -44,74 +50,7 @@ interface AppointmentsState {
 }
 
 // Mock data with full interface for both Doctor and Therapy
-const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: '1',
-    clientId: 'client1',
-    clientName: 'John Smith',
-    clientMobile: '9876543210',
-    clientEmail: 'john.smith@email.com',
-    doctorId: 'doctor1',
-    doctorName: 'Dr. Sharma',
-    therapistIds: [],
-    therapistNames: [],
-    treatmentId: 'treatment1',
-    treatmentName: 'Abhyanga Massage',
-    consultationId: 'consult1',
-    consultationName: 'Initial',
-    duration: 60,
-    roomNumber: '101',
-    date: '2025-05-15',
-    time: '09:00',
-    status: 'scheduled',
-    notes: 'Prefers morning',
-    tab: 'Doctor',
-  },
-  {
-    id: '2',
-    clientId: 'client2',
-    clientName: 'Sarah Johnson',
-    clientMobile: '9123456780',
-    clientEmail: 'sarah.johnson@email.com',
-    doctorId: '',
-    doctorName: '',
-    therapistIds: ['therapist1'],
-    therapistNames: ['Dr. Gupta'],
-    treatmentId: 'treatment2',
-    treatmentName: 'Shirodhara',
-    consultationId: 'consult2',
-    consultationName: 'Follow Up',
-    duration: 45,
-    roomNumber: '202',
-    date: '2025-05-15',
-    time: '10:30',
-    status: 'completed',
-    notes: 'Bring previous reports',
-    tab: 'Therapy',
-  },
-  {
-    id: '3',
-    clientId: 'client3',
-    clientName: 'Michael Brown',
-    clientMobile: '9988776655',
-    clientEmail: 'michael.brown@email.com',
-    doctorId: 'doctor2',
-    doctorName: 'Dr. Mehta',
-    therapistIds: [],
-    therapistNames: [],
-    treatmentId: 'treatment3',
-    treatmentName: 'Panchakarma',
-    consultationId: 'consult3',
-    consultationName: 'Online',
-    duration: 30,
-    roomNumber: '103',
-    date: '2025-05-15',
-    time: '14:00',
-    status: 'cancelled',
-    notes: '',
-    tab: 'Doctor',
-  },
-];
+const MOCK_APPOINTMENTS: Appointment[] = [];
 
 const initialState: AppointmentsState = {
   appointments: [],
@@ -134,17 +73,105 @@ export const fetchAppointments = createAsyncThunk(
   }
 );
 
+// Thunk for adding appointment(s) with all business logic and master data
+export const addAppointmentThunk = createAsyncThunk(
+  'appointments/addAppointmentThunk',
+  async (
+    { appointment }: { appointment: Appointment },
+    { getState, dispatch }
+  ) => {
+    const state = getState() as RootState;
+    const clinicTimings = state.setup.timings as ClinicTimings | undefined;
+    if (!clinicTimings) throw new Error('Clinic timings not found in state');
+    const duration = appointment.totalDays ?? 1;
+    const baseId = `${appointment.clientId}_${appointment.treatmentId || ''}_${appointment.roomNumber || ''}`;
+    if (duration > 1) {
+      // --- Series/multi-day logic is handled here ---
+      // Generate a seriesId if not present
+      const seriesId = appointment.seriesId || `series_${baseId}_${appointment.date}`;
+      const dates = getWorkingSeriesDates(appointment.date, duration, clinicTimings);
+      const appointmentsToAdd: Appointment[] = dates.map((date, idx) => {
+        const formattedDate = safeFormatDate(date, 'yyyy-MM-dd');
+        return {
+          ...appointment,
+          id: `${baseId}_${formattedDate}_${appointment.time}`,
+          date: formattedDate,
+          dayIndex: idx + 1,
+          totalDays: dates.length,
+          seriesId,
+        };
+      });
+      dispatch(addAppointments(appointmentsToAdd));
+    } else {
+      const formattedDate = safeFormatDate(appointment.date, 'yyyy-MM-dd');
+      const id = `${baseId}_${formattedDate}_${appointment.time}`;
+      dispatch(addAppointment({ ...appointment, id, date: formattedDate }));
+    }
+  }
+);
+
+// Thunk for cancel and shift series (business logic here, pure reducer below)
+export const cancelAndShiftSeries = createAsyncThunk(
+  'appointments/cancelAndShiftSeries',
+  async (
+    { appointmentId, push, cancelAll }: { appointmentId: string; push?: boolean; cancelAll?: boolean },
+    { getState, dispatch }
+  ) => {
+    const state = getState() as RootState;
+    const clinicTimings = state.setup.timings as ClinicTimings | undefined;
+    if (!clinicTimings) throw new Error('Clinic timings not found in state');
+    const appointments = state.appointments.appointments.slice(); // shallow copy
+    const idx = appointments.findIndex(a => a.id === appointmentId);
+    if (idx === -1) return;
+    const appt = { ...appointments[idx] };
+    appointments[idx] = { ...appt, status: APPOINTMENT_STATUS.CANCELLED as typeof appt.status };
+    if (appt.seriesId && clinicTimings) {
+      // Multi-day logic
+      const seriesDates = getWorkingSeriesDates(appt.date, appt.duration ?? 1, clinicTimings);
+      if (cancelAll) {
+        // Cancel all scheduled, future or today in the series
+        for (let i = 0; i < appointments.length; i++) {
+          const a = appointments[i];
+          if (
+            a.seriesId === appt.seriesId &&
+            seriesDates.includes(a.date) &&
+            a.status === APPOINTMENT_STATUS.SCHEDULED
+          ) {
+            appointments[i] = { ...a, status: APPOINTMENT_STATUS.CANCELLED as typeof a.status };
+          }
+        }
+      } else if (push) {
+        // Shift only scheduled, future appointments
+        let lastDate = appt.date;
+        const futureAppointments = appointments
+          .filter(a => a.seriesId === appt.seriesId && a.date > appt.date && a.status === APPOINTMENT_STATUS.SCHEDULED)
+          .sort((a, b) => a.date.localeCompare(b.date));
+        for (let i = 0; i < futureAppointments.length; i++) {
+          lastDate = getWorkingSeriesDates(lastDate, 2, clinicTimings)[1]; // Get next working day after lastDate
+          const idx2 = appointments.findIndex(a => a.id === futureAppointments[i].id);
+          if (idx2 !== -1) {
+            appointments[idx2] = { ...appointments[idx2], date: lastDate };
+          }
+        }
+      }
+    }
+    // Dispatch pure reducer to update state
+    dispatch(setAppointments(appointments));
+  }
+);
+
 const appointmentsSlice = createSlice({
   name: 'appointments',
   initialState,
   reducers: {
+    // Only add a single appointment (no business logic)
     addAppointment: (state, action: PayloadAction<Appointment>) => {
-      // Prevent duplicate by id
       const exists = state.appointments.some(a => a.id === action.payload.id);
       if (!exists) {
         state.appointments.unshift(action.payload);
       }
     },
+    // Add multiple appointments (batch add)
     addAppointments: (state, action: PayloadAction<Appointment[]>) => {
       const existingIds = new Set(state.appointments.map(a => a.id));
       action.payload.forEach(appt => {
@@ -209,8 +236,16 @@ const appointmentsSlice = createSlice({
   },
 });
 
-
-export const { addAppointment, addAppointments, setAppointments, clearAppointments, clearAppointmentsError, cancelAppointment, completeAppointment, rescheduleAppointment } = appointmentsSlice.actions;
+export const {
+  addAppointment,
+  addAppointments,
+  setAppointments,
+  clearAppointments,
+  clearAppointmentsError,
+  cancelAppointment,
+  completeAppointment,
+  rescheduleAppointment,
+} = appointmentsSlice.actions;
 
 // Selectors
 export const selectAppointmentById = (state: RootState, id: string) =>
@@ -218,5 +253,7 @@ export const selectAppointmentById = (state: RootState, id: string) =>
 
 export const selectAppointmentsByStatus = (state: RootState, status: string) =>
   state.appointments.appointments.filter(a => a.status === status);
+
+export const selectClinicTimings = (state: any) => state.setup?.timings || CLINIC_TIMINGS;
 
 export default appointmentsSlice.reducer;

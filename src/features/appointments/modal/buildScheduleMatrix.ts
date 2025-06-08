@@ -1,6 +1,7 @@
 // buildScheduleMatrix.ts
 import { Therapist, ClinicTimings } from '../helpers/availabilityUtils';
 import { generateRoomSlots } from '../helpers/roomSlotTimeline';
+import { SlotStatus } from '../constants/status';
 
 export interface Room {
   id: string;
@@ -27,7 +28,7 @@ export interface MatrixCell {
   start: string;
   end: string;
   isBreak: boolean;
-  status: 'available' | 'therapistUnavailable' | 'break';
+  status: SlotStatus;
   therapistAvailable: boolean;
   availableTherapists: { id: string, name: string, gender: string, availability: Record<string, string[]> }[];
   booking: any | null;
@@ -84,8 +85,8 @@ export function buildScheduleMatrix(
       roomName: room.name || room.id,
       slots,
     };
-    
+
   });
-  
+
   return matrix;
 }
