@@ -32,7 +32,7 @@ export function transformTherapyFormToAppointment(
         therapistNames,
         [APPOINTMENT_PARAM_KEYS.TREATMENT_ID]: values.selectedTherapy,
         [APPOINTMENT_PARAM_KEYS.TREATMENT_NAME]: therapy?.name || '',
-        roomId: values.selectedRoom,
+        [APPOINTMENT_PARAM_KEYS.ROOM_NUMBER]: values.selectedRoom,
         roomName: room?.name || '',
         date: values.startDate,
         slot: values.timeSlot,

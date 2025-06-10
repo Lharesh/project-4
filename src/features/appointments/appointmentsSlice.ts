@@ -40,6 +40,9 @@ export interface Appointment {
   createdAt?: string;
   /** Unique ID for a multi-day treatment series */
   seriesId?: string;
+  updatedAt?: string;
+  rescheduledBy?: string;
+  rescheduleReason?: string;
 }
 
 // Redux state for appointments
@@ -125,38 +128,144 @@ export const cancelAndShiftSeries = createAsyncThunk(
     if (idx === -1) return;
     const appt = { ...appointments[idx] };
     appointments[idx] = { ...appt, status: APPOINTMENT_STATUS.CANCELLED as typeof appt.status };
+
+    // Helper to get the next working day after a given date
+    function getNextWorkingDay(currentDate: string, clinicTimings: ClinicTimings) {
+      const dates = getWorkingSeriesDates(currentDate, 2, clinicTimings);
+      return dates[1];
+    }
+
     if (appt.seriesId && clinicTimings) {
       // Multi-day logic
-      const seriesDates = getWorkingSeriesDates(appt.date, appt.duration ?? 1, clinicTimings);
+      const seriesDates = getWorkingSeriesDates(appt.date, appt.totalDays ?? 1, clinicTimings);
       if (cancelAll) {
         // Cancel all scheduled, future or today in the series
-        for (let i = 0; i < appointments.length; i++) {
-          const a = appointments[i];
+        const updatedAppointments = appointments.map(a => {
           if (
             a.seriesId === appt.seriesId &&
             seriesDates.includes(a.date) &&
             a.status === APPOINTMENT_STATUS.SCHEDULED
           ) {
-            appointments[i] = { ...a, status: APPOINTMENT_STATUS.CANCELLED as typeof a.status };
+            return { ...a, status: APPOINTMENT_STATUS.CANCELLED as typeof a.status };
           }
-        }
+          return a;
+        });
+        dispatch(setAppointments(updatedAppointments));
       } else if (push) {
-        // Shift only scheduled, future appointments
-        let lastDate = appt.date;
-        const futureAppointments = appointments
-          .filter(a => a.seriesId === appt.seriesId && a.date > appt.date && a.status === APPOINTMENT_STATUS.SCHEDULED)
+        // 1. Get all series appointments with date >= cancelled date, sorted by date (including the cancelled one)
+        const toShift = appointments
+          .filter(a => a.seriesId === appt.seriesId && a.date >= appt.date)
           .sort((a, b) => a.date.localeCompare(b.date));
-        for (let i = 0; i < futureAppointments.length; i++) {
-          lastDate = getWorkingSeriesDates(lastDate, 2, clinicTimings)[1]; // Get next working day after lastDate
-          const idx2 = appointments.findIndex(a => a.id === futureAppointments[i].id);
-          if (idx2 !== -1) {
-            appointments[idx2] = { ...appointments[idx2], date: lastDate };
-          }
+
+        // 2. Get the working series dates for the number of toShift slots, and sort them
+        const seriesDates = getWorkingSeriesDates(appt.date, appt.totalDays ?? 1, clinicTimings)
+          .slice()
+          .sort((a, b) => a.localeCompare(b));
+        console.log('seriesDates', seriesDates);
+        // 3. Assign new dates and statuses
+        let shifted = toShift.map((orig, idx) => {
+          const newDate = seriesDates[idx];
+          return {
+            ...orig,
+            date: newDate,
+            id: `${orig.clientId}_${orig.treatmentId || ''}_${orig.roomNumber || ''}_${newDate}_${orig.time || (orig as any).startTime || (orig as any).slot}`,
+            status: idx === 0 ? APPOINTMENT_STATUS.CANCELLED as Appointment['status'] : APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
+            tab: orig.tab,
+            time: orig.time || (orig as any).startTime || (orig as any).slot,
+          };
+        });
+        // If not enough shifted appointments, add new scheduled ones for remaining dates
+        while (shifted.length < seriesDates.length) {
+          const last = shifted[shifted.length - 1];
+          const newDate = seriesDates[shifted.length];
+          shifted.push({
+            ...last,
+            date: newDate,
+            id: `${last.clientId}_${last.treatmentId || ''}_${last.roomNumber || ''}_${newDate}_${last.time || (last as any).startTime || (last as any).slot}`,
+            status: APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
+          });
         }
+        const finalAppointments = appointments
+          .filter(a => a.seriesId !== appt.seriesId || a.date < appt.date)
+          .concat(shifted);
+
+        // 5. Final check: scheduled appointments in series should equal totalDays, plus one cancelled
+        const scheduledInSeries = finalAppointments.filter(
+          a => a.seriesId === appt.seriesId && a.status === APPOINTMENT_STATUS.SCHEDULED
+        );
+        const cancelledInSeries = finalAppointments.filter(
+          a => a.seriesId === appt.seriesId && a.status === APPOINTMENT_STATUS.CANCELLED
+        );
+        if (scheduledInSeries.length !== appt.totalDays || cancelledInSeries.length !== 1) {
+          console.warn('[cancelAndShiftSeries] Data integrity violation: scheduledInSeries.length !== totalDays or cancelledInSeries.length !== 1', {
+            expectedScheduled: appt.totalDays,
+            actualScheduled: scheduledInSeries.length,
+            expectedCancelled: 1,
+            actualCancelled: cancelledInSeries.length,
+            scheduledInSeries,
+            cancelledInSeries,
+            finalAppointments,
+          });
+        }
+
+        dispatch(setAppointments(finalAppointments as Appointment[]));
       }
     }
-    // Dispatch pure reducer to update state
-    dispatch(setAppointments(appointments));
+    // For single cancel (not series), already updated above
+    if (!appt.seriesId || (!cancelAll && !push)) {
+      dispatch(setAppointments([...appointments]));
+    }
+  }
+);
+
+// Thunk for rescheduling an appointment
+export const rescheduleAppointmentThunk = createAsyncThunk(
+  'appointments/rescheduleAppointmentThunk',
+  async (
+    { original, updates }: { original: Appointment; updates: Partial<Appointment> },
+    { getState, dispatch }
+  ) => {
+    const state = getState() as RootState;
+    const appointments = state.appointments.appointments.slice();
+    const now = new Date().toISOString();
+    // Single-day appointment (no seriesId)
+    if (!original.seriesId) {
+      // Cancel the original
+      const updatedAppointments: Appointment[] = appointments.map(a =>
+        a.id === original.id ? { ...a, status: APPOINTMENT_STATUS.CANCELLED as Appointment['status'] } : a
+      );
+      // Create new appointment with updated values
+      const newAppointment: Appointment = {
+        ...original,
+        ...updates,
+        id: `${original.clientId}_${(updates.therapistIds || original.therapistIds || []).join('_')}_${updates.roomNumber || original.roomNumber}_${updates.date || original.date}_${updates.time || original.time}`,
+        status: APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
+        updatedAt: now,
+        rescheduledBy: (updates as any).rescheduledBy || undefined,
+        rescheduleReason: (updates as any).rescheduleReason || undefined,
+      };
+      updatedAppointments.unshift(newAppointment);
+      dispatch(setAppointments(updatedAppointments));
+    } else {
+      // Multi-day/series appointment: only allow time/therapist/notes changes
+      if (updates.date && updates.date !== original.date) {
+        throw new Error('Date change is not allowed for multi-day/series appointments.');
+      }
+      // Update the relevant slot in the series
+      const updatedAppointments: Appointment[] = appointments.map(a => {
+        if (a.seriesId === original.seriesId && a.date === original.date) {
+          return {
+            ...a,
+            ...updates,
+            updatedAt: now,
+            rescheduledBy: (updates as any).rescheduledBy || undefined,
+            rescheduleReason: (updates as any).rescheduleReason || undefined,
+          };
+        }
+        return a;
+      });
+      dispatch(setAppointments(updatedAppointments));
+    }
   }
 );
 
@@ -182,6 +291,7 @@ const appointmentsSlice = createSlice({
       });
     },
     setAppointments: (state, action: PayloadAction<Appointment[]>) => {
+      console.log('setAppointments :', action.payload);
       state.appointments = action.payload;
     },
     clearAppointments: (state) => {

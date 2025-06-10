@@ -86,7 +86,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
     '#1976D2', // Info blue (fallback)
   ];
 
-  if (status === 'break') {
+  if (status === SLOT_STATUS.BREAK) {
     mainContent = <Text style={styles.breakText}>Break</Text>;
     statusLabel = 'Break';
   } else if (status === SLOT_STATUS.SCHEDULED) {
@@ -167,7 +167,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
         <Text style={styles.bookBtnText}>Book</Text>
       </TouchableOpacity>
     ) : null;
-  } else if (status === 'available') {
+  } else if (status === SLOT_STATUS.AVAILABLE) {
     mainContent = (
       <>
         <Text style={styles.timeText}>{startTime} - {endTime}</Text>
@@ -235,7 +235,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
         '#D1E8FF',
         '#F4F9FB',
       ];
-    } else if (status === 'available') {
+    } else if (status === SLOT_STATUS.AVAILABLE) {
       return [
         '#E8F5ED', // Kapha pastel green
         '#D1F2EB',
@@ -247,7 +247,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
         '#FFE0B2',
         '#FFF9F0',
       ];
-    } else if (status === 'break') {
+    } else if (status === SLOT_STATUS.BREAK) {
       return [
         '#FFE0B2', '#FFD180', '#FFF9F0']; // Pitta accent orange
     } else if ([SLOT_STATUS.NOT_AVAILABLE, SLOT_STATUS.THERAPIST_UNAVAILABLE].includes(status)) {

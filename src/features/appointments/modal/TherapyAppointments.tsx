@@ -301,7 +301,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       params: {
         [APPOINTMENT_PARAM_KEYS.SLOT_START]: startTime,
         [APPOINTMENT_PARAM_KEYS.SLOT_END]: endTime,
-        [APPOINTMENT_PARAM_KEYS.ROOM_ID]: roomId,
+        [APPOINTMENT_PARAM_KEYS.ROOM_NUMBER]: roomId,
         slotRoom: roomId,
         [APPOINTMENT_PARAM_KEYS.DATE]: date,
         ...(clientId && { [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: clientId }),
@@ -395,7 +395,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     // Only open drawer if router params for slot and client are present and tab is Therapy
     const slotStart = params[APPOINTMENT_PARAM_KEYS.SLOT_START] as string | undefined;
     const slotEnd = params[APPOINTMENT_PARAM_KEYS.SLOT_END] as string | undefined;
-    const roomId = params[APPOINTMENT_PARAM_KEYS.ROOM_ID] as string | undefined;
+    const roomId = params[APPOINTMENT_PARAM_KEYS.ROOM_NUMBER] as string | undefined;
     const date = params[APPOINTMENT_PARAM_KEYS.DATE] as string | undefined;
     const clientId = params[APPOINTMENT_PARAM_KEYS.CLIENT_ID] as string | undefined;
     const clientName = params[APPOINTMENT_PARAM_KEYS.CLIENT_NAME] as string | undefined;
@@ -424,7 +424,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
   }, [
     params[APPOINTMENT_PARAM_KEYS.SLOT_START],
     params[APPOINTMENT_PARAM_KEYS.SLOT_END],
-    params[APPOINTMENT_PARAM_KEYS.ROOM_ID],
+    params[APPOINTMENT_PARAM_KEYS.ROOM_NUMBER],
     params[APPOINTMENT_PARAM_KEYS.DATE],
     params[APPOINTMENT_PARAM_KEYS.CLIENT_ID],
     params[APPOINTMENT_PARAM_KEYS.CLIENT_NAME],
@@ -674,7 +674,24 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
 
   const handleBookAppointments = (formValues: any) => {
     try {
-      console.log('[TherapyAppointments] handleBookAppointments called with values:', formValues);
+      // Auto-assign room and therapists if not selected
+      let selectedRoom = formValues.selectedRoom;
+      let selectedTherapists = formValues.selectedTherapists;
+      // Find available therapists and rooms for the selected slot
+      const availableTherapistsForSlot = availableTherapists;
+      const availableRoomsForSlot = availableRooms;
+      let autoAssigned = false;
+      if (!selectedRoom && availableRoomsForSlot.length > 0) {
+        selectedRoom = availableRoomsForSlot[0].id;
+        autoAssigned = true;
+      }
+      if ((!selectedTherapists || selectedTherapists.length === 0) && availableTherapistsForSlot.length > 0) {
+        selectedTherapists = [availableTherapistsForSlot[0].id];
+        autoAssigned = true;
+      }
+      if (autoAssigned) {
+        setDrawerError('Therapist and/or room auto-assigned from available options.');
+      }
       let daysToBook = 0;
       if (formValues.duration === null && formValues.customDays) {
         daysToBook = Number(formValues.customDays);
@@ -683,24 +700,18 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       } else {
         daysToBook = 1; // Default to 1 if somehow both are null/invalid
       }
-
       if (isNaN(daysToBook) || daysToBook <= 0) {
-        console.warn('[handleBookAppointments] Invalid daysToBook:', daysToBook, 'calculated from duration:', formValues.duration, 'and customDays:', formValues.customDays);
         setDrawerError('Invalid number of days for booking.');
         return;
       }
-
-      // --- Series/multi-day logic is now handled in the addAppointmentThunk ---
       const currentSelectedTherapyObj = therapies.find(t => t.id === formValues.selectedTherapy);
       const slotString = formValues.timeSlot;
-      const roomObj = safeRooms.find((r: any) => r.id === formValues.selectedRoom);
+      const roomObj = safeRooms.find((r: any) => r.id === selectedRoom);
       const therapyDuration = currentSelectedTherapyObj?.duration || slotDuration || 60;
       if (!slotString || typeof slotString !== 'string' || !slotString.match(/^[0-9]{2}:[0-9]{2}$/)) {
-        console.error('[handleBookAppointments] Invalid timeSlot format:', slotString);
         setDrawerError('Invalid time slot format. Expected HH:MM.');
         return;
       }
-      const [hours, minutesValue] = slotString.split(':').map(Number);
       let dateObj;
       try {
         if (!formValues.startDate || typeof formValues.startDate !== 'string' || !formValues.startDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) {
@@ -708,35 +719,37 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         }
         dateObj = parseISO(formValues.startDate);
       } catch (error: any) {
-        console.error('[handleBookAppointments] Error processing date:', formValues.startDate, error);
         setDrawerError(error.message || 'Invalid start date format.');
         return;
       }
       const startTimeObj = new Date(dateObj);
+      const [hours, minutesValue] = slotString.split(':').map(Number);
       startTimeObj.setHours(hours, minutesValue, 0, 0);
       const endTimeObj = new Date(startTimeObj.getTime() + therapyDuration * 60000);
       const formattedEndTime = `${String(endTimeObj.getHours()).padStart(2, '0')}:${String(endTimeObj.getMinutes()).padStart(2, '0')}`;
       const appointment = {
-        id: `${formValues.selectedPatient}_${formValues.selectedTherapists.join('_')}_${formValues.selectedRoom}_${safeFormatDate(dateObj, 'yyyy-MM-dd')}_${slotString}`,
-        clientId: formValues.selectedPatient,
-        clientName: safeClients.find(c => c.id === formValues.selectedPatient)?.name || '',
-        clientMobile: formValues.clientMobile || selectedPatientObj?.mobile || '',
-        therapistIds: formValues.selectedTherapists,
-        therapistNames: formValues.selectedTherapists.map((id: string) => (safeTherapists.find((t: Therapist) => t.id === id)?.name || id)),
-        therapyId: formValues.selectedTherapy,
-        therapyName: currentSelectedTherapyObj?.name || '',
-        roomId: formValues.selectedRoom,
+        id: `${formValues.selectedPatient}_${selectedTherapists.join('_')}_${selectedRoom}_${safeFormatDate(dateObj, 'yyyy-MM-dd')}_${slotString}`,
+        [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: formValues.selectedPatient,
+        [APPOINTMENT_PARAM_KEYS.CLIENT_NAME]: safeClients.find(c => c.id === formValues.selectedPatient)?.name || '',
+        [APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE]: formValues.clientMobile || selectedPatientObj?.mobile || '',
+        therapistIds: selectedTherapists,
+        therapistNames: selectedTherapists.map((id: string) => (safeTherapists.find((t: Therapist) => t.id === id)?.name || id)),
+        [APPOINTMENT_PARAM_KEYS.TREATMENT_ID]: formValues.selectedTherapy,
+        [APPOINTMENT_PARAM_KEYS.TREATMENT_NAME]: currentSelectedTherapyObj?.name || '',
+        [APPOINTMENT_PARAM_KEYS.ROOM_NUMBER]: selectedRoom,
         roomName: roomObj?.name || '',
-        date: safeFormatDate(dateObj, 'yyyy-MM-dd'),
+        [APPOINTMENT_PARAM_KEYS.DATE]: safeFormatDate(dateObj, 'yyyy-MM-dd'),
+        [APPOINTMENT_PARAM_KEYS.TIME]: slotString,
         startTime: slotString,
         endTime: formattedEndTime,
-        duration: therapyDuration,
-        status: APPOINTMENT_STATUS.SCHEDULED,
-        tab: 'Therapy',
-        [APPOINTMENT_PARAM_KEYS.SLOT_START]: slotString,
-        slot: slotString, // for matrix matching
         [APPOINTMENT_PARAM_KEYS.DURATION]: therapyDuration,
         totalDays: daysToBook,
+        notes: formValues.notes || '',
+        [APPOINTMENT_PARAM_KEYS.STATUS]: APPOINTMENT_STATUS.SCHEDULED,
+        [APPOINTMENT_PARAM_KEYS.TAB]: 'Therapy',
+        [APPOINTMENT_PARAM_KEYS.SLOT_START]: slotString,
+        slot: slotString, // for matrix matching
+        createdAt: new Date().toISOString(),
       };
       // Final validation: check for slot conflict for the first day only
       const bookingOptions = getBookingOptions({
@@ -744,7 +757,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         slot: appointment.startTime,
         clientId: appointment.clientId,
         selectedTherapists: appointment.therapistIds,
-        selectedRoom: appointment.roomId,
+        selectedRoom: appointment.roomNumber,
         appointments: normalizeAppointments(safeAppointments),
         allTherapists: safeTherapists,
         allRooms: safeRooms,
@@ -763,7 +776,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
       }
       resetForm();
     } catch (e) {
-      console.error('[TherapyAppointments] handleBookAppointments error:', e);
+      setDrawerError('Unexpected error while booking.');
       throw e;
     }
   };
@@ -817,6 +830,13 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     setCancelDialog({ open: true, appointment: appt });
   };
 
+  // Handler for reschedule: navigates to the reschedule overlay route
+  const handleRescheduleAppointment = (booking: any) => {
+    if (booking && booking.id) {
+      router.push({ pathname: '/appointments/reschedule', params: { appointmentId: booking.id } });
+    }
+  };
+
   return (
     <React.Fragment>
       <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -853,6 +873,7 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
                 selectedDate={matrixDate}
                 onCreateSlot={handleCreateSlot}
                 onCancelAppointment={handleOpenCancelDialog}
+                onRescheduleAppointment={handleRescheduleAppointment}
               />
             ) : (
               <Text>No matrix data available.</Text>

@@ -162,7 +162,7 @@ export function generateRoomSlots({
   const realignedSlotGrid = [];
   let lastSlotEnd = current;
   for (const slot of slotGrid) {
-    if (slot.booking && (slot.booking.status === 'Cancelled' || slot.booking.status === 'Rescheduled') && date >= todayStr) {
+    if (slot.booking && (slot.booking.status === APPOINTMENT_STATUS.CANCELLED || slot.booking.status === APPOINTMENT_STATUS.RESCHEDULED) && date >= todayStr) {
       // Realign slot grid to contiguous 60-min slots until next break, scheduled slot, or clinic end
       while (timeToMinutes(lastSlotEnd) < timeToMinutes(slot.start)) {
         const nextSlotEnd = addMinutesToTime(lastSlotEnd, slotDuration);

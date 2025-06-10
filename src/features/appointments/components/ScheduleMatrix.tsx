@@ -39,6 +39,7 @@ interface ScheduleMatrixProps {
   highlightedSlot?: { slotStart: string; slotRoom: string };
   onCloseModal?: () => void;
   onCancelAppointment?: (appointmentId: string) => void;
+  onRescheduleAppointment?: (booking: any) => void;
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -53,6 +54,7 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   highlightedSlot,
   onCloseModal,
   onCancelAppointment,
+  onRescheduleAppointment,
 }) => {
 
   function handleCellTap(roomNumber: string, slot: string) {
@@ -102,7 +104,9 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       availableTherapists={therapistsToShow}
                       status={status}
                       onBook={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => handleCellTap(room.id, slotObj.start) : undefined}
-                      onReschedule={undefined}
+                      onReschedule={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onRescheduleAppointment
+                        ? () => onRescheduleAppointment(slotObj.booking)
+                        : undefined}
                       onCancel={onCancelAppointment && slotObj.booking ? () => {
                         console.log('[SCHEDULE_MATRIX] onCancel wrapper called for:', slotObj.booking.id);
                         onCancelAppointment(slotObj.booking.id);

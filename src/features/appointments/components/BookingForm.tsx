@@ -257,7 +257,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           {/* Therapists */}
           <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
             {filteredTherapists.map((t: any) => {
-              const selected = values.selectedTherapists.includes(t.id);
+              const selected = (values.selectedTherapists || []).includes(t.id);
               return (
                 <button
                   type="button"
