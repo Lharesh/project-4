@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 // DO NOT use Redux selectors or dispatch in this file.
 // All data and callbacks must be passed as props from the parent (TherapyAppointments).
 // This is a strict project rule for appointments.
@@ -40,6 +41,7 @@ interface ScheduleMatrixProps {
   onCloseModal?: () => void;
   onCancelAppointment?: (appointmentId: string) => void;
   onRescheduleAppointment?: (booking: any) => void;
+  onCompleteAppointment?: (booking: any) => void;
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -55,6 +57,7 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   onCloseModal,
   onCancelAppointment,
   onRescheduleAppointment,
+  onCompleteAppointment,
 }) => {
 
   function handleCellTap(roomNumber: string, slot: string) {
@@ -111,7 +114,9 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                         console.log('[SCHEDULE_MATRIX] onCancel wrapper called for:', slotObj.booking.id);
                         onCancelAppointment(slotObj.booking.id);
                       } : undefined}
-                      onConfirmVisit={undefined}
+                      onConfirmVisit={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onCompleteAppointment
+                        ? () => onCompleteAppointment(slotObj.booking)
+                        : undefined}
                       onCreate={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onCreateSlot && onCreateSlot({
                         roomId: room.id,
                         date: formattedDate,

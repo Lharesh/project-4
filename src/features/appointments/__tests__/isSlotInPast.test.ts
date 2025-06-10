@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { isSlotInPast } from '../helpers/isSlotInPast';
 
 describe('isSlotInPast', () => {

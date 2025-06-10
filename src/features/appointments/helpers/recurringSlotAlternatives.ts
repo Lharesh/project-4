@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { CLINIC_TIMINGS, ROOMS, THERAPISTS } from '../mock/scheduleMatrixMock';
 import { isSlotInPast } from './isSlotInPast';
 import { addDays } from './dateHelpers';

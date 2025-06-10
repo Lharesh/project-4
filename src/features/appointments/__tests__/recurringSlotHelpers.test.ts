@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { checkTherapistsAvailability, checkRoomsAvailability, getTopCommonSlots } from '../helpers/recurringSlotAlternatives';
 
 describe('checkTherapistsAvailability', () => {

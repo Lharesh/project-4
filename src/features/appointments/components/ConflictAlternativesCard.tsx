@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 
@@ -29,11 +30,11 @@ const ConflictAlternativesCard: React.FC<ConflictAlternativesCardProps> = ({ con
         ) : (
           alternatives.map((alt, idx) => (
             <TouchableOpacity
-              key={alt.roomId + alt.slot + alt.therapistId + idx}
+              key={alt[APPOINTMENT_PARAM_KEYS.ROOM_ID] + alt.slot + alt.therapistId + idx}
               style={styles.altCard}
               onPress={() => onSelectAlternative(alt)}
             >
-              <Text style={styles.altText}>{alt.slot} | {alt.roomName || alt.roomId}</Text>
+              <Text style={styles.altText}>{alt.slot} | {alt.roomName || alt[APPOINTMENT_PARAM_KEYS.ROOM_ID]}</Text>
               <Text style={styles.altText}>{alt.therapistName || alt.therapistId}</Text>
               <Text style={styles.reason}>{alt.reason === 'same therapist' ? 'Preferred' : alt.reason === 'same gender' ? 'Same Gender' : 'Other'}</Text>
             </TouchableOpacity>

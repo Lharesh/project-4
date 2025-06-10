@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { getDoctorAvailableSlots, isDoctorAvailable, getNextAvailableDoctorSlots } from '../helpers/doctorBookingUtils';
 import type { Appointment } from '../appointmentsSlice';
 

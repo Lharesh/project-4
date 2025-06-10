@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { addDynamicAvailability } from '../helpers/dynamicAvailability';
 
 describe('dynamicAvailability', () => {

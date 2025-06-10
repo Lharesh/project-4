@@ -213,7 +213,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
       {(submitAttempted && !selectedClient) && (
         <Text style={styles.errorText}>Please select a patient</Text>
       )}
-
       <Text style={styles.label}>Client Mobile</Text>
       <View style={styles.mobileRow}>
         <View style={styles.codePickerWrapper}>
@@ -236,7 +235,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
       {clientMobileTouched && !/^\d{10,}$/.test(clientMobile) && (
         <Text style={styles.errorText}>Enter valid 10-digit mobile</Text>
       )}
-
       <GenericDatePicker
         label="Date"
         value={date}
@@ -248,7 +246,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
       {dateTouched && !date && (
         <Text style={{ color: 'red', marginBottom: 6 }}>Select a date</Text>
       )}
-
       <GenericTimePicker
         label="Start Time"
         value={time}
@@ -259,7 +256,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
       {timeTouched && !time && (
         <Text style={{ color: 'red', marginBottom: 6 }}>Select a time</Text>
       )}
-
       <Text style={styles.label}>Consultation Type</Text>
       <View style={styles.consultationRow}>
         {CONSULT_TYPES.map(type => (
@@ -284,7 +280,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
           </TouchableOpacity>
         ))}
       </View>
-
       <Text style={styles.label}>Notes</Text>
       <TextInput
         style={[styles.input, { minHeight: 44, maxHeight: 100 }]}
@@ -293,8 +288,6 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({
         onChangeText={setNotes}
         multiline
       />
-
-
       {/* Show doctor error only after submit is attempted */}
       {submitAttempted && doctors.length === 0 && (
         <Text style={{ color: 'red', marginBottom: 8 }}>

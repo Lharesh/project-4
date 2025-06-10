@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { getRecommendedSlots, RecommendationCriteria, SlotRecommendation } from '../helpers/recommendationHelpers';
 
 describe('getRecommendedSlots', () => {

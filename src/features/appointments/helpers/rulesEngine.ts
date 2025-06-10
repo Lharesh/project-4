@@ -1,4 +1,5 @@
 console.log('[rulesEngine] file loaded');
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 // --- Types for shared helpers ---
 import { Booking, Therapist, Room, Patient, isTherapistAvailable, isRoomAvailable, isPatientAvailable } from './availabilityUtils';
 import { getAvailableSlotsForEntity } from './availabilityUtils';

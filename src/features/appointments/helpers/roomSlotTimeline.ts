@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { format } from 'date-fns';
 import { addMinutesToTime, normalizeSlot, safeFormatDate } from '../helpers/dateHelpers';
 import { getAvailableTherapists } from '../helpers/availabilityUtils';
@@ -76,7 +77,7 @@ export function generateRoomSlots({
 
   // Collect all bookings for this room/date, sorted by slot time
   const roomBookings = appointments
-    .filter(a => a.roomId === room.id && a.date === date && a.status === APPOINTMENT_STATUS.SCHEDULED)
+    .filter(a => a[APPOINTMENT_PARAM_KEYS.ROOM_ID] === room.id && a.date === date && a.status === APPOINTMENT_STATUS.SCHEDULED)
     .sort((a, b) => timeToMinutes(a.slot) - timeToMinutes(b.slot));
 
   // Find earliest booking time for this room/date
@@ -231,12 +232,12 @@ export function generateRoomSlots({
     const bookedTherapistIds = appointments
       .filter(a => a.date === date && a.status === APPOINTMENT_STATUS.SCHEDULED && (
         // booking overlaps if bookingStart < slotEnd && bookingEnd > slotStart
-        (() => {
+        ((() => {
           const bookingStart = timeToMinutes(normalizeSlot(a.slot));
           const bookingDuration = a.duration || slotDuration;
           const bookingEnd = bookingStart + bookingDuration;
           return bookingStart < slotEndMins && bookingEnd > slotStartMins; // Strict overlap, adjacent is allowed
-        })()
+        })())
       ))
       .flatMap(a => Array.isArray(a.therapistIds) ? a.therapistIds : (a.therapistId ? [a.therapistId] : []));
     const genderFilter = clientGender ? enforceGenderMatch : false;
@@ -278,4 +279,4 @@ export function generateRoomSlots({
   }
   // Remove the mapping at the end; just return slots as-is with standardized SlotStatus
   return slots;
-};
+}

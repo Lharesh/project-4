@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 // Shared helpers for therapist/room/patient availability and double-booking
 // Centralized types for appointment logic
 
@@ -88,7 +89,7 @@ export function getAvailableSlotsForEntity({
       app.date === date &&
       app.status === APPOINTMENT_STATUS.SCHEDULED &&
       ((entityType === 'therapist' && Array.isArray(app.therapistIds) && app.therapistIds.includes(entityId)) ||
-        (entityType === 'room' && app.roomId === entityId))
+        (entityType === 'room' && app[APPOINTMENT_PARAM_KEYS.ROOM_ID] === entityId))
     )
     .map(app => app.slot);
 
@@ -106,6 +107,7 @@ export type Booking = {
   therapistIds: string[];
   clientId: string;
   status: string;
+  [key: string]: any;
 };
 
 export type Room = { id: string; availability?: { [date: string]: string[] }; };
@@ -211,7 +213,7 @@ export function isRoomAvailable(
   const notBooked = !appointments.some(
     (apt) =>
       apt.status === APPOINTMENT_STATUS.SCHEDULED &&
-      apt.roomId === room.id &&
+      apt[APPOINTMENT_PARAM_KEYS.ROOM_ID] === room.id &&
       doesBookingOverlap(apt, date, slot, slotDuration)
   );
   return staticallyAvailable && notBooked;

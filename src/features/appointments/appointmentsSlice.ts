@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "./constants/paramKeys";
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/redux/store';
 import { APPOINTMENT_STATUS } from './constants/status';
@@ -152,63 +153,60 @@ export const cancelAndShiftSeries = createAsyncThunk(
         });
         dispatch(setAppointments(updatedAppointments));
       } else if (push) {
-        // 1. Get all series appointments with date >= cancelled date, sorted by date (including the cancelled one)
-        const toShift = appointments
-          .filter(a => a.seriesId === appt.seriesId && a.date >= appt.date)
+        // 1. Get all series appointments, sorted by date
+        const allSeries = appointments
+          .filter(a => a.seriesId === appt.seriesId)
           .sort((a, b) => a.date.localeCompare(b.date));
 
-        // 2. Get the working series dates for the number of toShift slots, and sort them
-        const seriesDates = getWorkingSeriesDates(appt.date, appt.totalDays ?? 1, clinicTimings)
-          .slice()
-          .sort((a, b) => a.localeCompare(b));
-        console.log('seriesDates', seriesDates);
-        // 3. Assign new dates and statuses
-        let shifted = toShift.map((orig, idx) => {
-          const newDate = seriesDates[idx];
-          return {
-            ...orig,
-            date: newDate,
-            id: `${orig.clientId}_${orig.treatmentId || ''}_${orig.roomNumber || ''}_${newDate}_${orig.time || (orig as any).startTime || (orig as any).slot}`,
-            status: idx === 0 ? APPOINTMENT_STATUS.CANCELLED as Appointment['status'] : APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
-            tab: orig.tab,
-            time: orig.time || (orig as any).startTime || (orig as any).slot,
-          };
-        });
-        // If not enough shifted appointments, add new scheduled ones for remaining dates
-        while (shifted.length < seriesDates.length) {
-          const last = shifted[shifted.length - 1];
-          const newDate = seriesDates[shifted.length];
-          shifted.push({
-            ...last,
-            date: newDate,
-            id: `${last.clientId}_${last.treatmentId || ''}_${last.roomNumber || ''}_${newDate}_${last.time || (last as any).startTime || (last as any).slot}`,
-            status: APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
-          });
+        // 2. Find index of the cancelled appointment
+        const cancelIdx = allSeries.findIndex(a => a.id === appt.id);
+        if (cancelIdx === -1) return;
+
+        // 3. Cancel the selected appointment
+        allSeries[cancelIdx] = { ...allSeries[cancelIdx], status: APPOINTMENT_STATUS.CANCELLED as Appointment['status'] };
+
+        // 4. Get working days for the new (length+1) series, starting from the original first date
+        const workingDates = getWorkingSeriesDates(allSeries[0].date, allSeries.length + 1, clinicTimings);
+
+        // 5. Build new shifted series:
+        //    - Insert a copy of the cancelled slot (scheduled) on the next working day after the cancelled date
+        //    - Shift all scheduled slots with date >= cancelled date forward by one working day
+        const newSeries: typeof allSeries = [];
+        for (let i = 0; i < allSeries.length; i++) {
+          const timeVal = allSeries[i].time || (allSeries[i] as any).slot || '';
+          if (i === cancelIdx) {
+            // Keep the cancelled slot at its original date
+            newSeries.push({ ...allSeries[i], date: workingDates[i], id: `${allSeries[i].clientId}_${allSeries[i].treatmentId || ''}_${allSeries[i].roomNumber || ''}_${workingDates[i]}_${timeVal}` });
+            // Insert a copy (scheduled) on the next working day
+            newSeries.push({
+              ...allSeries[i],
+              status: APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
+              date: workingDates[i + 1],
+              id: `${allSeries[i].clientId}_${allSeries[i].treatmentId || ''}_${allSeries[i].roomNumber || ''}_${workingDates[i + 1]}_${timeVal}`
+            });
+          } else if (i > cancelIdx) {
+            // Shift all future scheduled slots forward by one working day
+            newSeries.push({
+              ...allSeries[i],
+              date: workingDates[i + 1],
+              id: `${allSeries[i].clientId}_${allSeries[i].treatmentId || ''}_${allSeries[i].roomNumber || ''}_${workingDates[i + 1]}_${timeVal}`
+            });
+          } else {
+            // Keep all slots before the cancelled one unchanged
+            newSeries.push({
+              ...allSeries[i],
+              date: workingDates[i],
+              id: `${allSeries[i].clientId}_${allSeries[i].treatmentId || ''}_${allSeries[i].roomNumber || ''}_${workingDates[i]}_${timeVal}`
+            });
+          }
         }
+
+        // 6. Replace the series in the appointments array
         const finalAppointments = appointments
-          .filter(a => a.seriesId !== appt.seriesId || a.date < appt.date)
-          .concat(shifted);
+          .filter(a => a.seriesId !== appt.seriesId)
+          .concat(newSeries);
 
-        // 5. Final check: scheduled appointments in series should equal totalDays, plus one cancelled
-        const scheduledInSeries = finalAppointments.filter(
-          a => a.seriesId === appt.seriesId && a.status === APPOINTMENT_STATUS.SCHEDULED
-        );
-        const cancelledInSeries = finalAppointments.filter(
-          a => a.seriesId === appt.seriesId && a.status === APPOINTMENT_STATUS.CANCELLED
-        );
-        if (scheduledInSeries.length !== appt.totalDays || cancelledInSeries.length !== 1) {
-          console.warn('[cancelAndShiftSeries] Data integrity violation: scheduledInSeries.length !== totalDays or cancelledInSeries.length !== 1', {
-            expectedScheduled: appt.totalDays,
-            actualScheduled: scheduledInSeries.length,
-            expectedCancelled: 1,
-            actualCancelled: cancelledInSeries.length,
-            scheduledInSeries,
-            cancelledInSeries,
-            finalAppointments,
-          });
-        }
-
-        dispatch(setAppointments(finalAppointments as Appointment[]));
+        dispatch(setAppointments(finalAppointments));
       }
     }
     // For single cancel (not series), already updated above
@@ -234,11 +232,23 @@ export const rescheduleAppointmentThunk = createAsyncThunk(
       const updatedAppointments: Appointment[] = appointments.map(a =>
         a.id === original.id ? { ...a, status: APPOINTMENT_STATUS.CANCELLED as Appointment['status'] } : a
       );
+      // Map form fields to canonical fields
+      if (typeof (updates as any).startDate === 'string') updates.date = (updates as any).startDate;
+      if (typeof (updates as any).timeSlot === 'string') updates.time = (updates as any).timeSlot;
       // Create new appointment with updated values
+      if (!updates.date) {
+        throw new Error('No date selected for reschedule.');
+      }
+      const workingDates = getWorkingSeriesDates(updates.date, 1, state.setup.timings as ClinicTimings | undefined);
+      const finalDate = workingDates[0];
+      if (finalDate !== updates.date) {
+        throw new Error('Selected date is not a working day. Please choose a valid working day.');
+      }
       const newAppointment: Appointment = {
         ...original,
         ...updates,
-        id: `${original.clientId}_${(updates.therapistIds || original.therapistIds || []).join('_')}_${updates.roomNumber || original.roomNumber}_${updates.date || original.date}_${updates.time || original.time}`,
+        date: finalDate,
+        id: `${original.clientId}_${(updates.therapistIds || original.therapistIds || []).join('_')}_${updates.roomNumber || original.roomNumber}_${finalDate}_${updates.time || original.time}`,
         status: APPOINTMENT_STATUS.SCHEDULED as Appointment['status'],
         updatedAt: now,
         rescheduledBy: (updates as any).rescheduledBy || undefined,

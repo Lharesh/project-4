@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import ConflictAlternativesCard from '../components/ConflictAlternativesCard';

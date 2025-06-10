@@ -149,24 +149,20 @@ export function AppointmentCard({ appointment, dayInfo, onCancel }: { appointmen
       <View style={styles.cardRow}>
         <View style={[styles.cardCell, { alignItems: 'flex-start', minWidth: 0 }]}> {/* Left */}
           <View style={styles.rowCellContent}>
-            <Text style={{ marginRight: 4 }}>📅</Text>
-            {renderTruncatedText(
-              `Day-${dayIndex} (${totalDays} Days)`
-            )}
+            <Text style={{ marginRight: 4 }}>��</Text>
+            <Text>{renderTruncatedText(`Day-${dayIndex} (${totalDays} Days)`)} </Text>
           </View>
         </View>
         <View style={[styles.cardCell, { alignItems: 'center', minWidth: 0 }]}> {/* Center */}
           <View style={styles.rowCellContent}>
             <Text style={{ marginRight: 4 }}>⏰</Text>
-            {renderTruncatedText(
-              (appointment as any).slotStart || (appointment as any).startTime || appointment.time || '--'
-            )}
+            <Text>{renderTruncatedText((appointment as any).slotStart || (appointment as any).startTime || appointment.time || '--')}</Text>
           </View>
         </View>
         <View style={[styles.cardCell, { alignItems: 'flex-end', minWidth: 0 }]}> {/* Right */}
           <View style={styles.rowCellContent}>
             <Text style={{ marginRight: 4 }}>⏱️</Text>
-            {renderTruncatedText(appointment.duration ? `${appointment.duration} M` : '--')}
+            <Text>{renderTruncatedText(appointment.duration ? `${appointment.duration} M` : '--')}</Text>
           </View>
         </View>
       </View>
@@ -175,14 +171,14 @@ export function AppointmentCard({ appointment, dayInfo, onCancel }: { appointmen
         <View style={[styles.cardCell, { alignItems: 'flex-start', minWidth: 0 }]}> {/* Left */}
           <View style={styles.rowCellContent}>
             <Text style={{ marginRight: 4 }}>👤</Text>
-            {renderTruncatedText(appointment.clientName)}
+            <Text>{renderTruncatedText(appointment.clientName)}</Text>
           </View>
         </View>
         <View style={[styles.cardCell, { alignItems: 'center', minWidth: 0 }]}> {/* Center */}
           <View style={styles.rowCellContent}>
             <Text style={{ marginRight: 4 }}>📞</Text>
             {Platform.select({
-              web: renderTruncatedText(appointment.clientMobile || (appointment as any)[APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE] || '--', styles.phoneText),
+              web: <Text>{renderTruncatedText(appointment.clientMobile || (appointment as any)[APPOINTMENT_PARAM_KEYS.CLIENT_MOBILE] || '--', styles.phoneText)}</Text>,
               default: (
                 <TouchableOpacity
                   onPress={() => {
@@ -208,19 +204,17 @@ export function AppointmentCard({ appointment, dayInfo, onCancel }: { appointmen
         <View style={[styles.cardCell, { alignItems: 'flex-start', minWidth: 0 }]}> {/* Left */}
           <View style={styles.rowCellContent}>
             <Text style={{ marginRight: 4 }}>{Array.isArray(appointment.therapistNames) && appointment.therapistNames.length > 1 ? '👥' : '👤'}</Text>
-            {renderTruncatedText((appointment.therapistNames || []).join(', '))}
+            <Text>{renderTruncatedText((appointment.therapistNames || []).join(', '))}</Text>
           </View>
         </View>
         <View style={[styles.cardCell, { alignItems: 'center', minWidth: 0 }]}> {/* Center */}
           <View style={styles.rowCellContent}>
             <Text style={{ marginRight: 4 }}>💊</Text>
-            {renderTruncatedText(
-              (appointment as any).therapyName || appointment.treatmentName || (appointment as any)[APPOINTMENT_PARAM_KEYS.TREATMENT_NAME] || '--'
-            )}
+            <Text>{renderTruncatedText((appointment as any).therapyName || appointment.treatmentName || (appointment as any)[APPOINTMENT_PARAM_KEYS.TREATMENT_NAME] || '--')}</Text>
           </View>
         </View>
         <View style={[styles.cardCell, { alignItems: 'flex-end', minWidth: 0 }]}> {/* Right */}
-          {renderTruncatedText(appointment.status ? appointment.status.toUpperCase() : '', styles.statusBadge)}
+          <Text>{renderTruncatedText(appointment.status ? appointment.status.toUpperCase() : '', styles.statusBadge)}</Text>
         </View>
       </View>
     </Card>

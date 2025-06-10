@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { RoomMatrix } from '../modal/buildScheduleMatrix';
 import { THERAPISTS, PATIENTS } from '../mock/scheduleMatrixMock';
 

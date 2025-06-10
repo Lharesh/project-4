@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { StyleSheet } from 'react-native';
 
 const VATA = '#6C8CBF';

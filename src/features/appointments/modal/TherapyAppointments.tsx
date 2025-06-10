@@ -25,7 +25,8 @@ import BookingForm from '../components/BookingForm';
 import { APPOINTMENT_STATUS } from '../constants/status';
 import CancelAppointmentDialog from '../components/CancelAppointmentDialog';
 import { useAppDispatch } from '@/redux/hooks';
-import { cancelAndShiftSeries } from '../appointmentsSlice';
+import { cancelAndShiftSeries, completeAppointment } from '../appointmentsSlice';
+import { Platform, Alert } from 'react-native';
 
 console.log('TherapyAppointments file loaded');
 
@@ -142,8 +143,8 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     selectedPatient: (params.clientId as string) || initialTherapyFormValues.selectedPatient,
     startDate: (params.date as string) || initialTherapyFormValues.startDate,
     timeSlot: (params.slotStart as string) || initialTherapyFormValues.timeSlot,
-    selectedRoom: (params.roomId as string) || initialTherapyFormValues.selectedRoom,
-  }), [params.clientId, params.date, params.slotStart, params.roomId]);
+    selectedRoom: (params[APPOINTMENT_PARAM_KEYS.ROOM_ID] as string) || initialTherapyFormValues.selectedRoom,
+  }), [params.clientId, params.date, params.slotStart, params[APPOINTMENT_PARAM_KEYS.ROOM_ID]]);
 
   // Use ONLY the custom hook for form state
   const {
@@ -736,7 +737,9 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
         therapistNames: selectedTherapists.map((id: string) => (safeTherapists.find((t: Therapist) => t.id === id)?.name || id)),
         [APPOINTMENT_PARAM_KEYS.TREATMENT_ID]: formValues.selectedTherapy,
         [APPOINTMENT_PARAM_KEYS.TREATMENT_NAME]: currentSelectedTherapyObj?.name || '',
-        [APPOINTMENT_PARAM_KEYS.ROOM_NUMBER]: selectedRoom,
+        [APPOINTMENT_PARAM_KEYS.ROOM_ID]: selectedRoom,
+        roomId: selectedRoom,
+        roomNumber: selectedRoom,
         roomName: roomObj?.name || '',
         [APPOINTMENT_PARAM_KEYS.DATE]: safeFormatDate(dateObj, 'yyyy-MM-dd'),
         [APPOINTMENT_PARAM_KEYS.TIME]: slotString,
@@ -837,6 +840,28 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     }
   };
 
+  // Handler for Mark Complete
+  const handleCompleteAppointment = useCallback((booking: any) => {
+    // Validate: only allow if current time > slot start time
+    const now = new Date();
+    const slotDate = new Date(`${booking[APPOINTMENT_PARAM_KEYS.DATE]}T${booking[APPOINTMENT_PARAM_KEYS.TIME] || booking.startTime || booking.slot}`);
+    if (now < slotDate) {
+      if (Platform.OS === 'web') {
+        window.alert('Cannot mark as completed before the appointment start time.');
+      } else {
+        Alert.alert('Error', 'Cannot mark as completed before the appointment start time.');
+      }
+      return;
+    }
+    // Only mark the selected slot as completed (even in a series)
+    dispatch(completeAppointment(booking.id));
+    if (Platform.OS === 'web') {
+      window.alert('Appointment marked as completed.');
+    } else {
+      Alert.alert('Success', 'Appointment marked as completed.');
+    }
+  }, [dispatch]);
+
   return (
     <React.Fragment>
       <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -874,6 +899,8 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
                 onCreateSlot={handleCreateSlot}
                 onCancelAppointment={handleOpenCancelDialog}
                 onRescheduleAppointment={handleRescheduleAppointment}
+                onCompleteAppointment={handleCompleteAppointment}
+                onCloseModal={onClose}
               />
             ) : (
               <Text>No matrix data available.</Text>

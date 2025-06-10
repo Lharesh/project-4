@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import { getRecurringSlotAlternatives, getTopCommonSlots } from '../helpers/recurringSlotAlternatives';
 
 // --- Mocks for therapists, rooms, and patients ---
@@ -361,7 +362,7 @@ describe('getRecurringSlotAlternatives', () => {
     expect(dayResult).toBeDefined();
     if (dayResult!.alternatives.length > 0) {
       const alt = dayResult!.alternatives[0]!!;
-      expect(`${alt.slot}-${alt.roomId}`).toContain('-');
+      expect(`${alt.slot}-${alt[APPOINTMENT_PARAM_KEYS.ROOM_ID]}`).toContain('-');
     }
   });
 

@@ -1,3 +1,4 @@
+import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
 import React, { useState, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { COLORS } from '@/theme/constants/theme';
@@ -45,6 +46,7 @@ interface BookingFormProps {
   clientGender: string;
   error?: string;
   onCancel?: () => void;
+  mode?: 'reschedule' | 'booking';
 }
 
 const DURATION_OPTIONS = [1, 3, 7, 14, 21];
@@ -82,6 +84,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   clientGender,
   error,
   onCancel,
+  mode,
 }) => {
   const [values, setValues] = useState({ ...initialValues, duration: initialValues.duration || 1 });
   const [errors, setErrors] = useState<any>({});
@@ -115,6 +118,12 @@ const BookingForm: React.FC<BookingFormProps> = ({
       setValues((prev: any) => ({ ...prev, selectedTherapists: [filteredTherapists[0].id] }));
     }
   }, [filteredTherapists]);
+
+  // Prefill therapySearch with the selected therapy's name on mount or when initialValues.selectedTherapy changes
+  React.useEffect(() => {
+    const selected = therapies.find((t: any) => t.id === initialValues.selectedTherapy);
+    setTherapySearch(selected ? selected.name : '');
+  }, [initialValues.selectedTherapy, therapies]);
 
   // Handle field change
   const handleChange = (field: string, value: any) => {
@@ -248,7 +257,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             {touched.selectedTherapy && errors.selectedTherapy && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapy}</div>}
           </div>
           {/* Rooms */}
-          <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', overflow: 'hidden' }}>
             {availableRooms.map((r: any) => (
               <button type="button" key={r.id} style={{ background: values.selectedRoom === r.id ? '#1976d2' : '#eee', color: values.selectedRoom === r.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }} onClick={() => handleChange('selectedRoom', r.id)}>{r.name}</button>
             ))}
@@ -296,8 +305,22 @@ const BookingForm: React.FC<BookingFormProps> = ({
               <input
                 type="time"
                 value={values.timeSlot || ''}
-                onChange={e => handleChange('timeSlot', e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  const [hh, mm] = val.split(':');
+                  if (["00", "15", "30", "45"].includes(mm)) {
+                    handleChange('timeSlot', val);
+                  } else {
+                    // Snap to nearest allowed minute
+                    const mins = parseInt(mm, 10);
+                    const allowed = [0, 15, 30, 45];
+                    const nearest = allowed.reduce((prev, curr) => Math.abs(curr - mins) < Math.abs(prev - mins) ? curr : prev, 0);
+                    const snapped = `${hh}:${nearest.toString().padStart(2, '0')}`;
+                    handleChange('timeSlot', snapped);
+                  }
+                }}
                 onBlur={() => handleBlur('timeSlot')}
+                step={900} // 15 min steps
                 style={{ width: '100%', padding: '8px 8px 8px 36px', borderRadius: 6, border: '1px solid #ccc', outline: errors.timeSlot && touched.timeSlot ? '2px solid red' : undefined }}
               />
               {touched.timeSlot && errors.timeSlot && <div style={{ color: 'red', fontSize: 12, position: 'absolute', top: 40 }}>{errors.timeSlot}</div>}
@@ -331,7 +354,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           </div>
           <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: 0, marginTop: 24 }}>
             <button type="button" onClick={onCancel} style={{ background: '#eee', color: '#222', borderRadius: 6, padding: '10px 0', border: 'none', fontWeight: 600, fontSize: 16, flex: 1, width: '50%', marginRight: 0, cursor: 'pointer' }}>Cancel</button>
-            <button type="submit" style={{ background: COLORS.vata[700], color: '#fff', borderRadius: 6, padding: '10px 0', border: 'none', fontWeight: 600, fontSize: 16, flex: 1, width: '50%', marginLeft: 12, cursor: 'pointer' }}>Book</button>
+            <button type="submit" style={{ background: mode === 'reschedule' ? '#FF9800' : COLORS.vata[700], color: '#fff', borderRadius: 6, padding: '10px 0', border: 'none', fontWeight: 600, fontSize: 16, flex: 1, width: '50%', marginLeft: 12, cursor: 'pointer' }}>{mode === 'reschedule' ? 'Reschedule' : 'Book'}</button>
           </div>
         </form>
       </div>
@@ -400,13 +423,13 @@ const BookingForm: React.FC<BookingFormProps> = ({
         {touched.selectedTherapy && errors.selectedTherapy && <Text style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapy}</Text>}
       </View>
       {/* Rooms */}
-      <ScrollView horizontal style={{ marginBottom: 12, showsHorizontalScrollIndicator: false }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
         {availableRooms.map((r: any) => (
-          <TouchableOpacity key={r.id} style={{ backgroundColor: values.selectedRoom === r.id ? '#1976d2' : '#eee', borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6, marginRight: 8 }} onPress={() => handleChange('selectedRoom', r.id)}>
+          <TouchableOpacity key={r.id} style={{ backgroundColor: values.selectedRoom === r.id ? '#1976d2' : '#eee', borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, marginBottom: 8 }} onPress={() => handleChange('selectedRoom', r.id)}>
             <Text style={{ color: values.selectedRoom === r.id ? '#fff' : '#222' }}>{r.name}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
       {touched.selectedRoom && errors.selectedRoom && <Text style={{ color: 'red', fontSize: 12 }}>{errors.selectedRoom}</Text>}
       {/* Therapists */}
       <ScrollView horizontal style={{ marginBottom: 12 }} showsHorizontalScrollIndicator={false}>
@@ -495,8 +518,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
                 setShowTimePicker(false);
                 if (selectedTime) {
                   const hh = String(selectedTime.getHours()).padStart(2, '0');
-                  const mm = String(selectedTime.getMinutes()).padStart(2, '0');
-                  handleChange('timeSlot', `${hh}:${mm}`);
+                  const mm = selectedTime.getMinutes();
+                  const allowed = [0, 15, 30, 45];
+                  const nearest = allowed.reduce((prev, curr) => Math.abs(curr - mm) < Math.abs(prev - mm) ? curr : prev, 0);
+                  const snapped = `${hh}:${nearest.toString().padStart(2, '0')}`;
+                  handleChange('timeSlot', snapped);
                 }
               }}
             />
@@ -534,8 +560,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
         <TouchableOpacity onPress={onCancel} style={{ backgroundColor: '#eee', borderRadius: 6, paddingVertical: 12, flex: 1, marginRight: 0, alignItems: 'center' }}>
           <Text style={{ color: '#222', fontWeight: '600', fontSize: 16 }}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleSubmit} style={{ backgroundColor: COLORS.vata[700], borderRadius: 6, paddingVertical: 12, flex: 1, marginLeft: 12, alignItems: 'center' }}>
-          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Book</Text>
+        <TouchableOpacity onPress={handleSubmit} style={{ backgroundColor: mode === 'reschedule' ? '#FF9800' : COLORS.vata[700], borderRadius: 6, paddingVertical: 12, flex: 1, marginLeft: 12, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>{mode === 'reschedule' ? 'Reschedule' : 'Book'}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

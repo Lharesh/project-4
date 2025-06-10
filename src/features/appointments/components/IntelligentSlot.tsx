@@ -95,12 +95,23 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
         <Text style={styles.timeText}>{startTime} - {endTime}</Text>
         <View style={styles.avatarsRow}>
           {availableTherapists && availableTherapists.length > 0 && availableTherapists.map((t, idx) => (
-            <View
-              key={t.name + idx}
-              style={[styles.avatar, { backgroundColor: doshaColors[idx % doshaColors.length] }]}
-            >
-              <Text style={styles.avatarText}>{t.name[0]}</Text>
-            </View>
+            Platform.OS === 'web' ? (
+              <div key={t.name + idx} title={t.name} style={{ display: 'inline-block' }}>
+                <View style={[styles.avatar, { backgroundColor: doshaColors[idx % doshaColors.length] }]}>
+                  <Text style={styles.avatarText}>{t.name[0]}</Text>
+                </View>
+              </div>
+            ) : (
+              <TouchableOpacity
+                key={t.name + idx}
+                onPress={() => Alert.alert('Therapist', t.name)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.avatar, { backgroundColor: doshaColors[idx % doshaColors.length] }]}>
+                  <Text style={styles.avatarText}>{t.name[0]}</Text>
+                </View>
+              </TouchableOpacity>
+            )
           ))}
         </View>
         <View style={{ alignItems: 'center', marginBottom: 2 }}>
@@ -174,12 +185,23 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
         <View style={styles.avatarsRow}>
           {availableTherapists && availableTherapists.length > 0 ? (
             availableTherapists.map((t, idx) => (
-              <View
-                key={t.name + idx}
-                style={[styles.avatar, { backgroundColor: doshaColors[idx % doshaColors.length] }]}
-              >
-                <Text style={styles.avatarText}>{t.name[0]}</Text>
-              </View>
+              Platform.OS === 'web' ? (
+                <div key={t.name + idx} title={t.name} style={{ display: 'inline-block' }}>
+                  <View style={[styles.avatar, { backgroundColor: doshaColors[idx % doshaColors.length] }]}>
+                    <Text style={styles.avatarText}>{t.name[0]}</Text>
+                  </View>
+                </div>
+              ) : (
+                <TouchableOpacity
+                  key={t.name + idx}
+                  onPress={() => Alert.alert('Therapist', t.name)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.avatar, { backgroundColor: doshaColors[idx % doshaColors.length] }]}>
+                    <Text style={styles.avatarText}>{t.name[0]}</Text>
+                  </View>
+                </TouchableOpacity>
+              )
             ))
           ) : (
             <Text style={styles.noTherapistText}>Therapists Unavailable</Text>
