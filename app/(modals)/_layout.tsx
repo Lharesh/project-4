@@ -35,10 +35,8 @@ export default function ModalLayout() {
     }
     // Native (mobile/tablet)
     return (
-        <View style={webFullscreenOverlayStyle as any}>
-            <View style={webFullscreenContainerStyle as any}>
-                <Slot />
-            </View>
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+            <Slot />
         </View>
     );
 }

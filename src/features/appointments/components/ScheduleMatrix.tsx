@@ -7,6 +7,8 @@ import { View, Text, TouchableOpacity, FlatList, StyleSheet, Platform, Alert, Sc
 import IntelligentSlot from './IntelligentSlot';
 import { safeFormatDate } from '../helpers/dateHelpers';
 import { SLOT_STATUS } from '../constants/status';
+// Import DoctorSlotGrid styles for shared grid look
+import { doctorGridSharedStyles } from './DoctorSlotGrid';
 
 interface SelectedSlot {
   id: string;
@@ -25,6 +27,7 @@ interface RoomSlot {
 interface MatrixRoom {
   id: string;
   roomName: string;
+  name?: string;
   slots: RoomSlot[];
 }
 interface ScheduleMatrixProps {
@@ -76,70 +79,147 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   console.log('[ScheduleMatrix] matrix prop:', matrix);
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Therapy Room Schedule</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.roomsScrollContainer}
+        style={{ width: '100%' }}
+        contentContainerStyle={{ minWidth: matrix.length * 160 }}
       >
-        {matrix.map((room) => (
-          <View key={room.id} style={styles.roomColumn}>
-            <Text style={styles.roomHeader}>{room.roomName}</Text>
-            <View style={styles.slotCardCol}>
-              {room.slots.map((slotObj, idx) => {
-                const status = slotObj.status;
-                const isHighlighted = highlightedSlot && room.id === highlightedSlot.slotRoom && slotObj.start === highlightedSlot.slotStart;
-                const formattedDate = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
-                let therapistsToShow = slotObj.availableTherapists;
-                if (status === SLOT_STATUS.SCHEDULED && slotObj.booking) {
-                  // Show only assigned therapists for scheduled slots
-                  if (Array.isArray(slotObj.booking.therapists) && slotObj.booking.therapists.length > 0) {
-                    therapistsToShow = slotObj.booking.therapists;
-                  } else if (Array.isArray(slotObj.booking.therapistIds)) {
-                    therapistsToShow = slotObj.booking.therapistIds.map(
-                      (id: string) => therapists.find((t: any) => t.id === id)
-                    ).filter(Boolean);
-                  }
-                }
-                return (
-                  <View key={room.id + '-' + slotObj.start} style={isHighlighted ? { borderColor: '#1976d2', borderWidth: 2, backgroundColor: '#e3f0fa', borderRadius: 12 } : undefined}>
-                    <IntelligentSlot
-                      startTime={slotObj.start}
-                      endTime={slotObj.end}
-                      duration={slotObj.booking?.duration || 60}
-                      clientId={slotObj.booking?.patientId || ''}
-                      patientName={slotObj.booking?.patientName || ''}
-                      patientPhone={slotObj.booking?.patientPhone || ''}
-                      therapyName={slotObj.booking?.therapyName || ''}
-                      treatmentDay={slotObj.booking?.treatmentDay}
-                      availableTherapists={therapistsToShow}
-                      status={status}
-                      onBook={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onBook && onBook(slotObj, room) : undefined}
-                      onReschedule={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onRescheduleAppointment
-                        ? () => onRescheduleAppointment(slotObj.booking)
-                        : undefined}
-                      onCancel={onCancelAppointment && slotObj.booking ? () => onCancelAppointment(slotObj.booking.id) : undefined}
-                      onMarkComplete={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onCompleteAppointment
-                        ? () => onCompleteAppointment(slotObj.booking)
-                        : undefined}
-                      onCreate={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onCreateSlot && onCreateSlot({
-                        roomId: room.id,
-                        date: formattedDate,
-                        startTime: slotObj.start,
-                        endTime: slotObj.end,
-                        duration: slotObj.booking?.duration || 60
-                      }) : undefined}
-                      roomId={room.id}
-                      date={formattedDate}
-                      onCloseModal={onCloseModal}
-                    />
+        <View style={{ flex: 1, minWidth: matrix.length * 160 }}>
+          {/* Sticky Header Row: only room names, no time/clock column */}
+          <View style={[
+            styles.row,
+            styles.headerRow,
+            styles.headerShadow,
+            {
+              minWidth: matrix.length * 160 + matrix.length * 20,
+              height: undefined,
+              minHeight: 80,
+              marginTop: 8,
+              marginBottom: 24,
+              paddingTop: 0,
+              paddingBottom: 0,
+              position: 'relative',
+              zIndex: 100,
+              overflow: 'visible',
+            },
+          ]}>
+            {matrix.map((room, idx) => {
+              // Dosha color cycle
+              const doshaColors = ['#6C8CBF', '#E3A857', '#7CB342']; // Vata, Pitta, Kapha
+              const iconBg = doshaColors[idx % doshaColors.length];
+              return (
+                <View
+                  key={room.id}
+                  style={{
+                    flex: 1,
+                    minWidth: 125,
+                    maxWidth: 155,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    backgroundColor: 'transparent',
+                    borderRadius: 0,
+                    margin: 0,
+                    padding: 0,
+                    minHeight: 80,
+                    paddingTop: 24,
+                    paddingBottom: 24,
+                    marginTop: 0,
+                    marginBottom: 0,
+                    display: 'flex',
+                    overflow: 'visible',
+                  }}
+                >
+                  <View style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: iconBg,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 6,
+                    zIndex: 1,
+                    display: 'flex',
+                  }}>
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, textAlign: 'center' }}>🏠</Text>
                   </View>
-                );
-              })}
-            </View>
+                  <Text style={{ fontWeight: '900', fontSize: 16, color: '#1a2233', textAlign: 'center', alignSelf: 'center', marginBottom: 0 }} numberOfLines={1} ellipsizeMode="tail">{room.roomName || room.name || room.id || 'Room'}</Text>
+                </View>
+              );
+            })}
           </View>
-        )
-        )}
+          {/* Slot grid: rows = time slots, columns = rooms (no time column) */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={{ width: '100%' }}
+            contentContainerStyle={{ flexGrow: 1, minWidth: matrix.length * 160 }}
+          >
+            {matrix.length > 0 && matrix[0].slots.map((slot, rowIdx) => (
+              <View key={slot.start} style={[styles.row, { minWidth: matrix.length * 160 }]}>
+                {/* Slot cells for each room */}
+                {matrix.map((room, colIdx) => {
+                  const slotObj = room.slots[rowIdx];
+                  const formattedDate = safeFormatDate(selectedDate, '', 'yyyy-MM-dd');
+                  let therapistsToShow = slotObj.availableTherapists;
+                  if (slotObj.status === SLOT_STATUS.SCHEDULED && slotObj.booking) {
+                    if (Array.isArray(slotObj.booking.therapists) && slotObj.booking.therapists.length > 0) {
+                      therapistsToShow = slotObj.booking.therapists;
+                    } else if (Array.isArray(slotObj.booking.therapistIds)) {
+                      therapistsToShow = slotObj.booking.therapistIds.map(
+                        (id: string) => therapists.find((t: any) => t.id === id)
+                      ).filter(Boolean);
+                    }
+                  }
+                  return (
+                    <View
+                      key={room.id + '-' + slotObj.start}
+                      style={{
+                        minWidth: 125,
+                        maxWidth: 155,
+                        margin: 0,
+                        borderRadius: 0,
+                        padding: 0,
+                        overflow: 'visible',
+                      }}
+                    >
+                      <IntelligentSlot
+                        startTime={slotObj.start}
+                        endTime={slotObj.end}
+                        duration={slotObj.booking?.duration || 60}
+                        clientId={slotObj.booking?.patientId || ''}
+                        patientName={slotObj.booking?.patientName || ''}
+                        patientPhone={slotObj.booking?.patientPhone || ''}
+                        therapyName={slotObj.booking?.therapyName || ''}
+                        treatmentDay={slotObj.booking?.treatmentDay}
+                        availableTherapists={therapistsToShow}
+                        status={slotObj.status}
+                        onBook={slotObj.status === SLOT_STATUS.AVAILABLE || slotObj.status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onBook && onBook(slotObj, room) : undefined}
+                        onReschedule={slotObj.status === SLOT_STATUS.SCHEDULED && slotObj.booking && onRescheduleAppointment
+                          ? () => onRescheduleAppointment(slotObj.booking)
+                          : undefined}
+                        onCancel={onCancelAppointment && slotObj.booking ? () => onCancelAppointment(slotObj.booking.id) : undefined}
+                        onMarkComplete={slotObj.status === SLOT_STATUS.SCHEDULED && slotObj.booking && onCompleteAppointment
+                          ? () => onCompleteAppointment(slotObj.booking)
+                          : undefined}
+                        onCreate={slotObj.status === SLOT_STATUS.AVAILABLE || slotObj.status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onCreateSlot && onCreateSlot({
+                          roomId: room.id,
+                          date: formattedDate,
+                          startTime: slotObj.start,
+                          endTime: slotObj.end,
+                          duration: slotObj.booking?.duration || 60
+                        }) : undefined}
+                        roomId={room.id}
+                        date={formattedDate}
+                        onCloseModal={onCloseModal}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
       </ScrollView>
     </View>
   );
@@ -152,8 +232,11 @@ const isMobile = width < 600;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    padding: 0,
+    margin: 0,
     backgroundColor: '#fff',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   header: {
     fontWeight: 'bold',
@@ -163,11 +246,13 @@ const styles = StyleSheet.create({
   roomsScrollContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingBottom: 10,
+    padding: 0,
+    margin: 0,
+    width: '100%',
   },
   roomColumn: {
-    minWidth: isMobile ? 180 : 220,
-    maxWidth: isMobile ? 220 : 300,
+    minWidth: 180,
+    maxWidth: 220,
     marginRight: 18,
     paddingBottom: 10,
   },
@@ -184,105 +269,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  slotCard: {
-    width: isMobile ? 140 : 180,
-    minHeight: isMobile ? 52 : 72,
-    borderRadius: 12,
-    paddingVertical: isMobile ? 10 : 16,
-    paddingHorizontal: isMobile ? 6 : 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    marginBottom: 10,
+  // Shared grid/header/row/slot/timeCell styles from DoctorSlotGrid
+  row: {
+    ...doctorGridSharedStyles.row,
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    minWidth: 0,
+    flex: 1,
   },
-  cardAvailable: {
-    backgroundColor: '#e6f7ea',
-    borderColor: '#3ad29f',
-    borderWidth: 1,
+  headerRow: {
+    ...doctorGridSharedStyles.headerRow,
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    minWidth: 0,
+    flex: 1,
   },
-  cardUnavailable: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#ddd',
-    borderWidth: 1,
+  headerShadow: doctorGridSharedStyles.headerShadow,
+  timeCell: doctorGridSharedStyles.timeCell,
+  timeText: doctorGridSharedStyles.timeText,
+  slot: {
+    ...doctorGridSharedStyles.slot,
+    margin: 0,
+    padding: 0,
+    minWidth: 0,
+    maxWidth: '100%',
+    flex: 1,
   },
-  cardBreak: {
-    backgroundColor: '#ffd6d6',
-    borderColor: '#ff8888',
-    borderWidth: 1,
-  },
-  cardBooked: {
-    backgroundColor: '#ffeeba',
-    borderColor: '#ffc107',
-    borderWidth: 1,
-  },
-  slotCardTime: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 5,
-    textAlign: 'center',
-  },
-  cardBreakText: {
-    color: '#c00',
-    fontWeight: 'bold',
-    fontSize: 15,
-    textAlign: 'center',
-  },
-  cardUnavailableText: {
-    color: '#888',
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  badgeBooked: {
-    backgroundColor: '#8B0000',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginVertical: 2,
-  },
-  badgeBookedText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  avatarPatient: {
-    backgroundColor: '#1976d2',
-    color: '#fff',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 2,
-  },
-  avatarTherapist: {
-    backgroundColor: '#87CEEB',
-    color: '#fff',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 2,
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  therapyDuration: {
-    color: '#795548',
-    fontWeight: '600',
-    fontSize: 13,
-    marginTop: 2,
-    textAlign: 'center',
-  },
+  centerContent: doctorGridSharedStyles.centerContent,
 });
 
 export default ScheduleMatrix;

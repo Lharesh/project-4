@@ -29,6 +29,8 @@ import type { Appointment as AppointmentType } from '@/features/appointments/app
 import { APPOINTMENT_STATUS } from '@/features/appointments/constants/status';
 import { APPOINTMENT_PARAM_KEYS } from '@/features/appointments/constants/paramKeys';
 import { completeAppointment } from '@/features/appointments/appointmentsSlice';
+import { selectDoctors } from '@/features/appointments/selectors';
+import DoctorAppointmentCard from '@/features/appointments/components/DoctorAppointmentCard';
 
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
@@ -58,12 +60,7 @@ function AppointmentsScreen() {
   // Web cancel dialog state
   const [cancelDialog, setCancelDialog] = useState<{ open: boolean; appointmentId: string | null }>({ open: false, appointmentId: null });
 
-  useEffect(() => {
-    const tabToUse: 'Doctor' | 'Therapy' = validTab ?? 'Doctor';
-    dispatch(fetchAppointments({ validTab: tabToUse, date: selectedKey }) as any);
-  }, [dispatch, validTab, selectedKey]);
-
-  const enforceGenderMatch = useAppSelector(selectEnforceGenderMatch);
+  const doctors = useAppSelector(selectDoctors);
 
   // Status counts
   const getStatusCounts = () => {
@@ -148,6 +145,7 @@ function AppointmentsScreen() {
         [APPOINTMENT_PARAM_KEYS.ROOM_ID]: slotOrAppointment.roomNumber || slotOrAppointment.roomId,
         [APPOINTMENT_PARAM_KEYS.DATE]: slotOrAppointment.date,
         select: 1,
+        tab: Array.isArray(params.tab) ? params.tab[0] : params.tab || 'Therapy',
       },
     });
   };
@@ -222,48 +220,101 @@ function AppointmentsScreen() {
           </div>
         )}
         {/* Date Slider and Status Hashes */}
-        <View style={[styles.dateBarRow, { height: 80, paddingHorizontal: 12, position: 'relative', backgroundColor: '#fff', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2, marginBottom: 4 }]}>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <TouchableOpacity onPress={handlePreviousDay} style={[styles.dateNavButton, { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }]}>
-              <ChevronLeft size={26} color={colors.grayDark} />
-            </TouchableOpacity>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginHorizontal: 8 }}>
-              <Text style={[styles.dateBarText, { fontSize: 16, fontWeight: 'bold', textAlign: 'center' }]}>{format(selectedDate, 'EEE, MMM dd')}</Text>
-              <Text style={[styles.dateBarSubtext, { fontSize: 14, color: '#888', textAlign: 'center', marginTop: 0 }]}>{format(selectedDate, 'yyyy')}</Text>
+        {Platform.OS === 'web' ? (
+          <div style={{ maxWidth: 820, margin: '0 auto', width: '100%' }}>
+            <View style={[
+              styles.dateBarRow,
+              {
+                height: 60,
+                paddingHorizontal: 9,
+                position: 'relative',
+                flexDirection: 'row',
+                flexWrap: 'nowrap',
+                alignItems: 'center',
+                marginBottom: 3
+              }
+            ]}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <TouchableOpacity onPress={handlePreviousDay} style={[styles.dateNavButton, { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }]}>
+                  <ChevronLeft size={20} color={colors.grayDark} />
+                </TouchableOpacity>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginHorizontal: 6 }}>
+                  <Text style={[styles.dateBarText, { fontSize: 12, fontWeight: 'bold', textAlign: 'center' }]}>{format(selectedDate, 'EEE, MMM dd')}</Text>
+                  <Text style={[styles.dateBarSubtext, { fontSize: 10.5, color: '#888', textAlign: 'center', marginTop: 0 }]}>{format(selectedDate, 'yyyy')}</Text>
+                </View>
+                <TouchableOpacity onPress={handleNextDay} style={[styles.dateNavButton, { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }]}>
+                  <ChevronRight size={20} color={colors.grayDark} />
+                </TouchableOpacity>
+              </View>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+                <View style={[styles.statusAvatarMobile, { backgroundColor: '#E8F5ED', paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 24, marginRight: 3 }]}>
+                  <Text style={{ color: '#43A047', fontWeight: 'bold', fontSize: 9.75 }}>✔️</Text>
+                  <Text style={[styles.statusCountText, { fontSize: 9.75 }]}>{completed}</Text>
+                </View>
+                <View style={[styles.statusAvatarMobile, { backgroundColor: '#FFF8E1', paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 24, marginRight: 3 }]}>
+                  <Text style={{ color: '#E65100', fontWeight: 'bold', fontSize: 9.75 }}>✖️</Text>
+                  <Text style={[styles.statusCountText, { fontSize: 9.75 }]}>{cancelled}</Text>
+                </View>
+                <View style={[styles.statusAvatarMobile, { backgroundColor: '#E6EDFF', paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 24 }]}>
+                  <Text style={{ color: '#1976D2', fontWeight: 'bold', fontSize: 9.75 }}>⏰</Text>
+                  <Text style={[styles.statusCountText, { fontSize: 9.75 }]}>{pending}</Text>
+                </View>
+              </View>
             </View>
-            <TouchableOpacity onPress={handleNextDay} style={[styles.dateNavButton, { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }]}>
-              <ChevronRight size={26} color={colors.grayDark} />
-            </TouchableOpacity>
+          </div>
+        ) : (
+          <View style={[styles.dateBarRow, { height: 60, paddingHorizontal: 9, position: 'relative', backgroundColor: '#fff', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2, marginBottom: 3 }]}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <TouchableOpacity onPress={handlePreviousDay} style={[styles.dateNavButton, { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }]}>
+                <ChevronLeft size={20} color={colors.grayDark} />
+              </TouchableOpacity>
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginHorizontal: 6 }}>
+                <Text style={[styles.dateBarText, { fontSize: 12, fontWeight: 'bold', textAlign: 'center' }]}>{format(selectedDate, 'EEE, MMM dd')}</Text>
+                <Text style={[styles.dateBarSubtext, { fontSize: 10.5, color: '#888', textAlign: 'center', marginTop: 0 }]}>{format(selectedDate, 'yyyy')}</Text>
+              </View>
+              <TouchableOpacity onPress={handleNextDay} style={[styles.dateNavButton, { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }]}>
+                <ChevronRight size={20} color={colors.grayDark} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <View style={[styles.statusAvatarMobile, { backgroundColor: '#E8F5ED', paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 24, marginRight: 3 }]}>
+                <Text style={{ color: '#43A047', fontWeight: 'bold', fontSize: 9.75 }}>✔️</Text>
+                <Text style={[styles.statusCountText, { fontSize: 9.75 }]}>{completed}</Text>
+              </View>
+              <View style={[styles.statusAvatarMobile, { backgroundColor: '#FFF8E1', paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 24, marginRight: 3 }]}>
+                <Text style={{ color: '#E65100', fontWeight: 'bold', fontSize: 9.75 }}>✖️</Text>
+                <Text style={[styles.statusCountText, { fontSize: 9.75 }]}>{cancelled}</Text>
+              </View>
+              <View style={[styles.statusAvatarMobile, { backgroundColor: '#E6EDFF', paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 24 }]}>
+                <Text style={{ color: '#1976D2', fontWeight: 'bold', fontSize: 9.75 }}>⏰</Text>
+                <Text style={[styles.statusCountText, { fontSize: 9.75 }]}>{pending}</Text>
+              </View>
+            </View>
           </View>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <View style={[styles.statusAvatarMobile, { backgroundColor: '#E8F5ED', paddingHorizontal: 8, paddingVertical: 2, minWidth: 32, marginRight: 4 }]}>
-              <Text style={{ color: '#43A047', fontWeight: 'bold', fontSize: 13 }}>✔️</Text>
-              <Text style={[styles.statusCountText, { fontSize: 13 }]}>{completed}</Text>
-            </View>
-            <View style={[styles.statusAvatarMobile, { backgroundColor: '#FFF8E1', paddingHorizontal: 8, paddingVertical: 2, minWidth: 32, marginRight: 4 }]}>
-              <Text style={{ color: '#E65100', fontWeight: 'bold', fontSize: 13 }}>✖️</Text>
-              <Text style={[styles.statusCountText, { fontSize: 13 }]}>{cancelled}</Text>
-            </View>
-            <View style={[styles.statusAvatarMobile, { backgroundColor: '#E6EDFF', paddingHorizontal: 8, paddingVertical: 2, minWidth: 32 }]}>
-              <Text style={{ color: '#1976D2', fontWeight: 'bold', fontSize: 13 }}>⏰</Text>
-              <Text style={[styles.statusCountText, { fontSize: 13 }]}>{pending}</Text>
-            </View>
-          </View>
-        </View>
-        {/* Appointment List */}
+        )}
+        {/* Only show appointment cards for the selected date */}
         <ScrollView style={styles.contentContainer}>
           {appointments
             .filter(a => a.date === selectedKey)
             .map(appt => (
-              <AppointmentCard
-                key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`}
-                appointment={appt}
-                dayInfo={seriesDayLookup[appt.id]}
-                onBook={() => handleBookAppointment(appt)}
-                onCancel={() => handleCancelAppointment(appt.id)}
-                onReschedule={() => handleRescheduleAppointment(appt)}
-                onMarkComplete={() => handleMarkCompleteAppointment(appt)}
-              />
+              appt.tab === 'Doctor' ? (
+                <DoctorAppointmentCard
+                  key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`}
+                  appointment={appt}
+                  onBook={() => handleBookAppointment(appt)}
+                  onMarkComplete={() => handleMarkCompleteAppointment(appt)}
+                />
+              ) : (
+                <AppointmentCard
+                  key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`}
+                  appointment={appt}
+                  dayInfo={seriesDayLookup[appt.id]}
+                  onBook={() => handleBookAppointment(appt)}
+                  onCancel={() => handleCancelAppointment(appt.id)}
+                  onReschedule={() => handleRescheduleAppointment(appt)}
+                  onMarkComplete={() => handleMarkCompleteAppointment(appt)}
+                />
+              )
             ))}
           {appointments.filter(a => a.date === selectedKey).length === 0 && (
             <Text style={{ textAlign: 'center', marginTop: 32, color: '#888' }}>

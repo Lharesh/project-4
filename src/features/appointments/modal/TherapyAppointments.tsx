@@ -4,14 +4,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTherapyAppointmentFormV2, TherapyAppointmentFormValues } from '../helpers/useTherapyAppointmentFormV2';
 import * as validationUtils from '@/hooks/validationUtils';
-import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, StyleSheet } from 'react-native';
 import styles, { pickerSelectStyles } from './TherapyAppointments.styles';
 import ScheduleMatrix from '../components/ScheduleMatrix';
 import type { Client } from '@/features/clients/clientsSlice';
 import { buildScheduleMatrix } from './buildScheduleMatrix';
 import { getRecurringConflicts } from '../helpers/conflictCalculations';
 import { getRecurringSlotAlternatives } from '../helpers/recurringSlotAlternatives';
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO, addDays, subDays } from 'date-fns';
 import { safeFormatDate } from '../helpers/dateHelpers';
 import { isSlotInPast } from '../helpers/isSlotInPast';
 import type { Therapist, Room } from '../helpers/availabilityUtils'; // Assuming Room is defined here or provide a local type
@@ -27,6 +27,8 @@ import CancelAppointmentDialog from '../components/CancelAppointmentDialog';
 import { useAppDispatch } from '@/redux/hooks';
 import { cancelAndShiftSeries, completeAppointment } from '../appointmentsSlice';
 import { Platform, Alert } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { colors } from '@/theme';
 
 console.log('TherapyAppointments file loaded');
 
@@ -862,53 +864,108 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
     }
   }, [dispatch]);
 
+  // Add styles for date bar (copied from DoctorAppointments)
+  const dateBarStyles = StyleSheet.create({
+    dateBarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: '#fff',
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+      minHeight: 48,
+      zIndex: 2,
+    },
+    dateNavButton: {
+      padding: 6,
+      borderRadius: 20,
+      backgroundColor: '#f5f5f5',
+      marginHorizontal: 2,
+    },
+    dateBarText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#222',
+    },
+    dateBarSubtext: {
+      fontSize: 13,
+      color: '#888',
+    },
+  });
+
+  // Add local state for selectedDate (like DoctorAppointments)
+  const [selectedDate, setSelectedDate] = React.useState(() => {
+    if (values.startDate) return parseISO(values.startDate);
+    return new Date();
+  });
+
+  // Keep values.startDate in sync with selectedDate
+  React.useEffect(() => {
+    const formatted = safeFormatDate(selectedDate, 'yyyy-MM-dd');
+    if (values.startDate !== formatted) {
+      setStartDate(formatted);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  // If values.startDate changes externally (e.g. via client select), update selectedDate
+  React.useEffect(() => {
+    if (values.startDate) {
+      const d = parseISO(values.startDate);
+      if (selectedDate.toISOString().slice(0, 10) !== d.toISOString().slice(0, 10)) {
+        setSelectedDate(d);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.startDate]);
+
   return (
     <React.Fragment>
-      <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {/* General Error Display */}
-        {error && typeof error === 'string' && (
-          <View style={{ paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#ffebee', borderRadius: 4, marginVertical: 10 }}>
-            <Text style={[styles.errorText, { textAlign: 'center' }]}>{error}</Text>
-          </View>
-        )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-          <TouchableOpacity onPress={() => setStartDate(format(addDays(parseISO(matrixDate), -1), 'yyyy-MM-dd'))}>
-            <Text style={{ fontSize: 28 }}>‹</Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginHorizontal: 16 }}>{matrixDate}</Text>
-          <TouchableOpacity onPress={() => setStartDate(format(addDays(parseISO(matrixDate), 1), 'yyyy-MM-dd'))}>
-            <Text style={{ fontSize: 28 }}>›</Text>
-          </TouchableOpacity>
+      <View style={dateBarStyles.dateBarRow}>
+        <TouchableOpacity onPress={() => setSelectedDate(prev => subDays(prev, 1))} style={dateBarStyles.dateNavButton}>
+          <ChevronLeft size={26} color="#222" />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={dateBarStyles.dateBarText}>{format(selectedDate, 'EEE, MMM dd')}</Text>
+          <Text style={dateBarStyles.dateBarSubtext}>{format(selectedDate, 'yyyy')}</Text>
         </View>
-        {/* Schedule Matrix */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%' }}>
-          <View style={styles.matrixContainer}>
-            {matrix.length > 0 ? (
-              <ScheduleMatrix
-                matrix={matrix}
-                conflicts={recurringConflicts}
-                therapists={therapistsWithAvailability}
-                onSlotSelect={(roomId: string, time: string, date: string) => {
-                  console.log('Slot selected in TherapyAppointments:', { roomId, time, date });
-                  handleChange('timeSlot', time);
-                  handleChange('selectedRoom', roomId);
-                  handleChange('startDate', date);
-                }}
-                selectedTherapists={values.selectedTherapists}
-                selectedDate={matrixDate}
-                onCreateSlot={handleCreateSlot}
-                onCancelAppointment={handleOpenCancelDialog}
-                onRescheduleAppointment={handleRescheduleAppointment}
-                onCompleteAppointment={handleCompleteAppointment}
-                onCloseModal={onClose}
-              />
-            ) : (
-              <Text>No matrix data available.</Text>
-            )}
-          </View>
-        </ScrollView>
-      </ScrollView>
-
+        <TouchableOpacity onPress={() => setSelectedDate(prev => addDays(prev, 1))} style={dateBarStyles.dateNavButton}>
+          <ChevronRight size={26} color="#222" />
+        </TouchableOpacity>
+      </View>
+      {/* General Error Display */}
+      {error && typeof error === 'string' && (
+        <View style={{ paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#ffebee', borderRadius: 4, marginVertical: 10 }}>
+          <Text style={[styles.errorText, { textAlign: 'center' }]}>{error}</Text>
+        </View>
+      )}
+      {/* Schedule Matrix */}
+      <View style={{ flex: 1, width: '100%', alignSelf: 'stretch', padding: 0, margin: 0 }}>
+        {matrix.length > 0 ? (
+          <ScheduleMatrix
+            matrix={matrix}
+            conflicts={recurringConflicts}
+            therapists={therapistsWithAvailability}
+            onSlotSelect={(roomId: string, time: string, date: string) => {
+              console.log('Slot selected in TherapyAppointments:', { roomId, time, date });
+              handleChange('timeSlot', time);
+              handleChange('selectedRoom', roomId);
+              handleChange('startDate', date);
+            }}
+            selectedTherapists={values.selectedTherapists}
+            selectedDate={safeFormatDate(selectedDate, 'yyyy-MM-dd')}
+            onCreateSlot={handleCreateSlot}
+            onCancelAppointment={handleOpenCancelDialog}
+            onRescheduleAppointment={handleRescheduleAppointment}
+            onCompleteAppointment={handleCompleteAppointment}
+            onCloseModal={onClose}
+          />
+        ) : (
+          <Text>No matrix data available.</Text>
+        )}
+      </View>
       {/* Booking Modal Panel */}
       <BookingModalPanel visible={showBookingModal} onClose={onClose}>
         <BookingForm
@@ -923,7 +980,6 @@ const TherapyAppointments: React.FC<TherapyAppointmentsProps> = (props) => {
           onCancel={handleCancelBooking}
         />
       </BookingModalPanel>
-
       {/* Cancel Appointment Dialog (cross-platform) */}
       <CancelAppointmentDialog
         visible={cancelDialog.open}

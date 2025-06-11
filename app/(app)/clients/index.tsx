@@ -51,7 +51,7 @@ import FormContainer from '@/components/ui/FormContainer';
 import FormFieldRow from 'src/components/ui/FormFieldRow';
 import { ChevronRight, Phone, Mail, Search, Plus, UserPlus2, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
 import type { Client } from '@/features/clients/types/client';
-import { ROUTE_NEW_APPOINTMENT_BOOKING } from '@/constants/routes';
+import { ROUTE_DOCTOR_APPOINTMENTS, ROUTE_NEW_APPOINTMENT_BOOKING } from '@/constants/routes';
 
 const EMPTY_CLIENT: Client & { mobileCode: string; altMobileCode: string; prefix?: string } = {
   id: '',
@@ -97,6 +97,7 @@ function ClientsScreen() {
   const handleSelectClient = (client: Client) => {
     console.log('[ClientsScreen] handleSelectClient called', client, 'selectMode:', selectMode);
     if (selectMode) {
+      const tab = Array.isArray(params.tab) ? params.tab[0] : params.tab || 'Therapy';
       const navParams = {
         [APPOINTMENT_PARAM_KEYS.CLIENT_ID]: client.id,
         [APPOINTMENT_PARAM_KEYS.CLIENT_NAME]: client.name,
@@ -105,14 +106,24 @@ function ClientsScreen() {
         [APPOINTMENT_PARAM_KEYS.SLOT_END]: params[APPOINTMENT_PARAM_KEYS.SLOT_END],
         [APPOINTMENT_PARAM_KEYS.ROOM_ID]: params[APPOINTMENT_PARAM_KEYS.ROOM_ID] || params.slotRoom,
         [APPOINTMENT_PARAM_KEYS.DATE]: params[APPOINTMENT_PARAM_KEYS.DATE],
-        tab: 'Therapy',
+        doctorId: params.doctorId,
+        doctorName: params.doctorName,
+        slotTime: params.slotTime,
+        tab,
         t: Date.now(),
       };
       console.log('[ClientsScreen] Navigating to booking modal with params:', navParams);
-      router.replace({
-        pathname: ROUTE_NEW_APPOINTMENT_BOOKING,
-        params: navParams,
-      });
+      if (tab === 'Doctor') {
+        router.replace({
+          pathname: ROUTE_DOCTOR_APPOINTMENTS,
+          params: navParams,
+        });
+      } else {
+        router.replace({
+          pathname: ROUTE_NEW_APPOINTMENT_BOOKING,
+          params: navParams,
+        });
+      }
     } else {
       // ...existing logic for non-select mode
       console.log('[ClientsScreen] handleSelectClient: not in selectMode, no navigation');

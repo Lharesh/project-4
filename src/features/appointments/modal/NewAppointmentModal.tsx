@@ -7,6 +7,7 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import DoctorAppointments from './DoctorAppointments';
 import TherapyAppointments from './TherapyAppointments';
 import { Client } from '@/features/clients/clientsSlice';
+import { useRouter } from 'expo-router';
 
 interface NewAppointmentModalProps {
   visible: boolean;
@@ -72,6 +73,8 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' 
   // Add debug log for therapyAppointments
   console.log('[NewAppointmentModal] therapyAppointments:', therapyAppointments);
 
+  const router = useRouter();
+
   // Minimal styles (expand as needed)
   const styles = StyleSheet.create({
     container: {
@@ -110,12 +113,21 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps & { tab?: 'Doctor' 
 
             {currentTab === 'Doctor' ? (
               <DoctorAppointments
-                clients={props.clients}
-                onClose={props.onClose}
-                onCreate={handleCreate}
-                therapists={props.therapists}
-                appointments={doctorAppointments}
-                newAppointment={props.newAppointment}
+                onSlotSelect={(doctor, slot, date) => {
+                  if (props.onClose) props.onClose();
+                  setTimeout(() => {
+                    router.push({
+                      pathname: '/clients',
+                      params: {
+                        doctorId: doctor.id,
+                        slotTime: slot.time,
+                        date,
+                        tab: 'Doctor',
+                        select: 1,
+                      },
+                    });
+                  }, 10);
+                }}
               />
             ) : (
               <TherapyAppointments

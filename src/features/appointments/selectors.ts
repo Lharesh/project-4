@@ -1,4 +1,4 @@
-import { APPOINTMENT_PARAM_KEYS } from "../constants/paramKeys";
+import { APPOINTMENT_PARAM_KEYS } from "./constants/paramKeys";
 // Memoized selectors for appointments and setup slices
 import { createSelector } from 'reselect';
 
@@ -15,8 +15,8 @@ export const selectDoctorAvailability = createSelector(
 );
 
 export const selectDoctors = createSelector(
-  [selectStaff],
-  (staff) => staff.filter((member: any) => member.role === 'doctor')
+  (state: any) => state.setup?.staff || [],
+  (staff: any[]) => staff.filter((s: any) => s.role === 'doctor')
 );
 
 // Select therapists from staff
