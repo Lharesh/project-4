@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ROUTE_NEW_APPOINTMENT } from '@/constants/routes';
+import { ROUTE_NEW_APPOINTMENT, ROUTE_CLIENTS } from '@/constants/routes';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ import type { TreatmentSlot } from '../../(admin)/clinics/setup/setupSlice';
 import { safeFormatDate } from '@/features/appointments/helpers/dateHelpers';
 import type { Appointment as AppointmentType } from '@/features/appointments/appointmentsSlice';
 import { APPOINTMENT_STATUS } from '@/features/appointments/constants/status';
+import { APPOINTMENT_PARAM_KEYS } from '@/features/appointments/constants/paramKeys';
+import { completeAppointment } from '@/features/appointments/appointmentsSlice';
 
 
 type AppointmentStatus = 'completed' | 'cancelled' | 'pending';
@@ -135,6 +137,21 @@ function AppointmentsScreen() {
     return lookup;
   }, [appointments]);
 
+  // --- Centralized Action Handlers ---
+  const handleBookAppointment = (slotOrAppointment: any) => {
+    router.replace({
+      pathname: ROUTE_CLIENTS,
+      params: {
+        [APPOINTMENT_PARAM_KEYS.SLOT_START]: slotOrAppointment.time || slotOrAppointment.startTime,
+        [APPOINTMENT_PARAM_KEYS.SLOT_END]: slotOrAppointment.endTime,
+        [APPOINTMENT_PARAM_KEYS.DURATION]: slotOrAppointment.duration,
+        [APPOINTMENT_PARAM_KEYS.ROOM_ID]: slotOrAppointment.roomNumber || slotOrAppointment.roomId,
+        [APPOINTMENT_PARAM_KEYS.DATE]: slotOrAppointment.date,
+        select: 1,
+      },
+    });
+  };
+
   const handleCancelAppointment = (appointmentId: string) => {
     if (Platform.OS === 'web') {
       setCancelDialog({ open: true, appointmentId });
@@ -149,6 +166,33 @@ function AppointmentsScreen() {
           { text: 'Cancel All', onPress: () => dispatch(cancelAndShiftSeries({ appointmentId, cancelAll: true }) as any) },
         ]
       );
+    }
+  };
+
+  const handleRescheduleAppointment = (appointment: any) => {
+    router.push({
+      pathname: '/appointments/reschedule',
+      params: { appointmentId: appointment.id },
+    });
+  };
+
+  const handleMarkCompleteAppointment = (appointment: any) => {
+    // Only allow if current time > slot start time
+    const now = new Date();
+    const slotDate = new Date(`${appointment.date}T${appointment.time || appointment.startTime || appointment.slot}`);
+    if (now < slotDate) {
+      if (Platform.OS === 'web') {
+        window.alert('Cannot mark as completed before the appointment start time.');
+      } else {
+        Alert.alert('Error', 'Cannot mark as completed before the appointment start time.');
+      }
+      return;
+    }
+    dispatch(completeAppointment(appointment.id));
+    if (Platform.OS === 'web') {
+      window.alert('Appointment marked as completed.');
+    } else {
+      Alert.alert('Success', 'Appointment marked as completed.');
     }
   };
 
@@ -178,25 +222,36 @@ function AppointmentsScreen() {
           </div>
         )}
         {/* Date Slider and Status Hashes */}
-        <View style={styles.dateBarRow}>
-          <TouchableOpacity onPress={handlePreviousDay} style={styles.dateNavButton}>
-            <ChevronLeft size={24} color={colors.grayDark} />
-          </TouchableOpacity>
-          <View style={styles.dateBarBlock}>
-            <Text style={styles.dateBarText}>{format(selectedDate, 'EEE, MMM d')}</Text>
-            <Text style={styles.dateBarSubtext}>{format(selectedDate, 'yyyy')}</Text>
+        <View style={[styles.dateBarRow, { height: 80, paddingHorizontal: 12, position: 'relative', backgroundColor: '#fff', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2, marginBottom: 4 }]}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <TouchableOpacity onPress={handlePreviousDay} style={[styles.dateNavButton, { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }]}>
+              <ChevronLeft size={26} color={colors.grayDark} />
+            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginHorizontal: 8 }}>
+              <Text style={[styles.dateBarText, { fontSize: 16, fontWeight: 'bold', textAlign: 'center' }]}>{format(selectedDate, 'EEE, MMM dd')}</Text>
+              <Text style={[styles.dateBarSubtext, { fontSize: 14, color: '#888', textAlign: 'center', marginTop: 0 }]}>{format(selectedDate, 'yyyy')}</Text>
+            </View>
+            <TouchableOpacity onPress={handleNextDay} style={[styles.dateNavButton, { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }]}>
+              <ChevronRight size={26} color={colors.grayDark} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={handleNextDay} style={styles.dateNavButton}>
-            <ChevronRight size={24} color={colors.grayDark} />
-          </TouchableOpacity>
-          <View style={styles.statusCounts}>
-            <Text style={[styles.statusBadge, { backgroundColor: colors.kapha.background, color: colors.kapha.primary }]}>#{completed}</Text>
-            <Text style={[styles.statusBadge, { backgroundColor: colors.pitta.background, color: colors.pitta.primary }]}>#{cancelled}</Text>
-            <Text style={[styles.statusBadge, { backgroundColor: colors.vata.background, color: colors.vata.primary }]}>#{pending}</Text>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <View style={[styles.statusAvatarMobile, { backgroundColor: '#E8F5ED', paddingHorizontal: 8, paddingVertical: 2, minWidth: 32, marginRight: 4 }]}>
+              <Text style={{ color: '#43A047', fontWeight: 'bold', fontSize: 13 }}>✔️</Text>
+              <Text style={[styles.statusCountText, { fontSize: 13 }]}>{completed}</Text>
+            </View>
+            <View style={[styles.statusAvatarMobile, { backgroundColor: '#FFF8E1', paddingHorizontal: 8, paddingVertical: 2, minWidth: 32, marginRight: 4 }]}>
+              <Text style={{ color: '#E65100', fontWeight: 'bold', fontSize: 13 }}>✖️</Text>
+              <Text style={[styles.statusCountText, { fontSize: 13 }]}>{cancelled}</Text>
+            </View>
+            <View style={[styles.statusAvatarMobile, { backgroundColor: '#E6EDFF', paddingHorizontal: 8, paddingVertical: 2, minWidth: 32 }]}>
+              <Text style={{ color: '#1976D2', fontWeight: 'bold', fontSize: 13 }}>⏰</Text>
+              <Text style={[styles.statusCountText, { fontSize: 13 }]}>{pending}</Text>
+            </View>
           </View>
         </View>
         {/* Appointment List */}
-        <ScrollView style={{ flex: 1 }}>
+        <ScrollView style={styles.contentContainer}>
           {appointments
             .filter(a => a.date === selectedKey)
             .map(appt => (
@@ -204,7 +259,10 @@ function AppointmentsScreen() {
                 key={appt.id || `${appt.date}_${appt.time}_${appt.clientId || Math.random()}`}
                 appointment={appt}
                 dayInfo={seriesDayLookup[appt.id]}
+                onBook={() => handleBookAppointment(appt)}
                 onCancel={() => handleCancelAppointment(appt.id)}
+                onReschedule={() => handleRescheduleAppointment(appt)}
+                onMarkComplete={() => handleMarkCompleteAppointment(appt)}
               />
             ))}
           {appointments.filter(a => a.date === selectedKey).length === 0 && (
@@ -375,18 +433,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 10,
   },
-  statusBadge: {
-    fontSize: 13,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 4,
-  },
+  statusAvatar: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8, minWidth: 48, justifyContent: 'center' },
+  statusCountText: { marginLeft: 6, fontWeight: 'bold', fontSize: 15, color: '#222' },
   contentContainer: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 8,
   },
   scrollContainer: { padding: 16 },
   card: { marginBottom: 12 },
@@ -396,6 +447,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  statusCountsMobile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusAvatarMobile: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8, minWidth: 48, justifyContent: 'center' },
 });
 export default AppointmentsScreen;
 export const options = {

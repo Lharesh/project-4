@@ -42,6 +42,10 @@ interface ScheduleMatrixProps {
   onCancelAppointment?: (appointmentId: string) => void;
   onRescheduleAppointment?: (booking: any) => void;
   onCompleteAppointment?: (booking: any) => void;
+  onBook?: (slot: RoomSlot, room: MatrixRoom) => void;
+  onCancel?: (appointmentId: string) => void;
+  onReschedule?: (booking: any) => void;
+  onComplete?: (booking: any) => void;
 }
 const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   matrix,
@@ -58,6 +62,10 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   onCancelAppointment,
   onRescheduleAppointment,
   onCompleteAppointment,
+  onBook,
+  onCancel,
+  onReschedule,
+  onComplete,
 }) => {
 
   function handleCellTap(roomNumber: string, slot: string) {
@@ -106,15 +114,12 @@ const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       treatmentDay={slotObj.booking?.treatmentDay}
                       availableTherapists={therapistsToShow}
                       status={status}
-                      onBook={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => handleCellTap(room.id, slotObj.start) : undefined}
+                      onBook={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onBook && onBook(slotObj, room) : undefined}
                       onReschedule={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onRescheduleAppointment
                         ? () => onRescheduleAppointment(slotObj.booking)
                         : undefined}
-                      onCancel={onCancelAppointment && slotObj.booking ? () => {
-                        console.log('[SCHEDULE_MATRIX] onCancel wrapper called for:', slotObj.booking.id);
-                        onCancelAppointment(slotObj.booking.id);
-                      } : undefined}
-                      onConfirmVisit={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onCompleteAppointment
+                      onCancel={onCancelAppointment && slotObj.booking ? () => onCancelAppointment(slotObj.booking.id) : undefined}
+                      onMarkComplete={status === SLOT_STATUS.SCHEDULED && slotObj.booking && onCompleteAppointment
                         ? () => onCompleteAppointment(slotObj.booking)
                         : undefined}
                       onCreate={status === SLOT_STATUS.AVAILABLE || status === SLOT_STATUS.CANCELLED_AVAILABLE ? () => onCreateSlot && onCreateSlot({

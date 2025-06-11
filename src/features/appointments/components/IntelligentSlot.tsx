@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, Alert, Pressable } from 'react-native';
 import { colors, spacing, typography } from '../../../theme';
 import { router } from 'expo-router';
 import { APPOINTMENT_PARAM_KEYS } from '../constants/paramKeys';
@@ -9,6 +9,13 @@ import { X, RefreshCw, CheckCircle, BookOpen } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import styles from './IntelligentSlot.styles';
 import { useDispatch } from 'react-redux';
+
+const getStatusBackgroundColor = (status: string) => {
+  if (status === 'completed') return ['#E8F5ED', '#E8F5ED', '#E8F5ED']; // Green pastel
+  if (status === 'cancelled') return ['#FFF8E1', '#FFF8E1', '#FFF8E1']; // Yellow/orange pastel
+  if (status === 'scheduled') return ['#E6EDFF', '#E6EDFF', '#E6EDFF']; // Blue pastel
+  return ['#fff', '#fff', '#fff'];
+};
 
 export type IntelligentSlotStatus = SlotStatus;
 
@@ -39,6 +46,7 @@ interface IntelligentSlotProps {
   roomId?: string;
   date?: string;
   onCloseModal?: () => void; // Optional: close parent modal before navigation
+  onMarkComplete?: () => void;
 }
 
 const SLOT_SIZE = {
@@ -71,12 +79,15 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
   roomId,
   date,
   onCloseModal,
+  onMarkComplete,
 }) => {
   let mainContent = null;
   let actions = null;
   let statusLabel = '';
 
   const dispatch = useDispatch();
+
+  const [menuVisible, setMenuVisible] = React.useState(false);
 
   // Dosha color cycle for avatars
   const doshaColors = [
@@ -280,7 +291,7 @@ const IntelligentSlot: React.FC<IntelligentSlotProps> = ({
 
   return (
     <LinearGradient
-      colors={getSlotBackground(status) as [string, string, string]}
+      colors={getStatusBackgroundColor(status) as [string, string, string]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[

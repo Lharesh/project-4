@@ -33,16 +33,25 @@ const CardComponent = ({
   onPress,
   activeOpacity,
   children,
-  headerStyle,
-  bodyStyle,
-  titleStyle,
-  subtitleStyle,
 }: CardComponentProps) => {
   const Component = onPress ? TouchableOpacity : View;
 
+  function safeRender(children: React.ReactNode): React.ReactNode {
+    if (typeof children === 'string' || typeof children === 'number') {
+      return <Text>{children}</Text>;
+    }
+    if (Array.isArray(children)) {
+      return children.map((child, i) => <React.Fragment key={i}>{safeRender(child)}</React.Fragment>);
+    }
+    if (React.isValidElement(children) && children.type === React.Fragment) {
+      return safeRender((children as React.ReactElement<any>).props.children);
+    }
+    return children;
+  }
+
   return (
     <Component style={style} onPress={onPress} activeOpacity={activeOpacity}>
-      {children}
+      {safeRender(children)}
     </Component>
   );
 };
@@ -59,6 +68,18 @@ const Card: React.FC<CardProps> = ({
   subtitleStyle,
   rightHeader,
 }: CardProps) => {
+  function renderCardChildren(children: React.ReactNode): React.ReactNode {
+    if (typeof children === 'string' || typeof children === 'number') {
+      return <Text>{children}</Text>;
+    }
+    if (Array.isArray(children)) {
+      return children.map((child, i) => <React.Fragment key={i}>{renderCardChildren(child)}</React.Fragment>);
+    }
+    if (React.isValidElement(children) && children.type === React.Fragment) {
+      return renderCardChildren((children as React.ReactElement<any>).props.children);
+    }
+    return children;
+  }
   return (
     <CardComponent
       style={[styles.container, style]}
@@ -78,9 +99,7 @@ const Card: React.FC<CardProps> = ({
         </View>
       ) : null}
       <View style={[styles.body, bodyStyle]}>
-        {React.Children.map(children, child =>
-          typeof child === 'string' ? <Text>{child}</Text> : child
-        )}
+        {renderCardChildren(children)}
       </View>
     </CardComponent>
   );

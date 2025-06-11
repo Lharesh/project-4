@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     justifyContent: 'center',
     paddingHorizontal: 4,
-    paddingVertical: 2,
+    paddingVertical: 0,
   },
   rowCellContent: {
     flexDirection: 'row',
@@ -28,7 +28,8 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'column',
     alignItems: 'flex-start',
-    paddingVertical: 10,
+    paddingTop: 2,
+    paddingBottom: 10,
     paddingHorizontal: 12,
     marginBottom: 8,
     minHeight: 90,

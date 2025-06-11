@@ -146,6 +146,17 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSizeSm,
         fontStyle: 'italic',
     },
+    menuButton: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        zIndex: 10,
+    },
 });
 
 export default styles; 

@@ -171,7 +171,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
     }
   }, [error]);
 
-  if (Platform.OS === 'web') {
+  if (Platform.select({ web: true, default: false })) {
     // Get the selected therapy object
     const selectedTherapyObj = therapies.find((t: any) => t.id === values.selectedTherapy);
     // Show filtered therapies if searching, else show all
@@ -257,12 +257,25 @@ const BookingForm: React.FC<BookingFormProps> = ({
             {touched.selectedTherapy && errors.selectedTherapy && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapy}</div>}
           </div>
           {/* Rooms */}
-          <div style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', overflow: 'hidden' }}>
-            {availableRooms.map((r: any) => (
-              <button type="button" key={r.id} style={{ background: values.selectedRoom === r.id ? '#1976d2' : '#eee', color: values.selectedRoom === r.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer' }} onClick={() => handleChange('selectedRoom', r.id)}>{r.name}</button>
-            ))}
-            {touched.selectedRoom && errors.selectedRoom && <div style={{ color: 'red', fontSize: 12 }}>{errors.selectedRoom}</div>}
-          </div>
+          {Platform.OS === 'web' ? (
+            <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+              onWheel={e => { e.currentTarget.scrollLeft += e.deltaY; }}
+            >
+              <style>{`div::-webkit-scrollbar{display:none}`}</style>
+              {availableRooms.map((r: any) => (
+                <button type="button" key={r.id} style={{ background: values.selectedRoom === r.id ? '#1976d2' : '#eee', color: values.selectedRoom === r.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer', display: 'inline-block', marginBottom: 0 }} onClick={() => handleChange('selectedRoom', r.id)}>{r.name}</button>
+              ))}
+              {touched.selectedRoom && errors.selectedRoom && <div style={{ color: 'red', fontSize: 12, display: 'inline-block' }}>{errors.selectedRoom}</div>}
+            </div>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              {availableRooms.map((r: any) => (
+                <TouchableOpacity key={r.id} style={{ backgroundColor: values.selectedRoom === r.id ? '#1976d2' : '#eee', borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, marginBottom: 0 }} onPress={() => handleChange('selectedRoom', r.id)}>
+                  <Text style={{ color: values.selectedRoom === r.id ? '#fff' : '#222' }}>{r.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
           {/* Therapists */}
           <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
             {filteredTherapists.map((t: any) => {
@@ -423,14 +436,25 @@ const BookingForm: React.FC<BookingFormProps> = ({
         {touched.selectedTherapy && errors.selectedTherapy && <Text style={{ color: 'red', fontSize: 12 }}>{errors.selectedTherapy}</Text>}
       </View>
       {/* Rooms */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-        {availableRooms.map((r: any) => (
-          <TouchableOpacity key={r.id} style={{ backgroundColor: values.selectedRoom === r.id ? '#1976d2' : '#eee', borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, marginBottom: 8 }} onPress={() => handleChange('selectedRoom', r.id)}>
-            <Text style={{ color: values.selectedRoom === r.id ? '#fff' : '#222' }}>{r.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {touched.selectedRoom && errors.selectedRoom && <Text style={{ color: 'red', fontSize: 12 }}>{errors.selectedRoom}</Text>}
+      {Platform.OS === 'web' ? (
+        <div style={{ marginBottom: 12, overflowX: 'auto', whiteSpace: 'nowrap', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+          onWheel={e => { e.currentTarget.scrollLeft += e.deltaY; }}
+        >
+          <style>{`div::-webkit-scrollbar{display:none}`}</style>
+          {availableRooms.map((r: any) => (
+            <button type="button" key={r.id} style={{ background: values.selectedRoom === r.id ? '#1976d2' : '#eee', color: values.selectedRoom === r.id ? '#fff' : '#222', borderRadius: 4, padding: '6px 14px', border: 'none', marginRight: 8, cursor: 'pointer', display: 'inline-block', marginBottom: 0 }} onClick={() => handleChange('selectedRoom', r.id)}>{r.name}</button>
+          ))}
+          {touched.selectedRoom && errors.selectedRoom && <div style={{ color: 'red', fontSize: 12, display: 'inline-block' }}>{errors.selectedRoom}</div>}
+        </div>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+          {availableRooms.map((r: any) => (
+            <TouchableOpacity key={r.id} style={{ backgroundColor: values.selectedRoom === r.id ? '#1976d2' : '#eee', borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, marginBottom: 0 }} onPress={() => handleChange('selectedRoom', r.id)}>
+              <Text style={{ color: values.selectedRoom === r.id ? '#fff' : '#222' }}>{r.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
       {/* Therapists */}
       <ScrollView horizontal style={{ marginBottom: 12 }} showsHorizontalScrollIndicator={false}>
         {filteredTherapists.map((t: any) => {

@@ -235,6 +235,16 @@ export const rescheduleAppointmentThunk = createAsyncThunk(
       // Map form fields to canonical fields
       if (typeof (updates as any).startDate === 'string') updates.date = (updates as any).startDate;
       if (typeof (updates as any).timeSlot === 'string') updates.time = (updates as any).timeSlot;
+      // Set duration to correct treatment duration
+      if (typeof (updates as any).selectedTherapy === 'string') {
+        const therapies = state.setup?.treatmentSlots || [];
+        const therapy = therapies.find((t: any) => String(t.id) === String((updates as any).selectedTherapy));
+        if (therapy && therapy.duration) {
+          updates.duration = therapy.duration;
+        }
+      }
+      // Add log to verify mapped fields
+      console.log('[rescheduleAppointmentThunk] mapped updates:', updates);
       // Create new appointment with updated values
       if (!updates.date) {
         throw new Error('No date selected for reschedule.');
@@ -261,6 +271,16 @@ export const rescheduleAppointmentThunk = createAsyncThunk(
       if (updates.date && updates.date !== original.date) {
         throw new Error('Date change is not allowed for multi-day/series appointments.');
       }
+      // Set duration to correct treatment duration for series slot
+      if (typeof (updates as any).selectedTherapy === 'string') {
+        const therapies = state.setup?.treatmentSlots || [];
+        const therapy = therapies.find((t: any) => String(t.id) === String((updates as any).selectedTherapy));
+        if (therapy && therapy.duration) {
+          updates.duration = therapy.duration;
+        }
+      }
+      // Add log to verify mapped fields
+      console.log('[rescheduleAppointmentThunk] mapped updates (series):', updates);
       // Update the relevant slot in the series
       const updatedAppointments: Appointment[] = appointments.map(a => {
         if (a.seriesId === original.seriesId && a.date === original.date) {
